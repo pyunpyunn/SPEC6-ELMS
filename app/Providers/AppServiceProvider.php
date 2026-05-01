@@ -19,6 +19,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // ... potentially other code ...
+
+        // This tells Fortify: "When someone visits /login, show this Blade file"
+        \Laravel\Fortify\Fortify::loginView(function () {
+            return view('auth.login'); 
+        });
+    
+        // Optional: Do the same for register if you need it
+        \Laravel\Fortify\Fortify::registerView(function () {
+            return view('auth.register');
+        });
     }
 }
