@@ -1,20 +1,48 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\EmployeeController; // Make sure to import your controller!
+use App\Http\Controllers\Hr\HrController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('home') : view('welcome');
 });
 
-// A group for anyone who is logged in
 Route::middleware(['auth'])->group(function () {
-    
-    // The shared home page you wanted
     Route::get('/home', function () {
-        return view('home');
+        return auth()->user()->role === 'hr_admin'
+            ? redirect()->route('hr.dashboard')
+            : view('home');
     })->name('home');
 
-    // This will work once you have the EmployeeController set up
-    Route::resource('employees', EmployeeController::class);
+    Route::middleware('role:hr_admin')->prefix('hr')->name('hr.')->group(function () {
+        Route::get('/dashboard', [HrController::class, 'dashboard'])->name('dashboard');
+        Route::get('/users/pending', [HrController::class, 'pendingUsers'])->name('users.pending');
+        Route::post('/users/{user}/activate', [HrController::class, 'activateUser'])->name('users.activate');
+
+        Route::get('/employees', [HrController::class, 'employees'])->name('employees.index');
+        Route::post('/employees', [HrController::class, 'storeEmployee'])->name('employees.store');
+        Route::put('/employees/{employee}', [HrController::class, 'updateEmployee'])->name('employees.update');
+        Route::patch('/employees/{employee}/deactivate', [HrController::class, 'deactivateEmployee'])->name('employees.deactivate');
+
+        Route::get('/departments', [HrController::class, 'departments'])->name('departments.index');
+        Route::post('/departments', [HrController::class, 'storeDepartment'])->name('departments.store');
+        Route::put('/departments/{department}', [HrController::class, 'updateDepartment'])->name('departments.update');
+
+        Route::get('/leave-types', [HrController::class, 'leaveTypes'])->name('leave-types.index');
+        Route::post('/leave-types', [HrController::class, 'storeLeaveType'])->name('leave-types.store');
+        Route::put('/leave-types/{leaveType}', [HrController::class, 'updateLeaveType'])->name('leave-types.update');
+        Route::get('/my-leave', [HrController::class, 'myLeave'])->name('my-leave');
+
+        Route::get('/requests', [HrController::class, 'requests'])->name('requests.index');
+        Route::patch('/requests/{leaveApplication}/review', [HrController::class, 'reviewRequest'])->name('requests.review');
+
+        Route::get('/reports', [HrController::class, 'reports'])->name('reports.index');
+        Route::get('/reports/export', [HrController::class, 'export'])->name('reports.export');
+        Route::get('/calendar', [HrController::class, 'calendar'])->name('calendar');
+    });
+
+    Route::get('/notifications', [HrController::class, 'notifications'])->name('notifications');
+    Route::get('/profile', [HrController::class, 'profile'])->name('profile');
+    Route::put('/profile', [HrController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/profile/password', [HrController::class, 'updatePassword'])->name('profile.password');
 });

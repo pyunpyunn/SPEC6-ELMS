@@ -32,12 +32,16 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
+            'employee_id' => ['nullable', 'string', 'max:30'],
         ])->validate();
 
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
+            'role' => 'employee',
+            'status' => 'pending',
+            'pending_employee_id' => $input['employee_id'] ?? null,
         ]);
     }
 }

@@ -5,6 +5,7 @@
 </head>
 <body>
     <h2>Create an Account</h2>
+    <p>New registrations are set to pending until HR verifies the Employee ID and activates the account.</p>
     
     @if ($errors->any())
         <div style="color: red;">
@@ -21,6 +22,11 @@
         <div>
             <label>Full Name</label>
             <input type="text" name="name" value="{{ old('name') }}" required autofocus>
+        </div>
+
+        <div>
+            <label>Employee ID</label>
+            <input type="text" name="employee_id" value="{{ old('employee_id') }}" placeholder="EMP-0052">
         </div>
 
         <div>
