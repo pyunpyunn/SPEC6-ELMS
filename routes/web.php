@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\EmployeeController; // Make sure to import your controller!
+use App\Http\Controllers\EmployeePortalController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -15,6 +15,16 @@ Route::middleware(['auth'])->group(function () {
         return view('home');
     })->name('home');
 
-    // This will work once you have the EmployeeController set up
-    Route::resource('employees', EmployeeController::class);
+    Route::get('/dashboard/employee', [EmployeePortalController::class, 'dashboard'])->name('dashboard.employee');
+    Route::prefix('employee')->name('employee.')->group(function () {
+        Route::get('/leave', [EmployeePortalController::class, 'myLeave'])->name('leave.index');
+        Route::get('/leave/create', [EmployeePortalController::class, 'createLeave'])->name('leave.create');
+        Route::post('/leave', [EmployeePortalController::class, 'storeLeave'])->name('leave.store');
+        Route::get('/leave/history', [EmployeePortalController::class, 'leaveHistory'])->name('leave.history');
+        Route::delete('/leave/{leaveApplication}', [EmployeePortalController::class, 'cancelLeave'])->name('leave.cancel');
+        Route::get('/reports', [EmployeePortalController::class, 'reports'])->name('reports');
+        Route::get('/leave/balances', [EmployeePortalController::class, 'reports'])->name('leave.balances');
+        Route::get('/notifications', [EmployeePortalController::class, 'notifications'])->name('notifications');
+        Route::get('/profile', [EmployeePortalController::class, 'profile'])->name('profile');
+    });
 });

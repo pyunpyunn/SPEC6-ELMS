@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeaveType extends Model
 {
-    //
+    protected $fillable = ['name', 'annual_allocation', 'requires_approval'];
 }

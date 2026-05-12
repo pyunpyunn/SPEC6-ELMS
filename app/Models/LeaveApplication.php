@@ -17,6 +17,11 @@ class LeaveApplication extends Model
         'remarks'
     ];
 
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+    ];
+
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);

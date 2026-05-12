@@ -12,6 +12,11 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        \App\Models\Employee::create([
+            'name' => 'Temp Employee',
+            'email' => 'employee@example.com',
+            'role' => 'employee',
+            'password' => bcrypt('password'),
+        ]);
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\User;
+use App\Observers\UserObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // ... potentially other code ...
+        // Register UserObserver to auto-create Employee profile
+        User::observe(UserObserver::class);
 
         // This tells Fortify: "When someone visits /login, show this Blade file"
         \Laravel\Fortify\Fortify::loginView(function () {
