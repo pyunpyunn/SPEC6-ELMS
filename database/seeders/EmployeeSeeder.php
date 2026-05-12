@@ -20,7 +20,6 @@ class EmployeeSeeder extends Seeder
             ['FIN', 'Finance', 'Payroll, accounting, and financial reporting', 'elena.garcia@company.com'],
             ['OPS', 'Operations', 'Daily business operations and coordination', null],
             ['MKT', 'Marketing', 'Campaigns, brand, and customer communications', null],
-            ['ADM', 'Administration', 'Administrative services and office support', null],
         ])->mapWithKeys(function ($department) {
             $manager = $department[3] ? User::where('email', $department[3])->first() : null;
             $created = Department::updateOrCreate(
@@ -32,12 +31,12 @@ class EmployeeSeeder extends Seeder
         });
 
         $employees = [
-            ['EMP-0001', 'hr@company.com', 'Maria', 'Andres', 'HR', 'HR Administrator', '2018-01-05', 1500],
-            ['EMP-0004', 'manager@test.com', 'Roberto', 'Cruz', 'IT', 'IT Manager', '2019-03-12', 1450],
-            ['EMP-0005', 'elena.garcia@company.com', 'Elena', 'Garcia', 'FIN', 'Finance Manager', '2019-06-18', 1400],
-            ['EMP-0012', 'juan.delacruz@company.com', 'Juan', 'dela Cruz', 'IT', 'Senior Developer', '2021-02-11', 1200],
-            ['EMP-0018', 'sofia.lim@company.com', 'Sofia', 'Lim', 'FIN', 'Accountant', '2022-07-20', 1000],
-            ['EMP-0021', 'renz.pascual@company.com', 'Renz', 'Pascual', 'OPS', 'Operations Lead', '2020-11-09', 900],
+            ['EMP-0001', 'hr@company.com', 'Maria', 'Andres', 'HR', 'HR Administrator', 'female', '2018-01-05', 1500],
+            ['EMP-0004', 'manager@test.com', 'Roberto', 'Cruz', 'IT', 'IT Manager', 'male', '2019-03-12', 1450],
+            ['EMP-0005', 'elena.garcia@company.com', 'Elena', 'Garcia', 'FIN', 'Finance Manager', 'female', '2019-06-18', 1400],
+            ['EMP-0012', 'juan.delacruz@company.com', 'Juan', 'dela Cruz', 'IT', 'Senior Developer', 'male', '2021-02-11', 1200],
+            ['EMP-0018', 'sofia.lim@company.com', 'Sofia', 'Lim', 'FIN', 'Accountant', 'female', '2022-07-20', 1000],
+            ['EMP-0021', 'renz.pascual@company.com', 'Renz', 'Pascual', 'OPS', 'Operations Lead', 'male', '2020-11-09', 900],
         ];
 
         foreach ($employees as $row) {
@@ -50,13 +49,14 @@ class EmployeeSeeder extends Seeder
                     'department_id' => $department->id,
                     'first_name' => $row[2],
                     'last_name' => $row[3],
+                    'gender' => $row[6],
                     'department' => $department->name,
                     'position' => $row[5],
-                    'date_hired' => $row[6],
+                    'date_hired' => $row[7],
                     'contact_info' => $user->email,
                     'phone' => '+63 917 123 4567',
                     'address' => 'Makati City',
-                    'daily_rate' => $row[7],
+                    'daily_rate' => $row[8],
                     'employment_status' => 'active',
                 ]
             );

@@ -17,6 +17,7 @@ class ProfileRequest extends FormRequest
         return [
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
+            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->user()->id)],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],

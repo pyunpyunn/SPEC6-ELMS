@@ -7,17 +7,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('hr-prototype.css') }}">
     <style>
-        .page{display:block}.grid{display:grid;gap:16px}.two{grid-template-columns:1fr 340px}.cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.form .full{grid-column:1/-1}.form label{display:block;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--text2)}.form input,.form select,.form textarea{width:100%}
-        .card-h{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:700;color:var(--text)}.card-b{padding:18px 20px}
-        .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;gap:16px;flex-wrap:wrap}.page-head h1{font-size:21px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1.2;margin:0}.muted{color:var(--text3);font-size:12px}.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}.filters select,.filters input{padding:8px 11px;min-width:130px}
+        .page{display:block}.grid{display:grid;gap:16px}.two{grid-template-columns:1fr 340px}.cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.form .full{grid-column:1/-1}.form label{display:block;margin-bottom:6px;font-size:15px;font-weight:700;color:var(--text2)}.form input,.form select,.form textarea{width:100%}
+        .card-h{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:700;color:var(--text)}.card-b{padding:18px 20px}
+        .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;gap:16px;flex-wrap:wrap}.page-head h1{font-size:21px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1.2;margin:0}.muted{color:var(--text3);font-size:15px}.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}.filters select,.filters input{padding:8px 11px;min-width:130px}
         .badge.pending{background:var(--warning-bg);color:var(--warning)}.badge.approved,.badge.active{background:var(--success-bg);color:var(--success)}.badge.rejected,.badge.inactive{background:var(--danger-bg);color:var(--danger)}.badge.hr{background:var(--primary-bg);color:var(--primary)}.badge.manager{background:var(--info-bg);color:var(--info)}
         .flash.warning{background:var(--warning-bg);border:1px solid rgba(184,114,20,.22);color:var(--warning)}.flash.success{background:var(--success-bg);border:1px solid rgba(42,117,84,.22);color:var(--success)}
         .dark .sidebar{background:#1b241f}.dark .sb-item:hover{background:rgba(255,255,255,.08)}.dark .sb-item.active{background:rgba(255,255,255,.13)}
-        .btn.primary{background:var(--primary);color:#fff}.btn.success{background:var(--success-bg);color:var(--success);border:1px solid rgba(42,117,84,.22)}.btn.danger{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(184,48,48,.22)}.btn.small{padding:6px 11px;font-size:11px}
-        .pagination nav{display:flex;gap:6px;align-items:center}.pagination svg{width:16px;height:16px}.pagination p{font-size:11px;color:var(--text3)}
+        .btn.primary{background:var(--primary);color:#fff}.btn.success{background:var(--success-bg);color:var(--success);border:1px solid rgba(42,117,84,.22)}.btn.danger{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(184,48,48,.22)}.btn.small{padding:6px 11px;font-size:15px}
+        .pagination nav{display:flex;gap:6px;align-items:center}.pagination svg{width:16px;height:16px}.pagination p{font-size:15px;color:var(--text3)}
         details summary{list-style:none}details summary::-webkit-details-marker{display:none}.actions{display:flex;gap:7px;flex-wrap:wrap}
         .calendar-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.cal-item{border-left:4px solid var(--primary);padding:10px;border-radius:8px;background:var(--surface2)}
-        .full-cal-grid .cal-day{min-height:112px}.cal-event{font-size:10.5px;margin-top:4px;padding:3px 5px;border-radius:4px;background:var(--primary-bg);border:1px solid var(--primary);color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .full-cal-grid .cal-day{min-height:112px}.cal-event{font-size:15px;margin-top:4px;padding:3px 5px;border-radius:4px;background:var(--primary-bg);border:1px solid var(--primary);color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         @media(max-width:1100px){.two{grid-template-columns:1fr}}@media(max-width:760px){.form{grid-template-columns:1fr}.header .brand-name{display:none}}
     </style>
 </head>
@@ -69,21 +69,27 @@
 
         <div class="sb-footer">
             <div class="sb-leave-balance">
-                <div class="sb-balance-title"><span>My Leave Balance</span><select class="sb-balance-filter" onchange="filterSidebarBalance(this.value)"><option value="">All</option>@foreach(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [] as $balance)<option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>@endforeach</select></div>
-                <div id="sidebarBalanceItems">
-                    @forelse(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [] as $balance)
-                        <div class="sb-balance-item lt-{{ $balance->leave_type_id }}"><span class="sb-balance-label">{{ $balance->leaveType->name }}</span><span class="sb-balance-val">{{ (int) $balance->remaining_days }}</span></div>
-                    @empty
-                        <div class="sb-balance-item"><span class="sb-balance-label">No balances yet</span><span class="sb-balance-val">0</span></div>
-                    @endforelse
+                <div class="sb-balance-title">
+                    <span>My Leave Balance</span>
+                    @php($sidebarDefaultFilter = optional((collect(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [])->first(fn ($balance) => str_contains(strtolower($balance->leaveType?->name ?? ''), 'sick'))))->leave_type_id)
+                    <select class="sb-balance-filter" id="sidebarBalanceFilter" onchange="filterSidebarBalance(this.value)">
+                        <option value="all">All types</option>
+                        @foreach(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [] as $balance)
+                            <option value="lt-{{ $balance->leave_type_id }}" @selected(($sidebarDefaultFilter && $sidebarDefaultFilter == $balance->leave_type_id) || (! $sidebarDefaultFilter && $loop->first))>{{ $balance->leaveType->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
-            </div>
-            <div class="sb-user" style="margin-top:10px">
-                <div class="sb-avatar">{{ collect(explode(' ', auth()->user()->name))->map(fn($p)=>$p[0] ?? '')->take(2)->join('') }}</div>
-                <div class="sb-user-info">
-                    <div class="sbun">{{ auth()->user()->name }}</div>
-                    <div class="sbur">{{ auth()->user()->employee?->position ?? 'HR Admin' }}</div>
-                    <div class="sbdept">{{ auth()->user()->employee?->departmentRecord?->name ?? 'Human Resources' }}</div>
+                <div class="sb-balance-note">Filtered by leave type. Sick Leave is shown first when available.</div>
+                <div id="sidebarBalanceItems">
+                    @php($sidebarBalances = collect(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [])->sortBy(fn ($balance) => str_contains(strtolower($balance->leaveType?->name ?? ''), 'sick') ? 0 : 1))
+                    @forelse($sidebarBalances as $balance)
+                        <div class="sb-balance-item lt-{{ $balance->leave_type_id }}" data-type="lt-{{ $balance->leave_type_id }}">
+                            <span class="sb-balance-label">{{ $balance->leaveType->name }}</span>
+                            <span class="sb-balance-val">{{ (int) $balance->remaining_days }}</span>
+                        </div>
+                    @empty
+                        <div class="sb-balance-item" data-type="all"><span class="sb-balance-label">No balances yet</span><span class="sb-balance-val">0</span></div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -108,7 +114,7 @@
                         <div class="notif-header"><h4>Notifications</h4><a class="notif-mark" href="{{ route('notifications') }}">View all</a></div>
                         <div class="notif-list">
                             @forelse(auth()->user()->notifications()->latest()->take(5)->get() as $notice)
-                                <a class="notif-item {{ $notice->read_at ? '' : 'unread' }}" href="{{ $notice->action_url ?: route('notifications') }}">
+                                <a class="notif-item {{ $notice->read_at ? '' : 'unread' }}" href="{{ route('notifications.read', $notice) }}">
                                     <span class="notif-dot"></span><span class="notif-content"><p>{{ $notice->title }}</p><span>{{ $notice->created_at->diffForHumans() }}</span></span>
                                 </a>
                             @empty
@@ -126,7 +132,7 @@
                 <div class="profile-dropdown" id="profileDropdown">
                     <a href="{{ route('profile') }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</a>
                     <div class="pdivider"></div>
-                    <form method="POST" action="{{ route('logout') }}">@csrf<button class="logout" style="width:100%;text-align:left;background:none;border:0;padding:10px 14px;font-size:12px;color:var(--danger)">Logout</button></form>
+                    <form method="POST" action="{{ route('logout') }}">@csrf<button class="logout" style="width:100%;text-align:left;background:none;border:0;padding:10px 14px;font-size:15px;color:var(--danger)">Logout</button></form>
                 </div>
             </div>
         </header>
@@ -143,10 +149,18 @@
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
 function toggleProfile(){document.getElementById('profileDropdown').classList.toggle('open')}
 function toggleNotifications(){document.getElementById('notifDropdown').classList.toggle('open')}
-function filterSidebarBalance(value){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(row){row.style.display=!value||row.classList.contains(value)?'flex':'none'})}
+function filterSidebarBalance(value){
+    document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(row){
+        row.style.display = value === 'all' || !value || row.dataset.type === value ? 'flex' : 'none';
+    });
+}
 function toggleDark(){document.documentElement.classList.toggle('dark');localStorage.setItem('elms-dark',document.documentElement.classList.contains('dark')?'1':'0')}
 if(localStorage.getItem('elms-dark')==='1'){document.documentElement.classList.add('dark')}
-document.addEventListener('click',function(e){if(!e.target.closest('.profile-area')&&!e.target.closest('#profileDropdown')){document.getElementById('profileDropdown')?.classList.remove('open')}if(!e.target.closest('.notif-wrap')){document.getElementById('notifDropdown')?.classList.remove('open')}})
+document.addEventListener('DOMContentLoaded',function(){const filter=document.getElementById('sidebarBalanceFilter');if(filter){filterSidebarBalance(filter.value)}})
+document.addEventListener('click',function(e){
+    if(!e.target.closest('.profile-area')&&!e.target.closest('#profileDropdown')){document.getElementById('profileDropdown')?.classList.remove('open')}
+    if(!e.target.closest('.notif-wrap')){document.getElementById('notifDropdown')?.classList.remove('open')}
+})
 </script>
 @stack('scripts')
 </body>

@@ -29,10 +29,10 @@
             <div class="stat-top"><div><div class="stat-value">{{ $stats['employees'] }}</div><div class="stat-label">Total Employees</div></div><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-top"><div><div class="stat-value">{{ $stats['pending_manager'] }}</div><div class="stat-label">Pending Manager Leave Approval</div><div class="stat-change down">Red badge: needs review</div></div><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
+            <div class="stat-top"><div><div class="stat-value">{{ $stats['pending_manager'] }}</div><div class="stat-label">Pending Manager Leave Approval</div><div class="stat-change down"><span class="badge badge-pending">Needs review</span></div></div><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-top"><div><div class="stat-value">{{ $stats['pending_users'] }}</div><div class="stat-label">Pending Verification for Registered Accounts</div><div class="stat-change down">Red badge: verify users</div></div><div class="stat-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M17 11l2 2 4-4"/></svg></div></div>
+            <div class="stat-top"><div><div class="stat-value">{{ $stats['pending_users'] }}</div><div class="stat-label">Pending Verification for Registered Accounts</div><div class="stat-change down"><span class="badge badge-pending">Verify users</span></div></div><div class="stat-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M17 11l2 2 4-4"/></svg></div></div>
         </div>
         <div class="stat-card">
             <div class="stat-top"><div><div class="stat-value">{{ $stats['leaves_this_month'] }}</div><div class="stat-label">Total Leaves This Month</div><div class="stat-change up">{{ $stats['most_used'] }} most used</div></div><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
@@ -65,10 +65,10 @@
             </div>
 
             <div class="card">
-                <div class="card-header"><span class="card-title">Leave Summary by Department</span><span style="font-size:11px;color:var(--text3)">Click a department to view request log</span></div>
+                <div class="card-header"><span class="card-title">Leave Summary by Department</span><span style="font-size:15px;color:var(--text3)">Click a department to view request log</span></div>
                 <div class="card-body">
                     @foreach($departmentSummaries as $summary)
-                        <a class="dept-leave-row" href="{{ route('hr.requests.index', ['department_id' => $summary['department']->id]) }}">
+                        <a class="dept-leave-row" href="{{ route('hr.requests.index', ['department_id' => $summary['department']->id]) }}" style="padding:12px 0;border-bottom:1px solid var(--border)">
                             <div class="dept-leave-label"><span>{{ $summary['department']->name }}</span><span class="dept-leave-link">View logs →</span></div>
                             <div style="display:flex;align-items:center;gap:10px">
                                 <div class="progress" style="flex:1"><div class="progress-bar" style="width:{{ min(100, $summary['on_leave'] * 18) }}%"></div></div>
@@ -91,7 +91,7 @@
                 </div>
             </div>
             <div class="info-card">
-                <div class="info-card-header" style="display:flex;justify-content:space-between;align-items:center"><span>Calendar</span><a style="font-size:10.5px;color:var(--primary);font-weight:600" href="{{ route('hr.calendar') }}">Full view →</a></div>
+                <div class="info-card-header" style="display:flex;justify-content:space-between;align-items:center"><span>Calendar</span><a style="font-size:15px;color:var(--primary);font-weight:600" href="{{ route('hr.calendar') }}">Full view →</a></div>
                 <a class="info-card-body" style="display:block;cursor:pointer" href="{{ route('hr.calendar') }}">
                     <div class="mini-cal" id="miniCal"></div>
                 </a>
@@ -100,9 +100,9 @@
                 <div class="info-card-header">On Leave Today</div>
                 <div class="info-card-body" style="display:flex;flex-direction:column;gap:10px">
                     @forelse($onLeaveToday as $leave)
-                        <div style="display:flex;align-items:center;gap:9px"><div class="avatar avatar-sm">{{ substr($leave->employee->full_name,0,1) }}</div><div><div style="font-size:12.5px;font-weight:600;color:var(--text)">{{ $leave->employee->full_name }}</div><div style="font-size:10.5px;color:var(--text3)">{{ $leave->leaveType->name }} · returns {{ $leave->end_date->format('M d') }} · {{ $leave->employee->departmentRecord?->name }} · {{ $leave->employee->position }}</div></div></div>
+                        <div style="display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div class="avatar avatar-sm">{{ substr($leave->employee->full_name,0,1) }}</div><div><div style="font-size:15px;font-weight:600;color:var(--text)">{{ $leave->employee->full_name }}</div><div style="font-size:15px;color:var(--text3)">{{ $leave->leaveType->name }} · returns {{ $leave->end_date->format('M d') }} · {{ $leave->employee->departmentRecord?->name }} · {{ $leave->employee->position }}</div></div></div>
                     @empty
-                        <div style="font-size:12px;color:var(--text3)">No one is on approved leave today.</div>
+                        <div style="font-size:15px;color:var(--text3)">No one is on approved leave today.</div>
                     @endforelse
                 </div>
             </div>
@@ -122,7 +122,7 @@ function renderMiniCalendar(){
     const first=new Date(year,month,1);
     const last=new Date(year,month+1,0);
     const labels=['S','M','T','W','T','F','S'];
-    let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">'+labels.map(d=>`<span style="font-size:9px;color:var(--text3);text-align:center;font-weight:700">${d}</span>`).join('')+'</div>';
+    let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">'+labels.map(d=>`<span style="font-size:15px;color:var(--text3);text-align:center;font-weight:700">${d}</span>`).join('')+'</div>';
     html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
     for(let i=0;i<first.getDay();i++){html+='<span class="cal-day other-month"></span>'}
     for(let day=1;day<=last.getDate();day++){

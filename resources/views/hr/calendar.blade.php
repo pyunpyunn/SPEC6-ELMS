@@ -51,10 +51,16 @@
             <input type="hidden" name="department_id" value="{{ $selectedDepartmentId }}">
             <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
             <input type="hidden" name="date" value="{{ $focus->toDateString() }}">
-            <select name="view" onchange="this.form.submit()" style="padding:6px 10px;font-size:11.5px"><option value="month" @selected($view==='month')>Monthly</option><option value="week" @selected($view==='week')>Weekly</option></select>
-            @foreach($leaveTypes as $type)
-                <label style="font-size:11px;display:flex;align-items:center;gap:5px"><input type="checkbox" name="leave_type_ids[]" value="{{ $type->id }}" onchange="this.form.submit()" @checked(empty($selectedTypes) || in_array($type->id, $selectedTypes))>{{ $type->name }}</label>
-            @endforeach
+            <select name="view" onchange="this.form.submit()" style="padding:6px 10px;font-size:15px"><option value="month" @selected($view==='month')>Monthly</option><option value="week" @selected($view==='week')>Weekly</option></select>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                @foreach($leaveTypes as $type)
+                    @php($slug = str($type->name)->slug())
+                    <label style="font-size:15px;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface)">
+                        <input type="checkbox" name="leave_type_ids[]" value="{{ $type->id }}" onchange="this.form.submit()" @checked(empty($selectedTypes) || in_array($type->id, $selectedTypes))>
+                        <span class="badge badge-{{ $slug === 'sick-leave' ? 'pending' : ($slug === 'vacation-leave' ? 'approved' : ($slug === 'emergency-leave' ? 'rejected' : 'info')) }}">{{ $type->name }}</span>
+                    </label>
+                @endforeach
+            </div>
         </form>
     </div>
 

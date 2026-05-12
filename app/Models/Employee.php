@@ -15,6 +15,7 @@ class Employee extends Model
         'manager_id',
         'first_name',
         'last_name',
+        'gender',
         'department',
         'position',
         'date_hired',

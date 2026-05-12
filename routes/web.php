@@ -17,9 +17,12 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('role:hr_admin')->prefix('hr')->name('hr.')->group(function () {
         Route::get('/dashboard', [HrController::class, 'dashboard'])->name('dashboard');
         Route::get('/users/pending', [HrController::class, 'pendingUsers'])->name('users.pending');
+        Route::get('/users', [HrController::class, 'users'])->name('users.index');
         Route::post('/users/{user}/activate', [HrController::class, 'activateUser'])->name('users.activate');
+        Route::patch('/users/{user}/deactivate', [HrController::class, 'deactivateUser'])->name('users.deactivate');
 
         Route::get('/employees', [HrController::class, 'employees'])->name('employees.index');
+        Route::get('/employees/{employee}', [HrController::class, 'showEmployee'])->name('employees.show');
         Route::post('/employees', [HrController::class, 'storeEmployee'])->name('employees.store');
         Route::put('/employees/{employee}', [HrController::class, 'updateEmployee'])->name('employees.update');
         Route::patch('/employees/{employee}/deactivate', [HrController::class, 'deactivateEmployee'])->name('employees.deactivate');
@@ -32,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/leave-types', [HrController::class, 'storeLeaveType'])->name('leave-types.store');
         Route::put('/leave-types/{leaveType}', [HrController::class, 'updateLeaveType'])->name('leave-types.update');
         Route::get('/my-leave', [HrController::class, 'myLeave'])->name('my-leave');
+        Route::post('/my-leave', [HrController::class, 'storeMyLeave'])->name('my-leave.store');
 
         Route::get('/requests', [HrController::class, 'requests'])->name('requests.index');
         Route::patch('/requests/{leaveApplication}/review', [HrController::class, 'reviewRequest'])->name('requests.review');
@@ -42,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('/notifications', [HrController::class, 'notifications'])->name('notifications');
+    Route::get('/notifications/{notification}/read', [HrController::class, 'readNotification'])->name('notifications.read');
     Route::get('/profile', [HrController::class, 'profile'])->name('profile');
     Route::put('/profile', [HrController::class, 'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [HrController::class, 'updatePassword'])->name('profile.password');

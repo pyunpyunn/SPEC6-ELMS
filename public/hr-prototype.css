@@ -1,6 +1,6 @@
 
 :root {
-  --bg: #f3f6f4;
+  --bg: #f5f8f5;
   --surface: #ffffff;
   --surface2: #eef2ef;
   --border: #dde5e0;
@@ -13,7 +13,7 @@
   --accent: #48a47e;
   --text: #172b22;
   --text2: #42614f;
-  --text3: #78957f;
+  --text3: #6b8471;
   --danger: #b83030;
   --danger-bg: #fdf0ee;
   --warning: #b87214;
@@ -33,36 +33,36 @@
   --transition: 0.16s ease;
 }
 .dark {
-  --bg: #0e1912;
-  --surface: #162218;
-  --surface2: #1c2d20;
-  --border: #253a2a;
-  --border2: #2f4d36;
-  --primary: #48a47e;
-  --primary-light: #5abf93;
-  --primary-dark: #38876a;
-  --primary-bg: #182d1e;
-  --primary-bg2: #1e3a26;
-  --accent: #67c9a1;
-  --text: #e0ede7;
-  --text2: #97b9a5;
-  --text3: #577565;
-  --danger: #e04e4e;
-  --danger-bg: #291312;
-  --warning: #d98e35;
-  --warning-bg: #251a0b;
-  --success: #48a47e;
-  --success-bg: #122117;
-  --info: #4a88d0;
-  --info-bg: #0d1d30;
-  --shadow: 0 1px 3px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.25);
-  --shadow-md: 0 4px 20px rgba(0,0,0,.40);
+  --bg: #101a14;
+  --surface: #18241d;
+  --surface2: #203127;
+  --border: #2d4334;
+  --border2: #3c5a47;
+  --primary: #5ab88b;
+  --primary-light: #6ac99a;
+  --primary-dark: #2f6f51;
+  --primary-bg: #1a3024;
+  --primary-bg2: #214132;
+  --accent: #74d2a6;
+  --text: #e7f0e9;
+  --text2: #b0cab8;
+  --text3: #8aa594;
+  --danger: #ea6b6b;
+  --danger-bg: #311816;
+  --warning: #e0a04b;
+  --warning-bg: #2a2114;
+  --success: #5ab88b;
+  --success-bg: #142319;
+  --info: #6b95db;
+  --info-bg: #102033;
+  --shadow: 0 1px 3px rgba(0,0,0,.34), 0 2px 8px rgba(0,0,0,.24);
+  --shadow-md: 0 4px 20px rgba(0,0,0,.38);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:14px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+html{font-size:15px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background var(--transition),color var(--transition);line-height:1.5}
 button{font-family:var(--font);cursor:pointer;border:none;background:none}
-input,select,textarea{font-family:var(--font);font-size:13px}
+input,select,textarea{font-family:var(--font);font-size:15px}
 a{text-decoration:none;color:inherit}
 
 /* ── LAYOUT ── */
@@ -469,6 +469,8 @@ textarea{resize:vertical;min-height:82px;line-height:1.5}
 /* Master request log dept tabs */
 .dept-log-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
 .dept-log-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);color:var(--text2);transition:all var(--transition)}
+
+/* Font size resets to appropriate sizes */
 .dept-log-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .dept-log-tab:hover:not(.active){background:var(--surface2);color:var(--text)}
 
@@ -479,4 +481,50 @@ textarea{resize:vertical;min-height:82px;line-height:1.5}
 /* Analytics dept filter */
 .analytics-filter-bar{display:flex;gap:8px;margin-bottom:18px;align-items:center;flex-wrap:wrap}
 .analytics-filter-bar select{padding:8px 12px;min-width:160px}
+
+/* ── OVERRIDES FOR PROTOTYPE PARITY ── */
+.btn{font-size:12px;min-height:40px}
+.btn-sm,.btn-xs{font-size:10px;min-height:36px}
+.page-header h1,.card-title,.modal-header h3{font-size:16px}
+.page-header p,.muted,.quick-stat-label,.dept-leave-stat,.td-sub,.td-pos,.sb-balance-note,.flash,.badge,.tab-item,.lt-tab,.dept-log-tab,.filter-bar select,.search-wrap input{font-size:12px}
+.badge{padding:3px 9px}
+.table-wrap{border-radius:14px}
+th{font-size:10.5px}
+td{font-size:12px}
+.btn-outline,.btn-primary,.btn-success,.btn-danger{box-shadow:none}
+.btn-outline:hover,.btn-primary:hover,.btn-success:hover,.btn-danger:hover{transform:translateY(-1px)}
+.dash-dept-filter,.filter-bar,.analytics-filter-bar,.tab-bar,.lt-config-filter{border-radius:14px}
+.dash-dept-filter,.filter-bar,.analytics-filter-bar{padding:12px 14px;background:var(--surface);border:1px solid var(--border)}
+.dash-dept-filter select,.filter-bar select,.analytics-filter-bar select,.sb-balance-filter{min-height:40px;font-size:12px}
+.sb-balance-filter{border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.08)}
+.sb-balance-note{margin:6px 0 8px;color:rgba(255,255,255,.55);font-size:11px;line-height:1.4}
+.sb-balance-item{padding:6px 0}
+.sb-balance-label,.sb-balance-val{font-size:10px}
+.dark .sidebar{background:#1f2b23}
+.dark .header,.dark .card,.dark .info-card,.dark .stat-card,.dark .modal,.dark .dept-card,.dark .lt-config-card{background:var(--surface)}
+.dark .page-header p,.dark .muted,.dark .td-sub,.dark .td-pos,.dark .quick-stat-label,.dark .dept-leave-stat,.dark .form-hint,.dark .comp-sub,.dark .sb-balance-note{color:var(--text2)}
+.dark .content,.dark body{background:var(--bg)}
+.dark .card-header,.dark .info-card-header,.dark .modal-header,.dark .pagination,.dark .card-footer{border-color:var(--border)}
+.dark .search-wrap input,.dark .filter-bar select,.dark .dash-dept-filter select,.dark .analytics-filter-bar select,.dark .sb-balance-filter{background:var(--surface2);color:var(--text)}
+.modal-overlay{backdrop-filter:blur(4px)}
+.modal{transform:translateY(0);transition:transform .18s ease,opacity .18s ease}
+.modal-overlay.open .modal{animation:modalIn .16s ease}
+@keyframes modalIn{from{transform:translateY(10px);opacity:.85}to{transform:translateY(0);opacity:1}}
+.dept-leave-row{padding:14px 0}
+.dept-leave-row:hover{background:var(--primary-bg);margin:0 -20px;padding:14px 20px}
+.dept-leave-row + .dept-leave-row{border-top:1px solid var(--border)}
+.dept-leave-label{font-size:13px;font-weight:600}
+.card-header{gap:12px}
+.card-header .btn,.page-actions .btn{min-height:36px}
+.notif-item,.profile-dropdown a{font-size:12px}
+.badge::before{width:6px;height:6px}
+.page-actions select,.page-actions input{min-height:40px}
+.tab-item.active,.lt-tab.active,.dept-log-tab.active{font-weight:700}
+.page-header,.card-header,.modal-header{align-items:center}
+.sb-leave-balance{background:rgba(255,255,255,0.07)}
+.progress{height:8px}
+.stat-value{font-size:26px}
+.stat-label{font-size:11.5px}
+.cal-day{font-size:11px}
+.quick-stat{font-size:12px}
 
