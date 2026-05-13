@@ -14,7 +14,6 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
-<<<<<<< HEAD
         $departments = collect([
             ['HR', 'Human Resources', 'People operations, verification, and leave administration', 'hr@company.com'],
             ['IT', 'Information Technology', 'Systems, software, and internal technology support', 'manager@test.com'],
@@ -62,13 +61,5 @@ class EmployeeSeeder extends Seeder
                 ]
             );
         }
-=======
-        \App\Models\Employee::create([
-            'name' => 'Temp Employee',
-            'email' => 'employee@example.com',
-            'role' => 'employee',
-            'password' => bcrypt('password'),
-        ]);
->>>>>>> emp-dev
     }
 }

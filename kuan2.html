@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Portal | LaraLeave Pro</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+    <style>
+        :root {
+            /* Warm Neutral Palette */
+            --primary-sidebar: #2d3748;
+            --sidebar-hover: #3e4b5f;
+            --accent-color: #4f86c6;
+            --accent-hover: #3d6ca3;
+            --body-bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --border-color: #e2e8f0;
+            
+            /* Status Colors (Softer) */
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #f56565;
+            
+            --sidebar-width: 260px;
+            --transition: background 0.3s, color 0.3s, transform 0.3s, box-shadow 0.3s;
+        }
+
+        /* Dark Mode Overrides */
+        body.dark-mode {
+            --body-bg: #1a202c;
+            --card-bg: #2d3748;
+            --text-main: #e2e8f0;
+            --text-muted: #a0aec0;
+            --border-color: #4a5568;
+            --primary-sidebar: #1a202c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: var(--transition); }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--body-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--primary-sidebar);
+            position: fixed;
+            left: 0; top: 0;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .brand-line { height: 2px; width: 40px; background: var(--accent-color); margin-top: 4px; }
+
+        .sidebar-scroll { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 1rem 0.75rem;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE */
+        }
+        .sidebar-scroll::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+        .nav-group-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            padding: 1.25rem 1rem 0.5rem 1rem;
+            font-weight: 700;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #cbd5e0;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            margin-bottom: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-link:hover { background: var(--sidebar-hover); color: white; }
+        .nav-link.active { background: var(--accent-color); color: white; }
+
+        .nav-link i { width: 20px; margin-right: 12px; font-size: 1rem; }
+
+        /* Balance Widget Dropdown Style */
+        .balance-widget {
+            background: rgba(0,0,0,0.2);
+            margin: 1rem;
+            padding: 1rem;
+            border-radius: 0.75rem;
+        }
+        .balance-select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--primary-sidebar);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+            outline: none;
+        }
+        .balance-display-main { font-size: 1.25rem; font-weight: 700; color: var(--accent-color); margin-bottom: 2px; }
+        .balance-display-sub { font-size: 0.75rem; color: #a0aec0; margin-bottom: 8px; }
+        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.5s ease; }
+
+        /* --- HEADER --- */
+        header {
+            height: 70px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0; z-index: 900;
+        }
+
+        .profile-section { display: flex; align-items: center; gap: 10px; }
+        .profile-info { display: flex; flex-direction: column; }
+        .profile-name { font-weight: 700; font-size: 0.9rem; line-height: 1.2; }
+        .profile-role { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* --- DASHBOARD --- */
+        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Static Calendar Card */
+        .static-calendar-card {
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-align: center;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            transition: 0.3s;
+        }
+        .static-calendar-card:hover {
+            background: var(--accent-color);
+            color: white;
+            transform: translateY(-3px);
+        }
+        .static-calendar-card:hover i, .static-calendar-card:hover p { color: white !important; }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+            font-weight: 500;
+            animation: slideIn 0.5s forwards;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Layout & Table Utils */
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; }
+        .page-content { padding: 2rem; }
+        section { display: none; }
+        section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.8rem; color: var(--text-muted); padding: 1rem; border-bottom: 1px solid var(--border-color); }
+        td { padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .btn-primary { background: var(--accent-color); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; }
+        
+        /* Notifications */
+        .notif-item { padding: 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; gap: 15px; align-items: center; }
+        .notif-item:hover { background: rgba(0,0,0,0.02); }
+        .notif-item.unread { border-left: 3px solid var(--accent-color); background: rgba(79, 134, 198, 0.05); }
+
+        .notif-dropdown {
+            position: absolute; top: 50px; right: 0; width: 320px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 0.75rem; display: none; overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        .form-control { width: 100%; padding: 0.7rem; border: 1px solid var(--border-color); border-radius: 0.5rem; outline: none; background: var(--card-bg); color: var(--text-main); }
+        .form-control:disabled { background: #edf2f7; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <section id="login-page" style="display: flex; position:fixed; inset:0; z-index:9999; background:var(--primary-sidebar); align-items:center; justify-content:center;">
+        <div class="card" style="width: 100%; max-width: 400px; padding: 2.5rem;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="color: var(--accent-color);"><i class="fas fa-leaf"></i> LaraLeave</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Manager Portal Access</p>
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Email</label>
+                    <input type="email" class="form-control" value="james.reyes@company.com">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display:block; margin-bottom: 0.5rem; font-weight: 600;">Password</label>
+                    <input type="password" class="form-control" value="password">
+                </div>
+                <button class="btn-primary" style="width: 100%;">Sign In</button>
+            </form>
+        </div>
+    </section>
+
+    <div id="main-app" style="display: none;">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div>
+                    <i class="fas fa-leaf"></i> LaraLeave
+                    <div class="brand-line"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-scroll">
+                <div class="nav-group-label">Management</div>
+                <a class="nav-link active" onclick="switchPage('dashboard')"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+                <a class="nav-link" onclick="switchPage('requests')"><i class="fas fa-inbox"></i><span>Approval Inbox</span><span class="badge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:0.65rem; margin-left:auto;">2</span></a>
+                <a class="nav-link" onclick="switchPage('calendar')"><i class="fas fa-calendar-alt"></i><span>Team Calendar</span></a>
+                <a class="nav-link" onclick="switchPage('team')"><i class="fas fa-users"></i><span>Team Overview</span></a>
+
+                <div class="nav-group-label">Communication</div>
+                <a class="nav-link" onclick="switchPage('notifications')"><i class="fas fa-bell"></i><span>Notifications</span></a>
+
+                <div class="nav-group-label">Personal</div>
+                <a class="nav-link" onclick="switchPage('apply-leave')"><i class="fas fa-paper-plane"></i><span>Apply for Leave</span></a>
+                <a class="nav-link" onclick="switchPage('profile')"><i class="fas fa-user-circle"></i><span>My Profile</span></a>
+
+                <a class="nav-link" onclick="handleLogout()" style="margin-top: 2rem; color: var(--danger);"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+            </div>
+
+            <div class="balance-widget">
+                <p style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); margin-bottom: 8px;">My Leave Balance</p>
+                <select id="balance-selector" class="balance-select" onchange="updateBalanceWidget()">
+                    <option value="Vacation Leave">Vacation Leave</option>
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Emergency Leave">Emergency Leave</option>
+                </select>
+                <p class="balance-display-main" id="bal-rem">9 remaining</p>
+                <p class="balance-display-sub" id="bal-used">Used: 3 of 12 days</p>
+                <div class="progress-bar"><div id="bal-progress" class="progress-fill"></div></div>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <header>
+                <h2 id="page-title" style="font-size: 1.1rem;">Dashboard</h2>
+                <div class="flex" style="display: flex; align-items:center; gap: 1.5rem;">
+                    <button onclick="toggleDarkMode()" style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.2rem;">
+                        <i class="fas fa-moon" id="dark-icon"></i>
+                    </button>
+                    
+                    <div style="position: relative;">
+                        <div onclick="toggleNotifDropdown()" style="cursor: pointer; position: relative;">
+                            <i class="fas fa-bell" style="font-size: 1.2rem; color: var(--text-muted);"></i>
+                            <span id="bell-dot" style="position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:var(--danger); border-radius:50%;"></span>
+                        </div>
+                        <div class="notif-dropdown" id="notif-dropdown">
+                            <div style="padding:1rem; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700;">Notifications</span>
+                                <button onclick="markAllRead()" style="background:none; border:none; color:var(--accent-color); font-size:0.75rem; cursor:pointer;">Mark all read</button>
+                            </div>
+                            <div id="notif-list" style="max-height: 300px; overflow-y:auto;"></div>
+                            <div style="padding:0.75rem; text-align:center; border-top:1px solid var(--border-color);">
+                                <a onclick="switchPage('notifications')" style="color:var(--accent-color); font-size:0.8rem; cursor:pointer; font-weight:600;">View all</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <div class="profile-info">
+                            <span class="profile-name">James Reyes</span>
+                            <span class="profile-role">Engineering Manager</span>
+                        </div>
+                        <img src="https://ui-avatars.com/api/?name=James+Reyes&background=4f86c6&color=fff" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--border-color);">
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-content">
+                
+                <section id="dashboard" class="active">
+                    <div class="dashboard-grid">
+                        <div class="left-col">
+                            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem; margin-bottom: 1.5rem;">
+                                <div class="card" style="margin-bottom:0; text-align:center;">
+                                    <p style="font-size:0.8rem; color:var(--text-muted);">Pending Requests</p>
+                                    <h2 style="color:var(--warning);">2</h2>
+                                </div>
+                                <div class="card" style="margin-bottom:0; text-align:center;">
+                                    <p style="font-size:0.8rem; color:var(--text-muted);">On Leave Today</p>
+                                    <h2 style="color:var(--accent-color);">1</h2>
+                                </div>
+                                <div class="card" style="margin-bottom:0; text-align:center;">
+                                    <p style="font-size:0.8rem; color:var(--text-muted);">Approved (MTD)</p>
+                                    <h2 style="color:var(--success);">8</h2>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <h4 style="margin-bottom:1rem;">Action Required</h4>
+                                <table>
+                                    <thead><tr><th>Employee</th><th>Type</th><th>Days</th><th>Action</th></tr></thead>
+                                    <tbody id="dash-requests"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="right-col">
+                            <div class="static-calendar-card" onclick="switchPage('calendar')">
+                                <i class="fas fa-calendar-alt" style="font-size: 3rem; color: var(--accent-color); margin-bottom: 10px;"></i>
+                                <p style="font-weight: 700; margin: 0;">View Team Schedule</p>
+                                <p style="font-size: 0.75rem; color: var(--text-muted);">Click to open full team calendar</p>
+                            </div>
+                            <div class="card" style="margin-top: 1.5rem;">
+                                <h4>On Leave Today</h4>
+                                <div style="margin-top:1rem; display:flex; align-items:center; gap:10px; padding:0.5rem; border-left: 3px solid var(--warning); background:var(--body-bg);">
+                                    <img src="https://ui-avatars.com/api/?name=Maria+Santos" style="width:24px; border-radius:50%;">
+                                    <span style="font-size:0.85rem;">Maria Santos — <span style="color:var(--warning); font-weight:600;">Sick Leave</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="requests">
+                    <div class="card" style="display:flex; gap:1rem; align-items:center;">
+                        <div style="flex:1; position:relative;">
+                            <i class="fas fa-search" style="position:absolute; left:12px; top:12px; color:var(--text-muted);"></i>
+                            <input type="text" id="inbox-search" onkeyup="filterInbox()" placeholder="Search employee name..." class="form-control" style="padding-left: 2.5rem;">
+                        </div>
+                        <select id="inbox-filter-type" onchange="filterInbox()" class="form-control" style="width:200px;">
+                            <option value="All">All Leave Types</option>
+                            <option value="Vacation Leave">Vacation Leave</option>
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Emergency Leave">Emergency Leave</option>
+                        </select>
+                    </div>
+                    <div class="card" style="padding:0;">
+                        <table>
+                            <thead style="background:var(--body-bg);">
+                                <tr><th>Employee</th><th>Type</th><th>Duration</th><th>Days</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="inbox-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="calendar">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1.5rem;">
+                            <div style="display:flex; gap:1.5rem; align-items:center;" id="calendar-legend">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
+                                    <input type="checkbox" id="master-check" checked onchange="handleMasterCheck(this.checked)" style="accent-color: var(--accent-color);"> 
+                                    <strong>Show All Employees</strong>
+                                </label>
+                                <label class="type-check-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
+                                    <input type="checkbox" class="type-check" checked onchange="toggleEventSource('Vacation Leave', this.checked)" style="accent-color: #4f86c6;"> Vacation
+                                </label>
+                                <label class="type-check-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
+                                    <input type="checkbox" class="type-check" checked onchange="toggleEventSource('Sick Leave', this.checked)" style="accent-color: #f59e0b;"> Sick Leave
+                                </label>
+                                <label class="type-check-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
+                                    <input type="checkbox" class="type-check" checked onchange="toggleEventSource('Emergency Leave', this.checked)" style="accent-color: #ef4444;"> Emergency
+                                </label>
+                            </div>
+                            <button class="btn-primary" onclick="exportToCSV()" style="background:#2d3748;"><i class="fas fa-file-export"></i> Export CSV</button>
+                        </div>
+                        <div id="full-calendar"></div>
+                    </div>
+                </section>
+
+                <section id="team">
+                    <div class="card" style="padding:0;">
+                        <table>
+                            <thead style="background:var(--body-bg);">
+                                <tr><th>Employee</th><th>Position</th><th>Status</th><th>Vacation (Rem)</th><th>Sick (Rem)</th></tr>
+                            </thead>
+                            <tbody id="team-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="notifications">
+                    <div class="card" style="max-width: 800px; margin: 0 auto; padding: 0;">
+                        <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="font-size: 1.1rem;">All Notifications</h3>
+                            <button class="btn-primary" style="font-size: 0.75rem;" onclick="markAllRead()">Mark all as read</button>
+                        </div>
+                        <div id="notifications-page-list"></div>
+                    </div>
+                </section>
+
+                <section id="apply-leave">
+                    <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap: 2rem;">
+                        <div class="card" style="padding: 2rem;">
+                            <h3 style="margin-bottom: 1.5rem;">New Leave Request</h3>
+                            <div style="background:#fffaf0; border-left:3px solid var(--warning); padding:0.75rem; border-radius:0 0.5rem 0.5rem 0; margin-bottom:1.5rem; font-size:0.85rem; color:#dd6b20;">
+                                <i class="fas fa-info-circle"></i> As a Manager, your requests are reviewed by HR Admin.
+                            </div>
+                            <div style="margin-bottom:1rem;">
+                                <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Leave Type</label>
+                                <select class="form-control">
+                                    <option>Vacation Leave (9 left)</option>
+                                    <option>Sick Leave (14 left)</option>
+                                    <option>Emergency Leave (3 left)</option>
+                                </select>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom:1rem;">
+                                <div>
+                                    <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Start Date</label>
+                                    <input type="date" id="leave-start" class="form-control" onchange="calcLeaveDays()">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">End Date</label>
+                                    <input type="date" id="leave-end" class="form-control" onchange="calcLeaveDays()">
+                                </div>
+                            </div>
+                            <div style="margin-bottom:1rem;">
+                                <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Days Requested</label>
+                                <input type="text" id="leave-days-count" class="form-control" value="— Days" readonly>
+                            </div>
+                            <div style="margin-bottom:1rem;">
+                                <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Reason</label>
+                                <textarea class="form-control" rows="3" placeholder="Provide details..."></textarea>
+                            </div>
+                            <div style="margin-bottom:1.5rem;">
+                                <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Attach Document</label>
+                                <input type="file" class="form-control" style="padding: 0.5rem;">
+                            </div>
+                            <button class="btn-primary" style="width:100%; padding: 0.8rem;" onclick="submitLeave()">Submit Request to HR</button>
+                        </div>
+                        <div class="card" style="padding:0;">
+                            <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-color);"><h4 style="font-size:1rem;">My Leave History</h4></div>
+                            <table>
+                                <thead><tr><th>Leave Type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Vacation Leave</td><td>May 10–12, 2026</td><td>3 days</td><td><span class="status-pill" style="background:#f0fff4; color:#38a169;">Approved</span></td></tr>
+                                    <tr><td>Sick Leave</td><td>Mar 5, 2026</td><td>1 day</td><td><span class="status-pill" style="background:#f0fff4; color:#38a169;">Approved</span></td></tr>
+                                    <tr><td>Emergency Leave</td><td>Jan 20, 2026</td><td>1 day</td><td><span class="status-pill" style="background:#f0fff4; color:#38a169;">Approved</span></td></tr>
+                                    <tr><td>Vacation Leave</td><td>Jun 1–5, 2026</td><td>5 days</td><td><span class="status-pill status-pending">Pending</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="profile">
+                    <div class="card" style="max-width: 800px; margin: 0 auto; padding: 0;">
+                        <div style="padding: 2rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 2rem;">
+                            <div style="position: relative;">
+                                <img src="https://ui-avatars.com/api/?name=James+Reyes&background=4f86c6&color=fff&size=100" style="width:100px; height:100px; border-radius:50%;">
+                                <button style="position:absolute; bottom:0; right:0; background:white; border:1px solid var(--border-color); border-radius:50%; width:30px; height:30px; cursor:pointer;">
+                                    <i class="fas fa-camera" style="font-size:0.8rem;"></i>
+                                </button>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.5rem;">James Reyes</h3>
+                                <p style="color:var(--text-muted)">Engineering Manager • Engineering Department</p>
+                            </div>
+                        </div>
+                        <div style="padding: 2rem;">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Full Name</label><input type="text" class="form-control" value="James Reyes"></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Email</label><input type="email" class="form-control" value="james.reyes@company.com"></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Phone</label><input type="tel" class="form-control" value="+63 917 123 4567"></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Emergency Contact</label><input type="text" class="form-control" value="Maria Reyes (+63 918 765 4321)"></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Department</label><input type="text" class="form-control" value="Engineering" disabled></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Role</label><input type="text" class="form-control" value="Manager" disabled></div>
+                            </div>
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 1.5rem;">
+                                <i class="fas fa-lock" style="font-size:0.65rem;"></i> Contact HR Admin to update department or role assignment.
+                            </p>
+                            <h4 style="font-size:1rem; margin-bottom: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">Change Password</h4>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Current Password</label><input type="password" class="form-control"></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">New Password</label><input type="password" class="form-control"></div>
+                                <div><label style="display:block; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">Confirm Password</label><input type="password" class="form-control"></div>
+                            </div>
+                            <button class="btn-primary" style="margin-top:2rem; padding: 0.75rem 2.5rem;" onclick="showToast('Profile updated successfully!', 0)">Save Changes</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="request-detail">
+                    <div class="card" style="max-width: 600px; margin: 0 auto;">
+                        <button class="btn-primary" onclick="switchPage('requests')" style="background:#718096; margin-bottom:1.5rem; font-size:0.8rem;"><i class="fas fa-arrow-left"></i> Back</button>
+                        <h3 id="det-name" style="margin-bottom:1.5rem;">Reviewing Request</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; margin-bottom:1.5rem;">
+                            <div><p style="color:var(--text-muted); font-size:0.8rem;">Leave Type</p><p id="det-type" style="font-weight:700;"></p></div>
+                            <div><p style="color:var(--text-muted); font-size:0.8rem;">Duration</p><p id="det-date" style="font-weight:700;"></p></div>
+                        </div>
+                        <div style="margin-bottom:1.5rem;"><p style="color:var(--text-muted); font-size:0.8rem;">Reason</p><p id="det-reason" style="background:var(--body-bg); padding:1rem; border-radius:0.5rem;"></p></div>
+                        <div style="margin-bottom:2rem;"><label style="display:block; margin-bottom:0.5rem; font-weight:700;">Manager Remarks</label><textarea id="mgr-remarks" class="form-control" rows="3" placeholder="Enter remarks..."></textarea></div>
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn-primary" style="background:var(--success); flex:1;" onclick="handleDecision('Approved')">Approve</button>
+                            <button class="btn-primary" style="background:var(--danger); flex:1;" onclick="handleDecision('Rejected')">Reject</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Store
+        const masterRequests = [
+            { id: 1, name: 'Paolo Cruz', type: 'Sick Leave', start: '2026-06-10', end: '2026-06-12', days: 3, reason: 'High fever and severe flu symptoms.' },
+            { id: 2, name: 'Carlos Delos Reyes', type: 'Vacation Leave', start: '2026-06-20', end: '2026-06-25', days: 6, reason: 'Annual family out of town trip.' }
+        ];
+
+        const notifications = [
+            { id: 1, title: 'Paolo Cruz submitted a Sick Leave request', type: 'request', time: '2 hours ago', unread: true, link: 'request-detail', requestId: 1 },
+            { id: 2, title: 'Your Vacation Leave was Approved by HR Admin', type: 'personal', time: 'Yesterday, 4:30 PM', unread: true, link: 'apply-leave' },
+            { id: 3, title: 'Team stand-up meeting reminder tomorrow', type: 'team', time: '1 day ago', unread: false, link: 'team' }
+        ];
+
+        const calendarEvents = [
+            { title: 'Maria Santos (Sick)', start: '2026-05-11', end: '2026-05-13', color: '#f59e0b', type: 'Sick Leave' },
+            { title: 'Anna Lim (Vacation)', start: '2026-05-15', end: '2026-05-19', color: '#4f86c6', type: 'Vacation Leave' },
+            { title: 'Sofia Mendoza (Emergency)', start: '2026-05-22', end: '2026-05-23', color: '#ef4444', type: 'Emergency Leave' },
+            { title: 'Carlos Delos Reyes (Vacation)', start: '2026-05-20', end: '2026-05-26', color: '#4f86c6', type: 'Vacation Leave' }
+        ];
+
+        const balanceData = {
+            'Vacation Leave': { total: 12, used: 3, remaining: 9 },
+            'Sick Leave': { total: 15, used: 1, remaining: 14 },
+            'Emergency Leave': { total: 3, used: 0, remaining: 3 }
+        };
+
+        let currentMainCalendar;
+
+        // Core Functions
+        function handleLogin(e) {
+            e.preventDefault();
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            
+            initMainCalendar();
+            renderInbox();
+            renderTeamOverview();
+            renderNotifications();
+            updateBalanceWidget();
+            checkDarkMode();
+
+            // Login Toasts
+            showToast("Welcome back, James Reyes! You have 2 pending requests.", 0);
+            setTimeout(() => showToast("Reminder: Paolo Cruz's sick leave needs your review.", 0), 1500);
+        }
+
+        function showToast(msg, customDelay) {
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerText = msg;
+            container.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 5000);
+        }
+
+        function handleLogout() { location.reload(); }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            
+            const target = document.getElementById(pageId);
+            if(target) target.classList.add('active');
+
+            const nav = document.querySelector(`[onclick="switchPage('${pageId}')"]`);
+            if(nav) nav.classList.add('active');
+
+            const titles = { 'dashboard': 'Dashboard', 'requests': 'Approval Inbox', 'calendar': 'Team Calendar', 'team': 'Department Overview', 'notifications': 'Notifications', 'apply-leave': 'My Application', 'profile': 'My Profile' };
+            document.getElementById('page-title').innerText = titles[pageId] || 'Portal';
+
+            if(pageId === 'calendar') setTimeout(() => currentMainCalendar.render(), 50);
+            if(pageId === 'notifications') renderNotificationsPage();
+            
+            document.getElementById('notif-dropdown').style.display = 'none';
+            window.scrollTo(0,0);
+        }
+
+        // Dashboard/Inbox
+        function renderInbox() {
+            const container = document.getElementById('inbox-table-body');
+            const dashContainer = document.getElementById('dash-requests');
+            const typeFilter = document.getElementById('inbox-filter-type').value;
+            const searchVal = document.getElementById('inbox-search').value.toLowerCase();
+
+            const filtered = masterRequests.filter(r => {
+                const matchesType = typeFilter === 'All' || r.type === typeFilter;
+                const matchesSearch = r.name.toLowerCase().includes(searchVal);
+                return matchesType && matchesSearch;
+            });
+
+            container.innerHTML = filtered.map(r => `
+                <tr>
+                    <td><strong>${r.name}</strong></td>
+                    <td>${r.type}</td>
+                    <td>${r.start} to ${r.end}</td>
+                    <td>${r.days}</td>
+                    <td><button class="btn-primary" onclick="viewRequest(${r.id})">Review</button></td>
+                </tr>
+            `).join('');
+
+            // Static Dashboard View
+            dashContainer.innerHTML = masterRequests.map(r => `
+                <tr>
+                    <td>${r.name}</td>
+                    <td>${r.type}</td>
+                    <td>${r.days}</td>
+                    <td><button class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="viewRequest(${r.id})">Review</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterInbox() { renderInbox(); }
+
+        function viewRequest(id) {
+            const r = masterRequests.find(x => x.id === id);
+            document.getElementById('det-name').innerText = r.name;
+            document.getElementById('det-type').innerText = r.type;
+            document.getElementById('det-date').innerText = `${r.start} to ${r.end} (${r.days} Days)`;
+            document.getElementById('det-reason').innerText = r.reason;
+            switchPage('request-detail');
+        }
+
+        function handleDecision(status) {
+            showToast(`Request has been ${status}`, 0);
+            switchPage('requests');
+        }
+
+        // Calendar
+        function initMainCalendar() {
+            const el = document.getElementById('full-calendar');
+            currentMainCalendar = new FullCalendar.Calendar(el, {
+                initialView: 'dayGridMonth',
+                events: [...calendarEvents],
+                headerToolbar: { left: 'prev,next today', center: 'title', right: '' }
+            });
+            currentMainCalendar.render();
+        }
+
+        function handleMasterCheck(checked) {
+            const checks = document.querySelectorAll('.type-check');
+            const labels = document.querySelectorAll('.type-check-label');
+            checks.forEach(c => { c.disabled = !checked; });
+            labels.forEach(l => { l.style.opacity = checked ? '1' : '0.5'; });
+            
+            if(!checked) {
+                currentMainCalendar.removeAllEvents();
+            } else {
+                refreshCalendar();
+            }
+        }
+
+        function toggleEventSource(type, checked) {
+            refreshCalendar();
+        }
+
+        function refreshCalendar() {
+            currentMainCalendar.removeAllEvents();
+            const checks = document.querySelectorAll('.type-check');
+            const activeTypes = Array.from(checks).filter(c => c.checked).map(c => c.parentElement.textContent.trim());
+            const filtered = calendarEvents.filter(e => activeTypes.includes(e.type));
+            currentMainCalendar.addEventSource(filtered);
+        }
+
+        function exportToCSV() {
+            let csv = "Employee,Type,Start,End\n";
+            calendarEvents.forEach(e => csv += `${e.title},${e.type},${e.start},${e.end}\n`);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'team_leave_export.csv');
+            a.click();
+        }
+
+        // Balance Widget
+        function updateBalanceWidget() {
+            const type = document.getElementById('balance-selector').value;
+            const data = balanceData[type];
+            document.getElementById('bal-rem').innerText = `${data.remaining} remaining`;
+            document.getElementById('bal-used').innerText = `Used: ${data.used} of ${data.total} days`;
+            const pct = (data.used / data.total) * 100;
+            document.getElementById('bal-progress').style.width = pct + '%';
+        }
+
+        // Notifications
+        function toggleNotifDropdown() {
+            const d = document.getElementById('notif-dropdown');
+            d.style.display = d.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function renderNotifications() {
+            const list = document.getElementById('notif-list');
+            list.innerHTML = notifications.map(n => `
+                <div class="notif-item ${n.unread ? 'unread' : ''}" onclick="clickNotif(${n.id})">
+                    <div style="background:var(--body-bg); min-width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas ${n.type === 'request' ? 'fa-file-alt' : 'fa-info-circle'}"></i>
+                    </div>
+                    <div>
+                        <p style="font-size:0.85rem; font-weight:500;">${n.title}</p>
+                        <p style="font-size:0.7rem; color:var(--text-muted);">${n.time}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderNotificationsPage() {
+            const list = document.getElementById('notifications-page-list');
+            list.innerHTML = notifications.map(n => `
+                <div class="notif-item ${n.unread ? 'unread' : ''}" onclick="clickNotif(${n.id})" style="padding:1.5rem;">
+                    <div style="background:var(--body-bg); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                        <i class="fas ${n.type === 'request' ? 'fa-file-alt' : (n.type === 'personal' ? 'fa-check-circle' : 'fa-users')}"></i>
+                    </div>
+                    <div>
+                        <p style="font-size:0.95rem; font-weight:600;">${n.title}</p>
+                        <p style="font-size:0.8rem; color:var(--text-muted);">${n.time}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clickNotif(id) {
+            const n = notifications.find(x => x.id === id);
+            n.unread = false;
+            renderNotifications();
+            if(n.link === 'request-detail') viewRequest(n.requestId);
+            else switchPage(n.link);
+        }
+
+        function markAllRead() {
+            notifications.forEach(n => n.unread = false);
+            document.getElementById('bell-dot').style.display = 'none';
+            renderNotifications();
+            if(document.getElementById('notifications').classList.contains('active')) renderNotificationsPage();
+        }
+
+        // Apply Leave
+        function calcLeaveDays() {
+            const startInput = document.getElementById('leave-start').value;
+            const endInput = document.getElementById('leave-end').value;
+            if (startInput && endInput) {
+                const start = new Date(startInput);
+                const end = new Date(endInput);
+                if (end >= start) {
+                    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    document.getElementById('leave-days-count').value = diff + ' Days';
+                } else {
+                    document.getElementById('leave-days-count').value = '0 Days';
+                }
+            }
+        }
+
+        function submitLeave() {
+            showToast("Your leave request has been submitted to HR Admin.", 0);
+            switchPage('apply-leave');
+        }
+
+        // Team Overview
+        function renderTeamOverview() {
+            const members = [
+                { name: 'Maria Santos', pos: 'Software Engineer', status: 'On Leave', v: '8/12', s: '4/15', color: '#dd6b20' },
+                { name: 'Carlos Delos Reyes', pos: 'Frontend Developer', status: 'Active', v: '12/12', s: '10/15', color: '#38a169' },
+                { name: 'Anna Lim', pos: 'Backend Developer', status: 'Active', v: '9/12', s: '15/15', color: '#38a169' },
+                { name: 'Paolo Cruz', pos: 'QA Engineer', status: 'Active (Pending)', v: '10/12', s: '12/15', color: '#38a169' },
+                { name: 'Sofia Mendoza', pos: 'DevOps Engineer', status: 'Active', v: '11/12', s: '13/15', color: '#38a169' }
+            ];
+            document.getElementById('team-table-body').innerHTML = members.map(m => `
+                <tr>
+                    <td style="display:flex; align-items:center; gap:10px;">
+                        <img src="https://ui-avatars.com/api/?name=${m.name.replace(' ','+')}" style="width:30px; border-radius:50%;"> ${m.name}
+                    </td>
+                    <td>${m.pos}</td>
+                    <td><span class="status-pill" style="background:rgba(0,0,0,0.05); color:${m.color};">${m.status}</span></td>
+                    <td>${m.v}</td>
+                    <td>${m.s}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Dark Mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            document.getElementById('dark-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        function checkDarkMode() { if(localStorage.getItem('darkMode') === 'true') toggleDarkMode(); }
+
+        // Click outside to close notification dropdown
+        window.onclick = function(event) {
+            if (!event.target.closest('.notif-dropdown') && !event.target.closest('[onclick="toggleNotifDropdown()"]')) {
+                document.getElementById('notif-dropdown').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
