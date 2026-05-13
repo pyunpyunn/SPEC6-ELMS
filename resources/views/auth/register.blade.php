@@ -63,7 +63,6 @@
                 <div><strong>Leave ready</strong><span>Once activated, balances are seeded automatically.</span></div>
             </div>
         </section>
-
         <section class="card">
             <div class="tabs">
                 <a href="{{ route('login') }}">Log in</a>
@@ -71,50 +70,22 @@
             </div>
             <h3>Register</h3>
             <p>Submit your details and wait for HR verification.</p>
-
             @if ($errors->any())
-                <div class="err">
-                    @foreach ($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
+                <div class="err">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
             @endif
-
             <form method="POST" action="{{ route('register') }}">
                 @csrf
                 <div class="grid">
-                    <div>
-                        <label>Full Name</label>
-                        <input type="text" name="name" value="{{ old('name') }}" required autofocus>
-                    </div>
-                    <div>
-                        <label>Employee ID</label>
-                        <input type="text" name="employee_id" value="{{ old('employee_id') }}" placeholder="EMP-0052">
-                    </div>
-                    <div>
-                        <label>Email Address</label>
-                        <input type="email" name="email" value="{{ old('email') }}" required>
-                    </div>
-                    <div>
-                        <label>Password</label>
-                        <input type="password" name="password" required autocomplete="new-password">
-                    </div>
-                    <div style="grid-column:1/-1">
-                        <label>Confirm Password</label>
-                        <input type="password" name="password_confirmation" required>
-                    </div>
+                    <div><label>Full Name</label><input type="text" name="name" value="{{ old('name') }}" required autofocus></div>
+                    <div><label>Employee ID</label><input type="text" name="employee_id" value="{{ old('employee_id') }}" placeholder="EMP-0052"></div>
+                    <div><label>Email Address</label><input type="email" name="email" value="{{ old('email') }}" required></div>
+                    <div><label>Password</label><input type="password" name="password" required autocomplete="new-password"></div>
+                    <div style="grid-column:1/-1"><label>Confirm Password</label><input type="password" name="password_confirmation" required></div>
                 </div>
-
-                <div class="actions">
-                    <button type="submit" class="btn">Register</button>
-                </div>
+                <div class="actions"><button type="submit" class="btn">Register</button></div>
             </form>
-
             <div class="hint">Your account will appear in HR verification as pending until activated.</div>
-            <div class="foot">
-                <span>Already have an account?</span>
-                <a href="{{ route('login') }}" style="color:var(--accent2);font-weight:700;text-decoration:none">Log in here</a>
-            </div>
+            <div class="foot"><span>Already have an account?</span><a href="{{ route('login') }}" style="color:var(--accent2);font-weight:700;text-decoration:none">Log in here</a></div>
         </section>
     </div>
 </body>

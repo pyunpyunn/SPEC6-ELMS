@@ -1,11 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Hr\HrController;
-
 use App\Http\Controllers\EmployeePortalController;
-
+use App\Http\Controllers\Hr\HrController;
+use App\Http\Controllers\Manager\ManagerController;
 
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('home') : view('welcome');
@@ -13,9 +11,11 @@ Route::get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/home', function () {
-        return auth()->user()->role === 'hr_admin'
-            ? redirect()->route('hr.dashboard')
-            : redirect()->route('dashboard.employee');
+        return match (auth()->user()->role) {
+            'hr_admin' => redirect()->route('hr.dashboard'),
+            'manager' => redirect()->route('manager.dashboard'),
+            default => redirect()->route('dashboard.employee'),
+        };
     })->name('home');
 
     Route::middleware('role:hr_admin')->prefix('hr')->name('hr.')->group(function () {
@@ -68,4 +68,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profile', [EmployeePortalController::class, 'profile'])->name('profile');
     });
 
+    Route::middleware('role:manager')->prefix('manager')->name('manager.')->group(function () {
+        Route::get('/dashboard', [ManagerController::class, 'dashboard'])->name('dashboard');
+        Route::get('/requests', [ManagerController::class, 'requests'])->name('requests.index');
+        Route::get('/requests/{leaveApplication}', [ManagerController::class, 'showRequest'])->name('requests.show');
+        Route::patch('/requests/{leaveApplication}/review', [ManagerController::class, 'reviewRequest'])->name('requests.review');
+        Route::get('/calendar', [ManagerController::class, 'calendar'])->name('calendar');
+        Route::get('/team', [ManagerController::class, 'team'])->name('team');
+        Route::get('/my-leave', [ManagerController::class, 'myLeave'])->name('my-leave');
+        Route::post('/my-leave', [ManagerController::class, 'storeMyLeave'])->name('my-leave.store');
+        Route::get('/notifications', [ManagerController::class, 'notifications'])->name('notifications');
+        Route::get('/notifications/{notification}/read', [ManagerController::class, 'readNotification'])->name('notifications.read');
+        Route::get('/profile', [ManagerController::class, 'profile'])->name('profile');
+        Route::put('/profile', [ManagerController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [ManagerController::class, 'updatePassword'])->name('profile.password');
+    });
 });

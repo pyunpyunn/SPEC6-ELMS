@@ -12,7 +12,7 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Create/Update Departments
+        // Create/update departments before employees so manager ownership can be linked.
         $departments = collect([
             ['HR', 'Human Resources', 'People operations and leave administration', 'hr@company.com'],
             ['IT', 'Information Technology', 'Systems and internal tech support', 'manager@test.com'],
@@ -33,7 +33,6 @@ class EmployeeSeeder extends Seeder
             return [$department[0] => $created];
         });
 
-        // 2. Define Employee Data with the new ID format
         $employees = [
             ['HR-0001', 'hr@company.com', 'Maria', 'Andres', 'HR', 'HR Administrator', 'female', '2018-01-05', 1500],
             ['MGR-0004', 'manager@test.com', 'Roberto', 'Cruz', 'IT', 'IT Manager', 'male', '2019-03-12', 1450],
@@ -69,35 +68,34 @@ class EmployeeSeeder extends Seeder
             }
         }
 
-        // 3. Specific HR Admin Login
-$hrUser = User::updateOrCreate(
-    ['email' => 'hr_admin@test.com'],
-    [
-        'name' => 'HR Administrator',
-        'password' => Hash::make('hrpassword123'),
-        'role' => 'hr_admin', // Must match the enum exactly
-        'status' => 'active',
-        'pending_employee_id' => null,
-    ]
-);
+        $hrUser = User::updateOrCreate(
+            ['email' => 'hr_admin@test.com'],
+            [
+                'name' => 'HR Administrator',
+                'password' => Hash::make('hrpassword123'),
+                'role' => 'hr_admin',
+                'status' => 'active',
+                'pending_employee_id' => null,
+            ]
+        );
 
-Employee::updateOrCreate(
-    ['user_id' => $hrUser->id],
-    [
-        'employee_id' => 'HR-ADMIN-01',
-        'first_name' => 'Admin',
-        'last_name' => 'HR',
-        'gender' => 'female',
-        'department_id' => $departments['HR']->id,
-        'department' => 'Human Resources',
-        'position' => 'HR Head',
-        'date_hired' => now(),
-        'employment_status' => 'active',
-        'daily_rate' => 2500,
-        'contact_info' => 'hr_admin@test.com', // Added this line
-    ]
-);
-        // 4. Specific Regular Employee Login
+        Employee::updateOrCreate(
+            ['user_id' => $hrUser->id],
+            [
+                'employee_id' => 'HR-ADMIN-01',
+                'first_name' => 'Admin',
+                'last_name' => 'HR',
+                'gender' => 'female',
+                'department_id' => $departments['HR']->id,
+                'department' => 'Human Resources',
+                'position' => 'HR Head',
+                'date_hired' => now(),
+                'employment_status' => 'active',
+                'daily_rate' => 2500,
+                'contact_info' => 'hr_admin@test.com',
+            ]
+        );
+
         $staffUser = User::updateOrCreate(
             ['email' => 'staff@test.com'],
             [
@@ -109,21 +107,21 @@ Employee::updateOrCreate(
             ]
         );
 
-Employee::updateOrCreate(
-    ['user_id' => $staffUser->id],
-    [
-        'employee_id' => 'EMP-STAFF-01',
-        'first_name' => 'Regular',
-        'last_name' => 'Staff',
-        'gender' => 'male',
-        'department_id' => $departments['IT']->id,
-        'department' => 'Information Technology',
-        'position' => 'Technical Support',
-        'date_hired' => now(),
-        'employment_status' => 'active',
-        'daily_rate' => 800,
-        'contact_info' => 'staff@test.com', // Added this line
-    ]
-);
+        Employee::updateOrCreate(
+            ['user_id' => $staffUser->id],
+            [
+                'employee_id' => 'EMP-STAFF-01',
+                'first_name' => 'Regular',
+                'last_name' => 'Staff',
+                'gender' => 'male',
+                'department_id' => $departments['IT']->id,
+                'department' => 'Information Technology',
+                'position' => 'Technical Support',
+                'date_hired' => now(),
+                'employment_status' => 'active',
+                'daily_rate' => 800,
+                'contact_info' => 'staff@test.com',
+            ]
+        );
     }
 }
