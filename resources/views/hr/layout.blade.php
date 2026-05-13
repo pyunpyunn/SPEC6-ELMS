@@ -68,27 +68,56 @@
         </nav>
 
         <div class="sb-footer">
+            @php
+                $sidebarEmployee = auth()->user()->employee;
+                $sidebarGender = strtolower((string) ($sidebarEmployee?->gender ?? ''));
+                $sidebarBalances = collect($sidebarEmployee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [])
+                    ->filter(function ($balance) use ($sidebarGender) {
+                        $name = strtolower($balance->leaveType?->name ?? '');
+
+                        return ! (($sidebarGender === 'female' && str_contains($name, 'paternity')) || ($sidebarGender === 'male' && str_contains($name, 'maternity')));
+                    })
+                    ->sortBy(function ($balance) {
+                        $name = strtolower($balance->leaveType?->name ?? '');
+
+                        return match (true) {
+                            str_contains($name, 'sick') => 0,
+                            str_contains($name, 'vacation') => 1,
+                            str_contains($name, 'emergency') => 2,
+                            str_contains($name, 'bereavement') => 3,
+                            str_contains($name, 'maternity') => 4,
+                            str_contains($name, 'paternity') => 5,
+                            default => 99,
+                        };
+                    })
+                    ->values();
+            @endphp
             <div class="sb-leave-balance">
                 <div class="sb-balance-title">
-                    <span>My Leave Balance</span>
-                    @php($sidebarDefaultFilter = optional((collect(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [])->first(fn ($balance) => str_contains(strtolower($balance->leaveType?->name ?? ''), 'sick'))))->leave_type_id)
+                    <span>Leave Balance</span>
                     <select class="sb-balance-filter" id="sidebarBalanceFilter" onchange="filterSidebarBalance(this.value)">
-                        <option value="all">All types</option>
-                        @foreach(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [] as $balance)
-                            <option value="lt-{{ $balance->leave_type_id }}" @selected(($sidebarDefaultFilter && $sidebarDefaultFilter == $balance->leave_type_id) || (! $sidebarDefaultFilter && $loop->first))>{{ $balance->leaveType->name }}</option>
+                        <option value="all">All</option>
+                        @foreach($sidebarBalances as $balance)
+                            <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="sb-balance-note">Filtered by leave type. Sick Leave is shown first when available.</div>
                 <div id="sidebarBalanceItems">
-                    @php($sidebarBalances = collect(auth()->user()->employee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [])->sortBy(fn ($balance) => str_contains(strtolower($balance->leaveType?->name ?? ''), 'sick') ? 0 : 1))
-                    @forelse($sidebarBalances as $balance)
-                        <div class="sb-balance-item lt-{{ $balance->leave_type_id }}" data-type="lt-{{ $balance->leave_type_id }}">
-                            <span class="sb-balance-label">{{ $balance->leaveType->name }}</span>
-                            <span class="sb-balance-val">{{ (int) $balance->remaining_days }}</span>
+                    @forelse($sidebarBalances->take(4) as $balance)
+                        @php
+                            $used = (int) $balance->used_days;
+                            $total = (int) $balance->allocated_days;
+                            $percent = $total > 0 ? min(100, round(($used / $total) * 100)) : 0;
+                        @endphp
+                        <div class="sb-balance-row" data-type="lt-{{ $balance->leave_type_id }}">
+                            <div class="sb-balance-item">
+                                <span class="sb-balance-label">{{ $balance->leaveType->name }}</span>
+                                <span class="sb-balance-val">{{ $used }}/{{ $total }}</span>
+                            </div>
+                            <div class="sb-lb-bar"><div class="sb-lb-fill {{ $percent > 70 ? 'danger' : ($percent > 45 ? 'warn' : '') }}" style="width: {{ $percent }}%"></div></div>
                         </div>
                     @empty
-                        <div class="sb-balance-item" data-type="all"><span class="sb-balance-label">No balances yet</span><span class="sb-balance-val">0</span></div>
+                        <div class="sb-balance-item" data-type="all"><span class="sb-balance-label">No balances yet</span></div>
                     @endforelse
                 </div>
             </div>
@@ -150,8 +179,8 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('co
 function toggleProfile(){document.getElementById('profileDropdown').classList.toggle('open')}
 function toggleNotifications(){document.getElementById('notifDropdown').classList.toggle('open')}
 function filterSidebarBalance(value){
-    document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(row){
-        row.style.display = value === 'all' || !value || row.dataset.type === value ? 'flex' : 'none';
+    document.querySelectorAll('#sidebarBalanceItems .sb-balance-row').forEach(function(row){
+        row.style.display = value === 'all' || !value || row.dataset.type === value ? '' : 'none';
     });
 }
 function toggleDark(){document.documentElement.classList.toggle('dark');localStorage.setItem('elms-dark',document.documentElement.classList.contains('dark')?'1':'0')}

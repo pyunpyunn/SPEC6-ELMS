@@ -528,3 +528,43 @@ td{font-size:12px}
 .cal-day{font-size:11px}
 .quick-stat{font-size:12px}
 
+/* Shared polish: keep all card-like surfaces and filter bars visually consistent. */
+.card,.info-card,.stat-card,.dept-card,.lt-config-card,.my-bal-card,.comp-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:none;
+  transition:border-color var(--transition),box-shadow var(--transition),transform var(--transition);
+}
+.card:hover,.info-card:hover,.stat-card:hover,.dept-card:hover,.lt-config-card:hover,.my-bal-card:hover,.comp-card:hover{box-shadow:var(--shadow-md)}
+.comp-card{background:var(--surface)}
+.filter-bar,.analytics-filter-bar{
+  gap:10px;
+  padding:12px 14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:none;
+}
+.search-wrap{flex:1 1 260px;min-width:220px}
+.search-wrap svg{left:13px;width:15px;height:15px}
+.search-wrap input{
+  min-height:40px;
+  padding-left:38px;
+  background:var(--surface2);
+  border-color:var(--border);
+}
+.filter-bar select,.analytics-filter-bar select{
+  min-height:40px;
+  min-width:150px;
+  background:var(--surface2);
+  border-color:var(--border);
+}
+.filter-bar .btn,.analytics-filter-bar .btn{min-height:40px}
+.sb-balance-row{display:block}
+.sb-balance-item{padding:3px 0}
+.sb-lb-bar{height:4px;background:rgba(255,255,255,.14);border-radius:999px;margin:0 0 7px;overflow:hidden}
+.sb-lb-fill{height:100%;border-radius:inherit;background:var(--accent)}
+.sb-lb-fill.warn{background:var(--warning)}
+.sb-lb-fill.danger{background:var(--danger)}

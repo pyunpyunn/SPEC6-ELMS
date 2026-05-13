@@ -6,7 +6,7 @@
     $displayName = $employee?->full_name ?? auth()->user()->name;
     $displayRole = $isViewingEmployee ? ucfirst(str_replace('_', ' ', $employee?->user?->role ?? 'Employee')) : 'HR Admin';
     $displayDepartment = $employee?->departmentRecord?->name ?? 'Human Resources';
-    $balances = collect($employee?->leaveBalances ?? []);
+    $balances = collect($leaveBalances ?? $employee?->leaveBalances ?? []);
 @endphp
 
 <div class="page active" id="page-profile">

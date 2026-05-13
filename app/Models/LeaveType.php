@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveType extends Model
 {
-<<<<<<< HEAD
     protected $fillable = [
         'name',
         'slug',
@@ -33,7 +32,4 @@ class LeaveType extends Model
     {
         return $this->hasMany(LeaveBalance::class);
     }
-=======
-    protected $fillable = ['name', 'annual_allocation', 'requires_approval'];
->>>>>>> emp-dev
 }

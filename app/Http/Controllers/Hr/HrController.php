@@ -199,6 +199,7 @@ class HrController extends Controller
         return view('hr.profile.show', [
             'employee' => $employee,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
+            'leaveBalances' => $this->visibleLeaveBalances($employee),
             'year' => now()->year,
             'selectedTypeId' => null,
             'viewingEmployee' => true,
@@ -240,7 +241,10 @@ class HrController extends Controller
                 'role' => $request->role,
                 'status' => $request->employment_status === 'active' ? 'active' : 'inactive',
             ]);
-            $employee->update($request->validated() + ['department' => $department?->name]);
+            $payload = $request->validated();
+            $payload['department'] = $department?->name;
+            $payload['contact_info'] = $request->contact_info ?: $request->email;
+            $employee->update($payload);
         });
 
         return back()->with('success', 'Employee updated successfully.');
@@ -486,6 +490,8 @@ class HrController extends Controller
         abort_unless($employee, 403);
 
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
+        abort_unless($this->isVisibleForGender($leaveType->name, $employee->gender), 422, 'This leave type is not available for the employee gender on record.');
+
         $totalDays = $this->workingDaysBetween(Carbon::parse($validated['start_date']), Carbon::parse($validated['end_date']));
         $proofPath = $request->file('proof')?->store('leave-proofs', 'public');
 
@@ -535,6 +541,7 @@ class HrController extends Controller
         return view('hr.profile.show', [
             'employee' => auth()->user()->employee?->load(['departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->when($typeId, fn ($b) => $b->where('leave_type_id', $typeId))->with('leaveType'), 'leaveApplications.leaveType']),
             'leaveTypes' => $this->visibleLeaveTypes(auth()->user()->employee),
+            'leaveBalances' => $this->visibleLeaveBalances(auth()->user()->employee),
             'year' => $year,
             'selectedTypeId' => $typeId,
         ]);
@@ -547,7 +554,9 @@ class HrController extends Controller
             'name' => "{$request->first_name} {$request->last_name}",
             'email' => $request->email,
         ]);
-        $user->employee?->update($request->validated());
+        $payload = $request->validated();
+        $payload['contact_info'] = $request->contact_info ?: $request->email;
+        $user->employee?->update($payload);
 
         return back()->with('success', 'Profile updated.');
     }
@@ -614,6 +623,22 @@ class HrController extends Controller
                     default => 99,
                 };
             });
+    }
+
+    private function isVisibleForGender(string $leaveTypeName, ?string $gender): bool
+    {
+        $gender = strtolower((string) $gender);
+        $name = strtolower($leaveTypeName);
+
+        if ($gender === 'female' && str_contains($name, 'paternity')) {
+            return false;
+        }
+
+        if ($gender === 'male' && str_contains($name, 'maternity')) {
+            return false;
+        }
+
+        return true;
     }
 
     private function visibleLeaveTypes(?Employee $employee)

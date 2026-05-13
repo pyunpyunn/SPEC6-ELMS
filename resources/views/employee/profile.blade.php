@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $employeeId = $employee ? 'EMP-' . str_pad($employee->id, 4, '0', STR_PAD_LEFT) : 'No profile';
+    $employeeId = $employee?->employee_id ?? 'No profile';
 @endphp
 
 <div class="page-header">
@@ -29,6 +29,7 @@
                 <div class="detail-row"><span class="dl">Employee ID</span><span class="dv font-mono">{{ $employeeId }}</span></div>
                 <div class="detail-row"><span class="dl">Full Name</span><span class="dv">{{ auth()->user()->name }}</span></div>
                 <div class="detail-row"><span class="dl">Email</span><span class="dv">{{ auth()->user()->email }}</span></div>
+                <div class="detail-row"><span class="dl">Gender</span><span class="dv">{{ ucfirst($employee?->gender ?? 'Unspecified') }}</span></div>
             </div>
             <div class="detail-list">
                 <div class="detail-row"><span class="dl">Department</span><span class="dv">{{ $employee->department ?? '-' }}</span></div>

@@ -223,6 +223,7 @@ function closeEmployeeModal(event) {
 }
 
 function submitEmployee() {
+    document.getElementById('employeeContactInfo').value = document.getElementById('employeeEmail').value;
     document.getElementById('employeeForm').submit();
 }
 </script>

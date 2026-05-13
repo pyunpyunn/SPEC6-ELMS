@@ -15,9 +15,11 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE leave_balances MODIFY allocated_days INT UNSIGNED NOT NULL');
-        DB::statement('ALTER TABLE leave_balances MODIFY used_days INT UNSIGNED NOT NULL DEFAULT 0');
-        DB::statement('ALTER TABLE leave_applications MODIFY total_days INT UNSIGNED NOT NULL DEFAULT 1');
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE leave_balances MODIFY allocated_days INT UNSIGNED NOT NULL');
+            DB::statement('ALTER TABLE leave_balances MODIFY used_days INT UNSIGNED NOT NULL DEFAULT 0');
+            DB::statement('ALTER TABLE leave_applications MODIFY total_days INT UNSIGNED NOT NULL DEFAULT 1');
+        }
     }
 
     public function down(): void

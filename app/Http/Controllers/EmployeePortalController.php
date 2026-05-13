@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LeaveApplication;
 use App\Models\LeaveType;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -42,13 +43,18 @@ class EmployeePortalController extends Controller
             'proof' => ['nullable', 'file', 'max:10240'],
         ]);
 
+        $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
+        abort_unless($this->isVisibleForGender($leaveType->name, $employee->gender), 422, 'This leave type is not available for the employee gender on record.');
+
         LeaveApplication::create([
             'employee_id' => $employee->id,
             'leave_type_id' => $validated['leave_type_id'],
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
+            'total_days' => $this->inclusiveDays($validated['start_date'], $validated['end_date']),
             'reason' => $validated['reason'],
             'status' => 'pending',
+            'proof_path' => $request->file('proof')?->store('leave-proofs', 'public'),
         ]);
 
         return redirect()
@@ -135,6 +141,7 @@ class EmployeePortalController extends Controller
 
         $leaveTypes = LeaveType::orderBy('name')
             ->get()
+            ->filter(fn (LeaveType $type) => $this->isVisibleForGender($type->name, $employee?->gender))
             ->sortBy(fn ($type) => $order[$type->name] ?? 999)
             ->values()
             ->map(function ($type) use ($leaveApplications) {
@@ -166,6 +173,9 @@ class EmployeePortalController extends Controller
 
     private function inclusiveDays($start, $end): int
     {
+        $start = $start instanceof Carbon ? $start : Carbon::parse($start);
+        $end = $end instanceof Carbon ? $end : Carbon::parse($end);
+
         return $start && $end ? $start->diffInDays($end) + 1 : 0;
     }
 
@@ -184,9 +194,9 @@ class EmployeePortalController extends Controller
         return [
             ['name' => 'Sick Leave', 'annual_allocation' => 15],
             ['name' => 'Vacation Leave', 'annual_allocation' => 15],
-            ['name' => 'Bereavement (RIP) Leave', 'annual_allocation' => 15],
+            ['name' => 'Bereavement Leave', 'annual_allocation' => 15],
             ['name' => 'Special Emergency Leave', 'annual_allocation' => 15],
-            ['name' => 'Maternity Leave', 'annual_allocation' => 30],
+            ['name' => 'Maternity Leave', 'annual_allocation' => 105],
             ['name' => 'Paternity Leave', 'annual_allocation' => 7],
         ];
     }
@@ -194,10 +204,26 @@ class EmployeePortalController extends Controller
     private function policyNote(string $name): string
     {
         return match ($name) {
-            'Maternity Leave' => '30 days; +15 if single parent; 60 days if stillbirth/miscarriage. Female employees only.',
+            'Maternity Leave' => '105 days; 120 days if solo parent; 60 days if stillbirth or miscarriage. Female employees only.',
             'Paternity Leave' => '7 days per delivery/miscarriage, first 4 only. Male employees only.',
-            'Bereavement (RIP) Leave' => '15 days/year.',
+            'Bereavement Leave' => '15 days/year. Also called RIP leave in the prototype notes.',
             default => (int) LeaveType::where('name', $name)->value('annual_allocation') . ' days/year.',
         };
+    }
+
+    private function isVisibleForGender(string $leaveTypeName, ?string $gender): bool
+    {
+        $gender = strtolower((string) $gender);
+        $name = strtolower($leaveTypeName);
+
+        if ($gender === 'female' && str_contains($name, 'paternity')) {
+            return false;
+        }
+
+        if ($gender === 'male' && str_contains($name, 'maternity')) {
+            return false;
+        }
+
+        return true;
     }
 }

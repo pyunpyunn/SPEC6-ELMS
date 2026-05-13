@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,7 +35,6 @@
         input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(90,184,139,.14)}
         .actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:18px}
         .btn{min-height:48px;padding:12px 18px;border:0;border-radius:14px;background:var(--accent);color:#0f1712;font-weight:800;font-size:15px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
-        .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
         .hint{margin-top:18px;padding:14px 16px;border-radius:14px;background:rgba(90,184,139,.09);border:1px solid rgba(90,184,139,.18);color:#cbe8d7;font-size:15px;line-height:1.5}
         .err{margin-top:10px;padding:12px 14px;border-radius:12px;background:rgba(239,123,123,.12);border:1px solid rgba(239,123,123,.18);color:#ffd3d3;font-size:15px}
         .foot{margin-top:16px;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:15px}
@@ -121,73 +119,3 @@
     </div>
 </body>
 </html>
-=======
-@extends('layouts.app')
-
-@section('content')
-<style>
-    body { background: #f3f6f4; }
-    .form-dark { background: #fff; color: #172b22; border: 1px solid #dde5e0; }
-    .form-dark input, .form-dark select {
-        background: #eef2ef; color: #172b22; border: 1px solid #c6d5cc; border-radius: 7px;
-    }
-    .form-dark input:focus, .form-dark select:focus {
-        border-color: #2a6349; outline: none;
-    }
-    .form-label { color: #42614f; font-weight: 600; }
-    .form-title { color: #2a6349; font-size: 2rem; font-weight: bold; }
-    .form-link { color: #2a6349; }
-    .form-link:hover { text-decoration: underline; }
-</style>
-<div class="flex min-h-screen items-center justify-center" style="background: #f3f6f4;">
-    <div class="form-dark p-10 rounded-lg shadow-lg w-full max-w-md">
-        <div class="mb-8 text-center">
-            <div class="form-title mb-2">Register</div>
-            <div class="td-sub" style="color:#78957f">Create your employee account for verification</div>
-        </div>
-        @if ($errors->any())
-            <div class="badge badge-rejected mb-4">Please review the highlighted fields</div>
-            <ul class="mb-4 text-danger">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        @endif
-        <form method="POST" action="{{ route('register') }}" class="form-grid single">
-            @csrf
-            <div class="form-group">
-                <label class="form-label">Name</label>
-                <input type="text" name="name" required autofocus value="{{ old('name') }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" required value="{{ old('email') }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Confirm Password</label>
-                <input type="password" name="password_confirmation" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Preferred Department</label>
-                <select name="department" required>
-                    <option value="">Select department</option>
-                    <option value="People Operations">People Operations</option>
-                    <option value="IT">IT</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Operations">Operations</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary w-full mt-2">Register</button>
-        </form>
-        <div class="td-sub mt-6 text-center">
-            <a href="{{ route('login') }}" class="form-link">Already have an account? Login</a>
-        </div>
-    </div>
-</div>
-@endsection
->>>>>>> emp-dev
