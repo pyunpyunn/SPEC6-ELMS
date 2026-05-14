@@ -36,12 +36,12 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::registerView(fn () => view('auth.register'));
         Fortify::authenticateUsing(function (Request $request) {
             $login = trim((string) $request->input(Fortify::username()));
-
-            $normalizedLogin = Str::lower($login);
+            $email = Str::lower($login);
+            $employeeId = Str::upper($login);
 
             $user = User::query()
-                ->whereRaw('LOWER(email) = ?', [$normalizedLogin])
-                ->orWhereHas('employee', fn ($query) => $query->whereRaw('LOWER(employee_id) = ?', [$normalizedLogin]))
+                ->where('email', $email)
+                ->orWhereHas('employee', fn ($query) => $query->where('employee_id', $employeeId))
                 ->first();
 
             if (

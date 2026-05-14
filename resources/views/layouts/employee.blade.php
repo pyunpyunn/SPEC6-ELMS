@@ -8,6 +8,7 @@
         ->implode('') ?: 'EM';
     $departmentCode = $employee?->department ?? 'Employee';
     $balancesForShell = $employeeLeaveBalances ?? $leaveTypes ?? collect();
+    $unreadNotifications = $currentUser?->notifications()->whereNull('read_at')->count() ?? 0;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -31,17 +32,17 @@
         </div>
         <nav class="sb-nav" aria-label="Employee navigation">
             <div class="sb-section">Main</div>
-            <a class="sb-item {{ request()->routeIs('dashboard.employee') ? 'active' : '' }}" href="{{ route('dashboard.employee') }}">
+            <a class="sb-item {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}" href="{{ route('employee.dashboard') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                 <span>Dashboard</span>
             </a>
             <div class="sb-section">Leave Control</div>
-            <a class="sb-item {{ request()->routeIs('employee.leave.*') ? 'active' : '' }}" href="{{ route('employee.leave.index') }}">
+            <a class="sb-item {{ request()->routeIs('employee.leaves.*') ? 'active' : '' }}" href="{{ route('employee.leaves.index') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
                 <span>My Leave</span>
             </a>
             <div class="sb-section">Insights</div>
-            <a class="sb-item {{ request()->routeIs('employee.reports') || request()->routeIs('employee.leave.balances') ? 'active' : '' }}" href="{{ route('employee.reports') }}">
+            <a class="sb-item {{ request()->routeIs('employee.reports') || request()->routeIs('employee.leave-balances') ? 'active' : '' }}" href="{{ route('employee.reports') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>
                 <span>My Reports</span>
             </a>
@@ -107,7 +108,7 @@
                 </div>
                 <div class="profile-dropdown" id="employeeProfileDropdown">
                     <a href="{{ route('employee.profile') }}">My Profile</a>
-                    <a href="{{ route('employee.notifications') }}">Notifications</a>
+                    <a href="{{ route('employee.notifications') }}">Notifications @if($unreadNotifications) ({{ $unreadNotifications }}) @endif</a>
                     <div class="pdivider"></div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -115,7 +116,7 @@
                     </form>
                 </div>
                 @auth
-                    <a href="{{ route('employee.notifications') }}" class="btn btn-outline btn-sm">Notifications</a>
+                    <a href="{{ route('employee.notifications') }}" class="btn btn-outline btn-sm">Notifications @if($unreadNotifications) {{ $unreadNotifications }} @endif</a>
                 @endauth
             </div>
         </header>

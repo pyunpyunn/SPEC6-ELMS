@@ -1,58 +1,102 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Employee Leave Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel final project for managing employee leave requests, manager approvals, HR admin monitoring, leave balances, and reports.
 
-## About Laravel
+## Team Members
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Add member name here
+- Add member name here
+- Add member name here
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Laravel 12
+- Laravel Fortify authentication
+- Blade templates
+- Eloquent ORM
+- MySQL for local development
+- SQLite in-memory database for tests
 
-## Learning Laravel
+## Main Roles
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- Employee: file leave requests, view history, check balances, view own profile.
+- Manager: review department/team leave requests, approve or reject with remarks, view team calendar.
+- HR Admin: manage employees, departments, leave types, user activation, reports, calendar, and CSV export.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The database role value for HR Admin is `hr_admin`, while the route/controller folder is named `admin` for readability.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Clean Project Structure
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+app/
+  Http/
+    Controllers/
+      Admin/
+      Manager/
+      Employee/
+    Middleware/
+    Requests/
+  Models/
+  Notifications/
+database/
+  migrations/
+  seeders/
+resources/
+  views/
+    admin/
+    manager/
+    employee/
+    layouts/
+routes/
+  web.php
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Setup
 
-## Contributing
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate:fresh --seed
+npm run dev
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Update `.env` database values before running migrations.
 
-## Code of Conduct
+## Default Login Credentials
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+You can log in using either email or employee ID.
 
-## Security Vulnerabilities
+| Role | Login | Password |
+| --- | --- | --- |
+| HR Admin | `HR-0001` or `hr@company.com` | `password` |
+| Manager | `MGR-0004` or `manager@test.com` | `password` |
+| Employee | `EMP-STAFF-01` or `staff@test.com` | `staffpassword123` |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Feature Checklist
 
-## License
+- [x] Fortify login, registration, and password reset routes
+- [x] Role-based middleware for Employee, Manager, and HR Admin
+- [x] Employee management CRUD
+- [x] Department management
+- [x] Leave type configuration CRUD
+- [x] Employee leave application with balance validation
+- [x] Manager approval workflow with remarks
+- [x] In-app notifications through `system_notifications`
+- [x] HR dashboard and department summaries
+- [x] Leave balance report
+- [x] Monthly leave calendar
+- [x] CSV export for leave records and balances
+- [x] Pagination on listing pages
+- [x] Form Request validation classes
+- [x] Eloquent model relationships
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Useful Commands
+
+```bash
+php artisan route:list --except-vendor
+php artisan test
+php artisan migrate:fresh --seed
+```

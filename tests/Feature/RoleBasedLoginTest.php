@@ -10,7 +10,7 @@ class RoleBasedLoginTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_hr_can_login_with_hr_employee_id_and_is_sent_to_hr_dashboard(): void
+    public function test_hr_admin_can_login_with_employee_id_and_is_sent_to_admin_dashboard(): void
     {
         $this->seed(DatabaseSeeder::class);
 
@@ -24,7 +24,7 @@ class RoleBasedLoginTest extends TestCase
 
         $home = $this->get('/home');
         $home->assertStatus(302);
-        $this->assertSame(route('hr.dashboard'), $home->headers->get('Location'));
+        $this->assertSame(route('admin.dashboard'), $home->headers->get('Location'));
     }
 
     public function test_employee_can_login_with_employee_id_and_is_sent_to_employee_dashboard(): void
@@ -41,6 +41,6 @@ class RoleBasedLoginTest extends TestCase
 
         $home = $this->get('/home');
         $home->assertStatus(302);
-        $this->assertSame(route('dashboard.employee'), $home->headers->get('Location'));
+        $this->assertSame(route('employee.dashboard'), $home->headers->get('Location'));
     }
 }

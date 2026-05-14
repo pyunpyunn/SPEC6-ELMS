@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveApplication;
+use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\SystemNotification;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +19,7 @@ class EmployeePortalController extends Controller
     {
         $data = $this->portalData();
 
-        return view('employee-dashboard', $data + [
+        return view('employee.dashboard', $data + [
             'pendingLeaves' => $data['leaveApplications']->where('status', 'pending')->count(),
             'approvedLeaveDays' => $data['leaveApplications']->where('status', 'approved')->sum('days'),
             'availableLeaveDays' => $data['leaveTypes']->sum('remaining_days'),
@@ -26,7 +29,7 @@ class EmployeePortalController extends Controller
 
     public function createLeave()
     {
-        return redirect()->route('employee.leave.index');
+        return redirect()->route('employee.leaves.index');
     }
 
     public function storeLeave(Request $request)
@@ -45,31 +48,49 @@ class EmployeePortalController extends Controller
 
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
         abort_unless($this->isVisibleForGender($leaveType->name, $employee->gender), 422, 'This leave type is not available for the employee gender on record.');
+        $totalDays = $this->inclusiveDays($validated['start_date'], $validated['end_date']);
+        $balance = LeaveBalance::where('employee_id', $employee->id)
+            ->where('leave_type_id', $leaveType->id)
+            ->where('year', Carbon::parse($validated['start_date'])->year)
+            ->first();
+        $pendingDays = LeaveApplication::where('employee_id', $employee->id)
+            ->where('leave_type_id', $leaveType->id)
+            ->where('status', 'pending')
+            ->whereYear('start_date', Carbon::parse($validated['start_date'])->year)
+            ->sum('total_days');
 
-        LeaveApplication::create([
+        if (! $balance || ($balance->remaining_days - (int) $pendingDays) < $totalDays) {
+            return back()
+                ->withErrors(['leave_type_id' => 'You do not have enough remaining balance for this leave request.'])
+                ->withInput();
+        }
+
+        $leave = LeaveApplication::create([
             'employee_id' => $employee->id,
             'leave_type_id' => $validated['leave_type_id'],
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
-            'total_days' => $this->inclusiveDays($validated['start_date'], $validated['end_date']),
+            'total_days' => $totalDays,
             'reason' => $validated['reason'],
             'status' => 'pending',
             'proof_path' => $request->file('proof')?->store('leave-proofs', 'public'),
-        ]);
+        ])->load(['employee.user', 'employee.manager.user', 'employee.departmentRecord', 'leaveType']);
+
+        $this->notifyLeaveSubmitted($leave);
 
         return redirect()
-            ->route('employee.leave.history')
+            ->route('employee.leaves.index')
             ->with('success', 'Leave request submitted. It is now pending approval.');
     }
 
     public function leaveHistory()
     {
-        return redirect()->route('employee.leave.index');
+        return redirect()->route('employee.leaves.index');
     }
 
     public function myLeave()
     {
-        return view('employee.index', $this->portalData());
+        return view('employee.leaves.index', $this->portalData());
     }
 
     public function cancelLeave(LeaveApplication $leaveApplication)
@@ -77,7 +98,10 @@ class EmployeePortalController extends Controller
         $employee = Auth::user()->employee;
 
         abort_unless($employee && $leaveApplication->employee_id === $employee->id, 403);
-        abort_unless($leaveApplication->status === 'pending', 403, 'Only pending requests can be cancelled.');
+
+        if ($leaveApplication->status !== 'pending') {
+            return back()->with('error', 'Cannot cancel a reviewed leave.');
+        }
 
         $leaveApplication->delete();
 
@@ -94,25 +118,19 @@ class EmployeePortalController extends Controller
     public function notifications()
     {
         $data = $this->portalData();
+        Auth::user()->notifications()->whereNull('read_at')->update(['read_at' => now()]);
 
-        $notifications = $data['leaveApplications']
-            ->filter(fn ($leave) => in_array($leave->status, ['approved', 'rejected', 'pending'], true))
-            ->map(fn ($leave) => (object) [
-                'title' => match ($leave->status) {
-                    'approved' => 'Leave Approved',
-                    'rejected' => 'Leave Rejected',
-                    default => 'Leave Pending',
-                },
-                'body' => ($leave->leaveType->name ?? 'Leave') . ' for ' .
-                    $leave->start_date->format('M d, Y') . ' to ' . $leave->end_date->format('M d, Y') .
-                    ($leave->remarks ? '. Remark: ' . $leave->remarks : '.'),
-                'status' => $leave->status,
-                'time' => $leave->updated_at?->format('M d, Y h:i A') ?? $leave->created_at?->format('M d, Y h:i A'),
-                'unread' => $leave->status === 'pending',
-            ])
-            ->values();
+        $notifications = Auth::user()->notifications()->latest()->paginate(15);
 
         return view('employee.notifications', $data + compact('notifications'));
+    }
+
+    public function readNotification(SystemNotification $notification)
+    {
+        abort_unless($notification->user_id === auth()->id(), 403);
+        $notification->update(['read_at' => $notification->read_at ?: now()]);
+
+        return redirect($notification->action_url ?: route('employee.notifications'));
     }
 
     public function profile()
@@ -120,12 +138,13 @@ class EmployeePortalController extends Controller
         return view('employee.profile', $this->portalData());
     }
 
-    private function portalData(): array
+    protected function portalData(): array
     {
         $user = Auth::user();
         $employee = $user->employee;
         $leaveApplications = $employee
             ? LeaveApplication::with('leaveType')
+                ->with('reviewer')
                 ->where('employee_id', $employee->id)
                 ->latest()
                 ->get()
@@ -225,5 +244,43 @@ class EmployeePortalController extends Controller
         }
 
         return true;
+    }
+
+    private function notifyLeaveSubmitted(LeaveApplication $leave): void
+    {
+        $title = 'Leave request pending';
+        $body = $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request for '.
+            $leave->start_date->format('M d, Y').' to '.$leave->end_date->format('M d, Y').'.';
+
+        $managerRecipients = collect();
+
+        if ($leave->employee->manager?->user?->status === 'active') {
+            $managerRecipients->push($leave->employee->manager->user);
+        }
+
+        if ($managerRecipients->isEmpty() && $leave->employee->department_id) {
+            $managerRecipients = User::where('role', 'manager')
+                ->where('status', 'active')
+                ->whereHas('employee', fn ($query) => $query->where('department_id', $leave->employee->department_id))
+                ->get();
+        }
+
+        $managerRecipients
+            ->unique('id')
+            ->each(fn (User $manager) => SystemNotification::sendTo(
+                $manager,
+                $title,
+                $body,
+                route('manager.approvals.show', $leave),
+                'leave_request'
+            ));
+
+        SystemNotification::sendToRole(
+            'hr_admin',
+            $title,
+            $body,
+            route('admin.requests.index'),
+            'leave_request'
+        );
     }
 }

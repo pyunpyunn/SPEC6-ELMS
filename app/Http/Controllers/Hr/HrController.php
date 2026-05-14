@@ -12,6 +12,7 @@ use App\Models\Employee;
 use App\Models\LeaveApplication;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\Position;
 use App\Models\SystemNotification;
 use App\Models\User;
 use Carbon\Carbon;
@@ -37,12 +38,9 @@ class HrController extends Controller
         }
 
         $monthRequestQuery = (clone $requestQuery)->whereBetween('start_date', [now()->startOfMonth(), now()->endOfMonth()]);
-        $mostUsed = (clone $requestQuery)
-            ->select('leave_type_id', DB::raw('count(*) as total'))
-            ->groupBy('leave_type_id')
-            ->orderByDesc('total')
-            ->with('leaveType')
-            ->first();
+        $dashboardRequests = (clone $requestQuery)->get();
+        $mostUsedTypeId = $dashboardRequests->countBy('leave_type_id')->sortDesc()->keys()->first();
+        $mostUsed = $mostUsedTypeId ? LeaveType::find($mostUsedTypeId) : null;
 
         $departmentSummaries = Department::withCount(['employees as active_employees_count' => fn ($query) => $query->where('employment_status', 'active')])
             ->with(['employees.leaveApplications' => fn ($query) => $query->where('status', 'approved')->whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())])
@@ -54,7 +52,7 @@ class HrController extends Controller
                 ];
             });
 
-        return view('hr.dashboard', [
+        return view('admin.dashboard', [
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'selectedDepartmentId' => $departmentId,
             'stats' => [
@@ -62,9 +60,9 @@ class HrController extends Controller
                 'pending_manager' => (clone $requestQuery)->where('status', 'pending')->count(),
                 'pending_users' => User::where('status', 'pending')->count(),
                 'leaves_this_month' => $monthRequestQuery->count(),
-                'most_used' => $mostUsed?->leaveType?->name ?? 'None yet',
+                'most_used' => $mostUsed?->name ?? 'None yet',
             ],
-            'statusBreakdown' => (clone $requestQuery)->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status'),
+            'statusBreakdown' => $dashboardRequests->countBy('status'),
             'recentRequests' => (clone $requestQuery)->latest()->take(5)->get(),
             'departmentSummaries' => $departmentSummaries,
             'onLeaveToday' => LeaveApplication::with(['employee.user', 'employee.departmentRecord', 'leaveType'])
@@ -79,7 +77,7 @@ class HrController extends Controller
 
     public function users(Request $request): View
     {
-        $allUsers = User::with('employee.departmentRecord')
+        $allUsers = User::with('employee.departmentRecord', 'employee.positionRecord')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->string('search'));
                 $query->where(function ($sub) use ($search) {
@@ -94,12 +92,12 @@ class HrController extends Controller
             ->paginate(10, ['*'], 'users_page')
             ->withQueryString();
 
-        return view('hr.users.pending', [
+        return view('admin.users.pending', [
             'pendingUsers' => User::where('status', 'pending')->latest()->paginate(10, ['*'], 'pending_page'),
             'allUsers' => $allUsers,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'managers' => Employee::with('user', 'departmentRecord')->whereHas('user', fn ($q) => $q->where('role', 'manager'))->get(),
-            'positions' => Employee::select('position')->distinct()->orderBy('position')->pluck('position'),
+            'positions' => Position::orderBy('name')->get(),
             'userFilters' => [
                 'search' => $request->string('search')->toString(),
                 'department_id' => $request->integer('department_id') ?: null,
@@ -114,11 +112,19 @@ class HrController extends Controller
             'employee_id' => ['required', 'string', 'max:30', 'unique:employees,employee_id'],
             'role' => ['required', 'in:employee,manager,hr_admin'],
             'department_id' => ['required', 'exists:departments,id'],
+            'position_id' => ['required', 'exists:positions,id'],
             'manager_id' => ['nullable', 'exists:employees,id'],
-            'position' => ['required', 'string', 'max:120'],
             'date_hired' => ['required', 'date'],
             'gender' => ['nullable', 'in:male,female,other'],
         ]);
+
+        $position = $this->positionForDepartment($request->integer('position_id'), $request->integer('department_id'));
+
+        if (! $position) {
+            return back()
+                ->withErrors(['position_id' => 'The selected position does not belong to the selected department.'])
+                ->withInput();
+        }
 
         // Validate employee ID format matches role
         $validPrefixes = [
@@ -132,21 +138,28 @@ class HrController extends Controller
             return back()->withErrors(['employee_id' => "Employee ID must start with '{$expectedPrefix}' for {$validated['role']} role."]);
         }
 
-        DB::transaction(function () use ($validated, $user) {
-            $department = Department::find($validated['department_id']);
+        DB::transaction(function () use ($validated, $user, $position) {
+            $department = $position->department;
             $name = $this->splitName($user->name);
 
-            $user->update(['role' => $validated['role'], 'status' => 'active', 'pending_employee_id' => null]);
+            $user->update([
+                'role' => $validated['role'],
+                'status' => 'active',
+                'pending_employee_id' => null,
+                'department_id' => $department->id,
+                'position_id' => $position->id,
+            ]);
 
             $employee = Employee::create([
                 'user_id' => $user->id,
                 'employee_id' => $validated['employee_id'],
-                'department_id' => $validated['department_id'],
+                'department_id' => $department->id,
+                'position_id' => $position->id,
                 'manager_id' => $validated['manager_id'] ?? null,
                 'first_name' => $name[0],
                 'last_name' => $name[1],
                 'department' => $department?->name,
-                'position' => $validated['position'],
+                'position' => $position->name,
                 'gender' => $validated['gender'] ?? null,
                 'date_hired' => $validated['date_hired'],
                 'contact_info' => $user->email,
@@ -155,7 +168,7 @@ class HrController extends Controller
             ]);
 
             $this->seedBalancesFor($employee);
-            $this->notify($user, 'Account activated', 'Your ELMS account is active. You can now sign in and file leave requests.', route('home'));
+            $this->notify($user, 'Account activated', 'Your ELMS account is active. You can now sign in and file leave requests.', route('home'), 'account_status');
         });
 
         return back()->with('success', 'Account activated, employee profile created, balances seeded, and notification sent.');
@@ -171,7 +184,7 @@ class HrController extends Controller
 
     public function employees(Request $request): View
     {
-        $employees = Employee::with(['user', 'departmentRecord', 'manager.user'])
+        $employees = Employee::with(['user', 'departmentRecord', 'positionRecord', 'manager.user'])
             ->when($request->search, fn ($q, $search) => $q->where(function ($query) use ($search) {
                 $query->where('employee_id', 'like', "%{$search}%")
                     ->orWhere('first_name', 'like', "%{$search}%")
@@ -179,15 +192,16 @@ class HrController extends Controller
                     ->orWhereHas('user', fn ($uq) => $uq->where('email', 'like', "%{$search}%"));
             }))
             ->when($request->department_id, fn ($q, $id) => $q->where('department_id', $id))
+            ->when($request->position_id, fn ($q, $id) => $q->where('position_id', $id))
             ->when($request->position, fn ($q, $position) => $q->where('position', $position))
             ->when($request->employment_status, fn ($q, $status) => $q->where('employment_status', $status))
             ->orderBy('employee_id')
             ->paginate(10)
             ->withQueryString();
 
-        return view('hr.employees.index', $this->employeeFormData() + [
+        return view('admin.employees.index', $this->employeeFormData() + [
             'employees' => $employees,
-            'positions' => Employee::select('position')->distinct()->orderBy('position')->pluck('position'),
+            'positions' => Position::orderBy('name')->get(),
             'nextEmployeeId' => $this->nextEmployeeId(),
         ]);
     }
@@ -196,7 +210,7 @@ class HrController extends Controller
     {
         $employee->load(['user', 'departmentRecord', 'manager.user', 'leaveBalances.leaveType', 'leaveApplications.leaveType']);
 
-        return view('hr.profile.show', [
+        return view('admin.profile.show', [
             'employee' => $employee,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
             'leaveBalances' => $this->visibleLeaveBalances($employee),
@@ -208,24 +222,39 @@ class HrController extends Controller
 
     public function storeEmployee(EmployeeRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request) {
-            $department = Department::find($request->department_id);
+        $position = $this->positionForDepartment($request->integer('position_id'), $request->integer('department_id'));
+
+        if (! $position) {
+            return back()
+                ->withErrors(['position_id' => 'The selected position does not belong to the selected department.'])
+                ->withInput();
+        }
+
+        DB::transaction(function () use ($request, $position) {
+            $department = $position->department;
             $user = User::create([
                 'name' => "{$request->first_name} {$request->last_name}",
                 'email' => $request->email,
                 'password' => Hash::make('password'),
                 'role' => $request->role,
                 'status' => 'active',
+                'department_id' => $department->id,
+                'position_id' => $position->id,
             ]);
 
-            $employee = Employee::create($request->validated() + [
+            $payload = $request->validated();
+            $payload['department_id'] = $department->id;
+            $payload['position_id'] = $position->id;
+            $payload['position'] = $position->name;
+            $payload['department'] = $department?->name;
+            $payload['contact_info'] = $request->contact_info ?: $request->email;
+
+            $employee = Employee::create($payload + [
                 'user_id' => $user->id,
-                'department' => $department?->name,
-                'contact_info' => $request->contact_info ?: $request->email,
             ]);
 
             $this->seedBalancesFor($employee);
-            $this->notify($user, 'Employee profile created', 'HR created your ELMS profile. Default password: password', route('home'));
+            $this->notify($user, 'Employee profile created', 'HR created your ELMS profile. Default password: password', route('home'), 'account_status');
         });
 
         return back()->with('success', 'Employee created with default password password.');
@@ -233,16 +262,29 @@ class HrController extends Controller
 
     public function updateEmployee(EmployeeRequest $request, Employee $employee): RedirectResponse
     {
-        DB::transaction(function () use ($request, $employee) {
-            $department = Department::find($request->department_id);
+        $position = $this->positionForDepartment($request->integer('position_id'), $request->integer('department_id'));
+
+        if (! $position) {
+            return back()
+                ->withErrors(['position_id' => 'The selected position does not belong to the selected department.'])
+                ->withInput();
+        }
+
+        DB::transaction(function () use ($request, $employee, $position) {
+            $department = $position->department;
             $employee->user->update([
                 'name' => "{$request->first_name} {$request->last_name}",
                 'email' => $request->email,
                 'role' => $request->role,
                 'status' => $request->employment_status === 'active' ? 'active' : 'inactive',
+                'department_id' => $department->id,
+                'position_id' => $position->id,
             ]);
             $payload = $request->validated();
             $payload['department'] = $department?->name;
+            $payload['department_id'] = $department->id;
+            $payload['position_id'] = $position->id;
+            $payload['position'] = $position->name;
             $payload['contact_info'] = $request->contact_info ?: $request->email;
             $employee->update($payload);
         });
@@ -261,7 +303,7 @@ class HrController extends Controller
 
     public function departments(): View
     {
-        return view('hr.departments.index', [
+        return view('admin.departments.index', [
             'departments' => Department::with(['manager', 'employees.user', 'employees.leaveApplications' => fn ($query) => $query->where('status', 'approved')->whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())])->withCount('employees')->orderBy('name')->get(),
             'managers' => User::where('role', 'manager')->where('status', 'active')->orderBy('name')->get(),
         ]);
@@ -283,7 +325,7 @@ class HrController extends Controller
 
     public function leaveTypes(): View
     {
-        return view('hr.leave-types.index', [
+        return view('admin.leave-types.index', [
             'leaveTypes' => LeaveType::orderBy('name')->get(),
         ]);
     }
@@ -327,7 +369,7 @@ class HrController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('hr.requests.index', [
+        return view('admin.requests.index', [
             'requests' => $requests,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
@@ -337,12 +379,26 @@ class HrController extends Controller
 
     public function reviewRequest(Request $request, LeaveApplication $leaveApplication): RedirectResponse
     {
+        abort_unless($leaveApplication->status === 'pending', 422, 'Only pending requests can be reviewed.');
+
         $validated = $request->validate([
             'status' => ['required', 'in:approved,rejected'],
             'remarks' => ['required', 'string', 'max:500'],
         ]);
 
         DB::transaction(function () use ($validated, $leaveApplication) {
+            if ($validated['status'] === 'approved') {
+                $balance = LeaveBalance::where('employee_id', $leaveApplication->employee_id)
+                    ->where('leave_type_id', $leaveApplication->leave_type_id)
+                    ->where('year', $leaveApplication->start_date->year)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_if(! $balance || $balance->remaining_days < (int) $leaveApplication->total_days, 422, 'The employee does not have enough remaining balance for this leave.');
+
+                $balance->increment('used_days', (int) $leaveApplication->total_days);
+            }
+
             $leaveApplication->update([
                 'status' => $validated['status'],
                 'remarks' => $validated['remarks'],
@@ -350,14 +406,17 @@ class HrController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            if ($validated['status'] === 'approved') {
-                LeaveBalance::where('employee_id', $leaveApplication->employee_id)
-                    ->where('leave_type_id', $leaveApplication->leave_type_id)
-                    ->where('year', $leaveApplication->start_date->year)
-                    ->increment('used_days', (int) $leaveApplication->total_days);
-            }
+            $this->notify($leaveApplication->employee->user, 'Leave request '.$validated['status'], 'Your '.$leaveApplication->leaveType->name.' request was '.$validated['status'].' by HR.', route('home'), 'leave_status');
 
-            $this->notify($leaveApplication->employee->user, 'Leave request '.$validated['status'], 'Your '.$leaveApplication->leaveType->name.' request was '.$validated['status'].'.', route('home'));
+            if ($leaveApplication->employee->manager?->user?->status === 'active') {
+                $this->notify(
+                    $leaveApplication->employee->manager->user,
+                    'Leave request '.$validated['status'].' by HR',
+                    $leaveApplication->employee->full_name."'s ".$leaveApplication->leaveType->name.' request was '.$validated['status'].' by HR.',
+                    route('manager.approvals.show', $leaveApplication),
+                    'leave_status'
+                );
+            }
         });
 
         return back()->with('success', 'Leave request reviewed.');
@@ -377,7 +436,7 @@ class HrController extends Controller
             ? Employee::with(['user', 'departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->with('leaveType'), 'leaveApplications.leaveType'])->find($employeeId)
             : null;
 
-        return view('hr.reports.index', [
+        return view('admin.reports.index', [
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'employees' => Employee::with('user')->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->orderBy('last_name')->get(),
             'positions' => Employee::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->select('position')->distinct()->orderBy('position')->pluck('position'),
@@ -448,7 +507,7 @@ class HrController extends Controller
 
     public function calendar(Request $request): View
     {
-        return view('hr.calendar', [
+        return view('admin.calendar', [
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'selectedDepartmentId' => $request->integer('department_id') ?: null,
             'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
@@ -466,7 +525,7 @@ class HrController extends Controller
         $employee = ($request->user() ?: auth()->user())?->employee?->load(['leaveBalances.leaveType', 'leaveApplications.leaveType', 'departmentRecord']);
         $leaveBalances = $this->visibleLeaveBalances($employee);
 
-        return view('hr.my-leave', [
+        return view('admin.my-leave', [
             'employee' => $employee,
             'year' => $request->integer('year') ?: now()->year,
             'selectedTypeId' => $request->integer('leave_type_id') ?: null,
@@ -506,9 +565,13 @@ class HrController extends Controller
             'proof_path' => $proofPath,
         ]);
 
-        User::where('role', 'hr_admin')->where('status', 'active')->get()->each(function (User $hr) use ($leave) {
-            $this->notify($hr, 'Leave request pending', $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.', route('hr.requests.index'));
-        });
+        SystemNotification::sendToRole(
+            'hr_admin',
+            'Leave request pending',
+            $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
+            route('admin.requests.index'),
+            'leave_request'
+        );
 
         return back()->with('success', 'Leave request submitted.');
     }
@@ -517,7 +580,7 @@ class HrController extends Controller
     {
         auth()->user()->notifications()->whereNull('read_at')->update(['read_at' => now()]);
 
-        return view('hr.notifications', [
+        return view('admin.notifications', [
             'notifications' => auth()->user()->notifications()->latest()->paginate(15),
         ]);
     }
@@ -530,7 +593,7 @@ class HrController extends Controller
             $notification->update(['read_at' => now()]);
         }
 
-        return redirect($notification->action_url ?: route('notifications'));
+        return redirect($notification->action_url ?: route('admin.notifications'));
     }
 
     public function profile(): View
@@ -538,7 +601,7 @@ class HrController extends Controller
         $year = request()->integer('year') ?: now()->year;
         $typeId = request()->integer('leave_type_id') ?: null;
 
-        return view('hr.profile.show', [
+        return view('admin.profile.show', [
             'employee' => auth()->user()->employee?->load(['departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->when($typeId, fn ($b) => $b->where('leave_type_id', $typeId))->with('leaveType'), 'leaveApplications.leaveType']),
             'leaveTypes' => $this->visibleLeaveTypes(auth()->user()->employee),
             'leaveBalances' => $this->visibleLeaveBalances(auth()->user()->employee),
@@ -576,10 +639,9 @@ class HrController extends Controller
     private function employeeFormData(): array
     {
         return [
-            'departments' => Department::where('is_active', true)->orderBy('name')->get(),
+            'departments' => Department::with('positions')->where('is_active', true)->orderBy('name')->get(),
             'managers' => Employee::with('user')->whereHas('user', fn ($q) => $q->where('role', 'manager'))->get(),
-            'departmentPositions' => config('positions.departments', []),
-            'allPositions' => config('positions.all_positions', []),
+            'positions' => Position::orderBy('name')->get(),
         ];
     }
 
@@ -702,9 +764,17 @@ class HrController extends Controller
         ];
     }
 
-    private function notify(User $user, string $title, string $body, ?string $url = null): void
+    private function notify(User $user, string $title, string $body, ?string $url = null, string $type = 'info'): void
     {
-        SystemNotification::create(['user_id' => $user->id, 'title' => $title, 'body' => $body, 'action_url' => $url]);
+        SystemNotification::sendTo($user, $title, $body, $url, $type);
+    }
+
+    private function positionForDepartment(int $positionId, int $departmentId): ?Position
+    {
+        return Position::with('department')
+            ->whereKey($positionId)
+            ->where('department_id', $departmentId)
+            ->first();
     }
 
     private function nextEmployeeId(): string

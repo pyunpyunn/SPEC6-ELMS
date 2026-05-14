@@ -4,7 +4,7 @@
             <h3>Apply for Leave</h3>
             <button class="modal-close" type="button" onclick="closeModal('applyLeaveModal')">x</button>
         </div>
-        <form method="POST" action="{{ route('employee.leave.store') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('employee.leaves.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="modal-body">
                 <div class="form">

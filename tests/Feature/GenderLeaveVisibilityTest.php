@@ -20,7 +20,7 @@ class GenderLeaveVisibilityTest extends TestCase
         $hr = User::where('email', 'hr@company.com')->firstOrFail();
         $employee = Employee::where('employee_id', 'EMP-STAFF-01')->firstOrFail();
 
-        $this->actingAs($hr)->put(route('hr.employees.update', $employee), [
+        $this->actingAs($hr)->put(route('admin.employees.update', $employee), [
             'first_name' => $employee->first_name,
             'last_name' => $employee->last_name,
             'gender' => 'female',
@@ -28,6 +28,7 @@ class GenderLeaveVisibilityTest extends TestCase
             'role' => 'employee',
             'employee_id' => $employee->employee_id,
             'department_id' => $employee->department_id,
+            'position_id' => $employee->position_id,
             'manager_id' => $employee->manager_id,
             'position' => $employee->position,
             'date_hired' => $employee->date_hired->toDateString(),
@@ -58,13 +59,13 @@ class GenderLeaveVisibilityTest extends TestCase
         $female = Employee::where('employee_id', 'EMP-0018')->firstOrFail();
 
         $this->actingAs($male->user)
-            ->get(route('employee.leave.index'))
+            ->get(route('employee.leaves.index'))
             ->assertOk()
             ->assertSee('Paternity Leave')
             ->assertDontSee('Maternity Leave');
 
         $this->actingAs($female->user)
-            ->get(route('employee.leave.index'))
+            ->get(route('employee.leaves.index'))
             ->assertOk()
             ->assertSee('Maternity Leave')
             ->assertDontSee('Paternity Leave');
@@ -77,7 +78,7 @@ class GenderLeaveVisibilityTest extends TestCase
         $male = Employee::where('employee_id', 'EMP-STAFF-01')->firstOrFail();
         $maternity = LeaveType::where('name', 'Maternity Leave')->firstOrFail();
 
-        $this->actingAs($male->user)->post(route('employee.leave.store'), [
+        $this->actingAs($male->user)->post(route('employee.leaves.store'), [
             'leave_type_id' => $maternity->id,
             'start_date' => now()->addDay()->toDateString(),
             'end_date' => now()->addDays(2)->toDateString(),

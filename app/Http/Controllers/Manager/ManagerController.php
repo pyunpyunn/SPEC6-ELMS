@@ -43,7 +43,7 @@ class ManagerController extends Controller
     {
         $manager = $this->managerEmployee($request);
 
-        return view('manager.requests', $this->baseData($request) + [
+        return view('manager.approvals.index', $this->baseData($request) + [
             'requests' => $this->teamLeaveQuery($manager)
                 ->when($request->filled('search'), function ($query) use ($request) {
                     $search = trim($request->string('search'));
@@ -67,7 +67,7 @@ class ManagerController extends Controller
         $manager = $this->managerEmployee($request);
         abort_unless($this->isTeamLeave($manager, $leaveApplication), 403);
 
-        return view('manager.request-show', $this->baseData($request) + [
+        return view('manager.approvals.show', $this->baseData($request) + [
             'leave' => $leaveApplication->load(['employee.user', 'employee.departmentRecord', 'employee.leaveBalances.leaveType', 'leaveType']),
         ]);
     }
@@ -104,11 +104,20 @@ class ManagerController extends Controller
                 $leaveApplication->employee->user,
                 'Leave request '.$validated['status'],
                 'Your '.$leaveApplication->leaveType->name.' request was '.$validated['status'].' by your manager.',
-                route('home')
+                route('home'),
+                'leave_status'
+            );
+
+            SystemNotification::sendToRole(
+                'hr_admin',
+                'Leave request '.$validated['status'],
+                $leaveApplication->employee->full_name."'s ".$leaveApplication->leaveType->name.' request was '.$validated['status'].' by '.auth()->user()->name.'.',
+                route('admin.requests.index'),
+                'leave_status'
             );
         });
 
-        return redirect()->route('manager.requests.index')->with('success', 'Leave request reviewed successfully.');
+        return redirect()->route('manager.approvals.index')->with('success', 'Leave request reviewed successfully.');
     }
 
     public function calendar(Request $request): View
@@ -186,9 +195,13 @@ class ManagerController extends Controller
             'proof_path' => $request->file('proof')?->store('leave-proofs', 'public'),
         ]);
 
-        User::where('role', 'hr_admin')->where('status', 'active')->get()->each(function (User $hr) use ($leave) {
-            $this->notify($hr, 'Manager leave request pending', $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.', route('hr.requests.index'));
-        });
+        SystemNotification::sendToRole(
+            'hr_admin',
+            'Manager leave request pending',
+            $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
+            route('admin.requests.index'),
+            'leave_request'
+        );
 
         return back()->with('success', 'Leave request submitted to HR.');
     }
@@ -293,7 +306,7 @@ class ManagerController extends Controller
     private function scopeTeamEmployees($query, ?Employee $manager): void
     {
         if (! $manager) {
-            $query->whereRaw('1 = 0');
+            $query->whereKey(0);
             return;
         }
 
@@ -338,9 +351,9 @@ class ManagerController extends Controller
         return max(1, $days);
     }
 
-    private function notify(User $user, string $title, string $body, ?string $url = null): void
+    private function notify(User $user, string $title, string $body, ?string $url = null, string $type = 'info'): void
     {
-        SystemNotification::create(['user_id' => $user->id, 'title' => $title, 'body' => $body, 'action_url' => $url]);
+        SystemNotification::sendTo($user, $title, $body, $url, $type);
     }
 
     private function calendarGridData($leaves, int $year, int $month): array

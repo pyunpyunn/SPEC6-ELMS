@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Hr;
 
+use App\Models\Position;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -43,8 +44,8 @@ class EmployeeRequest extends FormRequest
                 },
             ],
             'department_id' => ['required', 'exists:departments,id'],
+            'position_id' => ['required', 'exists:positions,id'],
             'manager_id' => ['nullable', 'exists:employees,id'],
-            'position' => ['required', 'string', 'max:120'],
             'date_hired' => ['required', 'date'],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -52,5 +53,22 @@ class EmployeeRequest extends FormRequest
             'daily_rate' => ['required', 'numeric', 'min:0'],
             'employment_status' => ['required', Rule::in(['active', 'resigned', 'terminated'])],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if (! $this->filled('department_id') || ! $this->filled('position_id')) {
+                return;
+            }
+
+            $positionBelongsToDepartment = Position::whereKey($this->integer('position_id'))
+                ->where('department_id', $this->integer('department_id'))
+                ->exists();
+
+            if (! $positionBelongsToDepartment) {
+                $validator->errors()->add('position_id', 'The selected position does not belong to the selected department.');
+            }
+        });
     }
 }

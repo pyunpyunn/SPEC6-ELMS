@@ -15,7 +15,7 @@
             <div class="stat-card"><div class="stat-value" style="color:var(--success)">{{ $stats['approved_mtd'] }}</div><div class="stat-label">Approved MTD</div></div>
         </div>
         <div class="card">
-            <div class="card-header"><span class="card-title">Action Required</span><a class="btn btn-outline btn-sm" href="{{ route('manager.requests.index') }}">Open Inbox</a></div>
+            <div class="card-header"><span class="card-title">Action Required</span><a class="btn btn-outline btn-sm" href="{{ route('manager.approvals.index') }}">Open Inbox</a></div>
             <div class="card-body">
             <div class="table-wrap">
                 <table>
@@ -26,7 +26,7 @@
                             <td><strong>{{ $leave->employee->full_name }}</strong><div class="muted">{{ $leave->employee->position }}</div></td>
                             <td>{{ $leave->leaveType->name }}</td>
                             <td>{{ (int) $leave->total_days }}</td>
-                            <td><a class="btn btn-primary btn-sm" href="{{ route('manager.requests.show', $leave) }}">Review</a></td>
+                            <td><a class="btn btn-primary btn-sm" href="{{ route('manager.approvals.show', $leave) }}">Review</a></td>
                         </tr>
                     @empty
                         <tr><td colspan="4" class="muted">No pending team requests.</td></tr>

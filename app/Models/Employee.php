@@ -12,6 +12,7 @@ class Employee extends Model
         'user_id',
         'employee_id',
         'department_id',
+        'position_id',
         'manager_id',
         'first_name',
         'last_name',
@@ -39,6 +40,11 @@ class Employee extends Model
     public function departmentRecord(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function positionRecord(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'position_id');
     }
 
     public function manager(): BelongsTo
