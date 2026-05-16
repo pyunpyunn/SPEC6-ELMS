@@ -44,6 +44,11 @@
                 </div>
             @endforeach
         </div>
+        @if(method_exists($leaveApplications, 'links') && $leaveApplications->hasPages())
+            <div class="card-body" style="border-top:1px solid var(--border)">
+                {{ $leaveApplications->links() }}
+            </div>
+        @endif
     </div>
 </div>
 

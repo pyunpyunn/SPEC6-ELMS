@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreLeaveApplicationRequest;
 use App\Models\LeaveApplication;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
 use App\Models\SystemNotification;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -34,20 +34,14 @@ class EmployeePortalController extends Controller
         return redirect()->route('employee.leaves.index');
     }
 
-    public function storeLeave(Request $request)
+    public function storeLeave(StoreLeaveApplicationRequest $request)
     {
         $employee = Auth::user()->employee;
 
         abort_unless($employee, 403, 'Employee profile is required before filing leave.');
         $this->syncCurrentYearBalances($employee);
 
-        $validated = $request->validate([
-            'leave_type_id' => ['required', 'exists:leave_types,id'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'reason' => ['required', 'string', 'max:1000'],
-            'proof' => ['nullable', 'file', 'max:10240'],
-        ]);
+        $validated = $request->validated();
 
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
 
@@ -144,12 +138,20 @@ class EmployeePortalController extends Controller
     {
         $data = $this->portalData();
         $status = request('status');
+        $employee = Auth::user()?->employee;
 
-        if (in_array($status, ['pending', 'approved', 'rejected', 'cancelled'], true)) {
-            $data['leaveApplications'] = $data['leaveApplications']
-                ->where('status', $status)
-                ->values();
-        }
+        $data['leaveApplications'] = ($employee
+            ? LeaveApplication::with(['leaveType', 'reviewer'])->where('employee_id', $employee->id)
+            : LeaveApplication::whereKey(0))
+            ->when(in_array($status, ['pending', 'approved', 'rejected', 'cancelled'], true), fn ($query) => $query->where('status', $status))
+            ->latest()
+            ->paginate(10)
+            ->withQueryString()
+            ->through(function (LeaveApplication $leave) {
+                $leave->days = (int) ($leave->total_days ?: $this->inclusiveDays($leave->start_date, $leave->end_date));
+
+                return $leave;
+            });
 
         return view('employee.leaves.index', $data);
     }
@@ -213,6 +215,7 @@ class EmployeePortalController extends Controller
                 ->get()
                 ->map(function ($leave) {
                     $leave->days = (int) ($leave->total_days ?: $this->inclusiveDays($leave->start_date, $leave->end_date));
+
                     return $leave;
                 })
             : collect();
@@ -243,28 +246,28 @@ class EmployeePortalController extends Controller
             ->sortBy(fn (LeaveBalance $balance) => $order[$balance->leaveType->name] ?? 999)
             ->values()
             ->map(function (LeaveBalance $balance) use ($pendingDaysByType) {
-            $type = $balance->leaveType;
-            $pending = (int) ($pendingDaysByType[$type->id] ?? 0);
-            $used = (int) $balance->used_days + $pending;
-            $total = (int) $balance->allocated_days;
+                $type = $balance->leaveType;
+                $pending = (int) ($pendingDaysByType[$type->id] ?? 0);
+                $used = (int) $balance->used_days + $pending;
+                $total = (int) $balance->allocated_days;
 
-            return (object) [
-                'id' => $type->id,
-                'name' => $type->name,
-                'used_days' => $used,
-                'approved_used_days' => (int) $balance->used_days,
-                'pending_days' => $pending,
-                'total_days' => $total,
-                'remaining_days' => max(0, $total - $used),
-                'actual_remaining_days' => $balance->remaining_days,
-                'percent_used' => $total > 0 ? min(100, round(($used / $total) * 100)) : 0,
-                'policy_note' => $this->policyNote($type),
-                'requires_approval' => (bool) $type->requires_approval,
-                'requires_proof' => (bool) $type->requires_proof,
-                'is_compensable' => (bool) $type->is_compensable,
-                'proof_rules' => $type->proof_rules,
-            ];
-        });
+                return (object) [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'used_days' => $used,
+                    'approved_used_days' => (int) $balance->used_days,
+                    'pending_days' => $pending,
+                    'total_days' => $total,
+                    'remaining_days' => max(0, $total - $used),
+                    'actual_remaining_days' => $balance->remaining_days,
+                    'percent_used' => $total > 0 ? min(100, round(($used / $total) * 100)) : 0,
+                    'policy_note' => $this->policyNote($type),
+                    'requires_approval' => (bool) $type->requires_approval,
+                    'requires_proof' => (bool) $type->requires_proof,
+                    'is_compensable' => (bool) $type->is_compensable,
+                    'proof_rules' => $type->proof_rules,
+                ];
+            });
 
         return [
             'user' => $user,

@@ -2,23 +2,24 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
 use App\Models\LeaveType;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\CreatesElmsFixtures;
 use Tests\TestCase;
 
 class GenderLeaveVisibilityTest extends TestCase
 {
+    use CreatesElmsFixtures;
     use RefreshDatabase;
 
     public function test_hr_employee_edit_persists_gender_and_profile_uses_updated_value(): void
     {
         $this->seed(DatabaseSeeder::class);
+        [$employee] = $this->createGenderEmployees();
 
         $hr = User::where('email', 'hr@company.com')->firstOrFail();
-        $employee = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
 
         $this->actingAs($hr)->put(route('admin.employees.update', $employee), [
             'first_name' => $employee->first_name,
@@ -54,9 +55,7 @@ class GenderLeaveVisibilityTest extends TestCase
     public function test_gender_controls_visible_leave_types_for_employee_portal(): void
     {
         $this->seed(DatabaseSeeder::class);
-
-        $male = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
-        $female = Employee::where('employee_id', 'OPS-5002-001')->firstOrFail();
+        [$male, $female] = $this->createGenderEmployees();
 
         $this->actingAs($male->user)
             ->get(route('employee.leaves.index'))
@@ -74,8 +73,8 @@ class GenderLeaveVisibilityTest extends TestCase
     public function test_hidden_gender_leave_type_cannot_be_submitted(): void
     {
         $this->seed(DatabaseSeeder::class);
+        [$male] = $this->createGenderEmployees();
 
-        $male = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
         $maternity = LeaveType::where('name', 'Maternity Leave')->firstOrFail();
 
         $this->actingAs($male->user)->post(route('employee.leaves.store'), [
@@ -89,8 +88,8 @@ class GenderLeaveVisibilityTest extends TestCase
     public function test_gender_specific_leave_types_are_hidden_when_gender_is_not_male_or_female(): void
     {
         $this->seed(DatabaseSeeder::class);
+        [$employee] = $this->createGenderEmployees();
 
-        $employee = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
         $employee->update(['gender' => 'other']);
 
         $this->actingAs($employee->user)
@@ -115,5 +114,13 @@ class GenderLeaveVisibilityTest extends TestCase
             'end_date' => now()->addDay()->toDateString(),
             'reason' => 'Gender-specific leave should not be available.',
         ])->assertStatus(422);
+    }
+
+    private function createGenderEmployees(): array
+    {
+        return [
+            $this->createEmployeeProfile('male.staff@test.com', 'IT-3002-001', 'IT', 'Developer', 'employee', 'male'),
+            $this->createEmployeeProfile('female.staff@test.com', 'OPS-5002-001', 'OPS', 'Operations Staff', 'employee', 'female'),
+        ];
     }
 }

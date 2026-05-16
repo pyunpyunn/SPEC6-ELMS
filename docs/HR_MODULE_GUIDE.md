@@ -2,8 +2,9 @@
 
 ## Default Access
 - HR account: `hr@company.com`
+- Employee ID login: `HR-2000-001`
 - Password: `password`
-- Temporary password for HR-created employees: `temp_pass`
+- Temporary password for HR-created employees: `password`
 
 ## Main Routes
 - `/admin/dashboard` - HR dashboard with department filter, cards, recent requests, department leave summary, and calendar shortcut.
@@ -24,7 +25,7 @@
 - `users.status`: `pending`, `active`, `inactive`.
 - `users.pending_employee_id`: employee ID entered during registration and used by HR verification.
 - `users.role`: `employee`, `manager`, `hr_admin`.
-- `employees.employee_id`: public company employee identifier, format `EMP-0001`.
+- `employees.employee_id`: public company employee identifier, format `DEPT-POSITIONID-COUNT` such as `HR-2000-001`.
 - `departments.code`: short department code such as `HR`, `IT`, `FIN`.
 - `leave_balances`: yearly balance per employee and leave type.
 - `system_notifications`: in-app notifications for HR and users.

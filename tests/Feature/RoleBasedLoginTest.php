@@ -6,10 +6,12 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\CreatesElmsFixtures;
 use Tests\TestCase;
 
 class RoleBasedLoginTest extends TestCase
 {
+    use CreatesElmsFixtures;
     use RefreshDatabase;
 
     public function test_hr_admin_can_login_with_employee_id_and_is_sent_to_admin_dashboard(): void
@@ -32,10 +34,11 @@ class RoleBasedLoginTest extends TestCase
     public function test_employee_can_login_with_employee_id_and_is_sent_to_employee_dashboard(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $this->createEmployeeProfile('staff@test.com', 'IT-3002-001', 'IT', 'Developer');
 
         $response = $this->post('/login', [
             'email' => 'IT-3002-001',
-            'password' => 'staffpassword123',
+            'password' => 'password',
         ]);
 
         $response->assertStatus(302);
@@ -50,7 +53,7 @@ class RoleBasedLoginTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $manager = User::where('email', 'manager@test.com')->firstOrFail();
+        $manager = $this->createEmployeeProfile('manager@test.com', 'IT-3000-001', 'IT', 'IT Manager', 'manager')->user;
         $manager->update(['role' => 'employee']);
 
         $this->actingAs($manager->fresh())

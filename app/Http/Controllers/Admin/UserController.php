@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Hr\HrController;
+use App\Http\Requests\Hr\ActivateUserRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class UserController extends Controller
         return app(HrController::class)->pendingUsers($request);
     }
 
-    public function activate(Request $request, User $user): RedirectResponse
+    public function activate(ActivateUserRequest $request, User $user): RedirectResponse
     {
         return app(HrController::class)->activateUser($request, $user);
     }

@@ -16,7 +16,7 @@
 
 ## 3. Naming Conventions to Apply
 - **Database/Field Names:**
-  - `employees.employee_id` (format: EMP-0001)
+  - `employees.employee_id` (format: `DEPT-POSITIONID-COUNT`, for example `IT-3002-001`)
   - `users.status` (`pending`, `active`, `inactive`)
   - `users.role` (`employee`, `manager`, `hr_admin`)
 - **Class/ID Naming:**
@@ -46,7 +46,7 @@
     </thead>
     <tbody>
       <tr data-employee-id="EMP-0001">
-        <td>EMP-0001</td>
+        <td>IT-3002-001</td>
         <td class="td-name">Jane Doe</td>
         <td><span class="badge badge-info">IT</span></td>
         <td><span class="badge badge-active">Active</span></td>
@@ -72,7 +72,7 @@
   <div class="card-body">
     <div class="detail-row">
       <span class="dl">Employee ID:</span>
-      <span class="dv">EMP-0001</span>
+      <span class="dv">IT-3002-001</span>
     </div>
     <div class="detail-row">
       <span class="dl">Name:</span>

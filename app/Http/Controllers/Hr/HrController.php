@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hr\ActivateUserRequest;
+use App\Http\Requests\Hr\DeactivateEmployeeRequest;
 use App\Http\Requests\Hr\DepartmentRequest;
 use App\Http\Requests\Hr\EmployeeRequest;
+use App\Http\Requests\Hr\LeaveDecisionRequest;
 use App\Http\Requests\Hr\LeaveTypeRequest;
 use App\Http\Requests\Hr\ProfileRequest;
+use App\Http\Requests\Hr\StoreHrLeaveRequest;
+use App\Http\Requests\UpdatePasswordRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveApplication;
@@ -20,9 +25,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class HrController extends Controller
@@ -108,15 +112,9 @@ class HrController extends Controller
         ]);
     }
 
-    public function activateUser(Request $request, User $user): RedirectResponse
+    public function activateUser(ActivateUserRequest $request, User $user): RedirectResponse
     {
-        $validated = $request->validate([
-            'department_id' => ['required', 'exists:departments,id'],
-            'position_id' => ['required', 'exists:positions,id'],
-            'manager_id' => ['nullable', 'exists:employees,id'],
-            'date_hired' => ['required', 'date'],
-            'gender' => ['nullable', 'in:male,female,other'],
-        ]);
+        $validated = $request->validated();
 
         $position = $this->positionForDepartment($request->integer('position_id'), $request->integer('department_id'));
 
@@ -324,9 +322,9 @@ class HrController extends Controller
         return back()->with('success', 'Employee updated successfully.');
     }
 
-    public function deactivateEmployee(Request $request, Employee $employee): RedirectResponse
+    public function deactivateEmployee(DeactivateEmployeeRequest $request, Employee $employee): RedirectResponse
     {
-        $validated = $request->validate(['employment_status' => ['required', 'in:resigned,terminated']]);
+        $validated = $request->validated();
         $employee->update(['employment_status' => $validated['employment_status']]);
         $employee->user->update(['status' => 'inactive']);
 
@@ -383,11 +381,24 @@ class HrController extends Controller
         $requests = LeaveApplication::with(['employee.user', 'employee.departmentRecord', 'employee.leaveBalances', 'leaveType', 'reviewer'])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->string('search'));
-                $query->whereHas('employee', function ($employee) use ($search) {
-                    $employee->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('employee_id', 'like', "%{$search}%")
-                        ->orWhereRaw("concat(first_name, ' ', last_name) like ?", ["%{$search}%"]);
+                $tokens = collect(preg_split('/\s+/', $search) ?: [])->filter()->values();
+                $query->where(function ($searchQuery) use ($search, $tokens): void {
+                    $searchQuery->whereHas('employee', function ($employee) use ($search) {
+                        $employee->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
+                            ->orWhere('employee_id', 'like', "%{$search}%");
+                    });
+
+                    if ($tokens->count() > 1) {
+                        $searchQuery->orWhereHas('employee', function ($employee) use ($tokens) {
+                            $tokens->each(function (string $token) use ($employee): void {
+                                $employee->where(function ($name) use ($token): void {
+                                    $name->where('first_name', 'like', "%{$token}%")
+                                        ->orWhere('last_name', 'like', "%{$token}%");
+                                });
+                            });
+                        });
+                    }
                 });
             })
             ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $id)))
@@ -407,14 +418,11 @@ class HrController extends Controller
         ]);
     }
 
-    public function reviewRequest(Request $request, LeaveApplication $leaveApplication): RedirectResponse
+    public function reviewRequest(LeaveDecisionRequest $request, LeaveApplication $leaveApplication): RedirectResponse
     {
         abort_unless($leaveApplication->status === 'pending', 422, 'Only pending requests can be reviewed.');
 
-        $validated = $request->validate([
-            'status' => ['required', 'in:approved,rejected'],
-            'remarks' => ['required', 'string', 'max:500'],
-        ]);
+        $validated = $request->validated();
 
         DB::transaction(function () use ($validated, $leaveApplication) {
             if ($validated['status'] === 'approved') {
@@ -516,6 +524,7 @@ class HrController extends Controller
                             ]);
                         }
                     });
+
                 return;
             }
 
@@ -579,15 +588,9 @@ class HrController extends Controller
         ]);
     }
 
-    public function storeMyLeave(Request $request): RedirectResponse
+    public function storeMyLeave(StoreHrLeaveRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'leave_type_id' => ['required', 'exists:leave_types,id'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'reason' => ['required', 'string', 'max:500'],
-            'proof' => ['nullable', 'file', 'max:5120'],
-        ]);
+        $validated = $request->validated();
 
         $employee = $request->user()?->employee;
         abort_unless($employee, 403);
@@ -691,7 +694,7 @@ class HrController extends Controller
             ->sort()
             ->values()
             ->all();
-        
+
         // Ensure current year is always included
         $allYears = collect(array_unique(array_merge([$currentYear], $yearsWithRecords)))
             ->sort()
@@ -722,12 +725,9 @@ class HrController extends Controller
         return back()->with('success', 'Profile updated.');
     }
 
-    public function updatePassword(Request $request): RedirectResponse
+    public function updatePassword(UpdatePasswordRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
+        $validated = $request->validated();
 
         $request->user()->update(['password' => Hash::make($validated['password'])]);
 

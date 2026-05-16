@@ -2,17 +2,18 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
 use App\Models\LeaveApplication;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\CreatesElmsFixtures;
 use Tests\TestCase;
 
 class LeaveConfigurationRulesTest extends TestCase
 {
+    use CreatesElmsFixtures;
     use RefreshDatabase;
 
     public function test_leave_configuration_updates_drive_balances_approval_and_compensation(): void
@@ -20,7 +21,7 @@ class LeaveConfigurationRulesTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $hr = User::where('email', 'hr@company.com')->firstOrFail();
-        $employee = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
+        $employee = $this->createEmployeeProfile('staff@test.com', 'IT-3002-001', 'IT', 'Developer');
         $vacation = LeaveType::where('name', 'Vacation Leave')->firstOrFail();
         $sick = LeaveType::where('name', 'Sick Leave')->firstOrFail();
 
@@ -81,7 +82,7 @@ class LeaveConfigurationRulesTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $hr = User::where('email', 'hr@company.com')->firstOrFail();
-        $employee = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
+        $employee = $this->createEmployeeProfile('staff@test.com', 'IT-3002-001', 'IT', 'Developer');
         $vacation = LeaveType::where('name', 'Vacation Leave')->firstOrFail();
 
         $this->actingAs($hr)

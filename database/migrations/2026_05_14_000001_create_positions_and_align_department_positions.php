@@ -1,8 +1,10 @@
 <?php
 
+use App\Models\Employee;
+use App\Models\Position;
+use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -65,44 +67,31 @@ return new class extends Migration
             return;
         }
 
-        DB::table('employees')
+        Employee::query()
             ->whereNotNull('department_id')
             ->whereNotNull('position')
             ->orderBy('id')
             ->get(['id', 'user_id', 'department_id', 'position'])
-            ->each(function ($employee): void {
+            ->each(function (Employee $employee): void {
                 $positionName = trim((string) $employee->position);
 
                 if ($positionName === '') {
                     return;
                 }
 
-                $position = DB::table('positions')
-                    ->where('department_id', $employee->department_id)
-                    ->where('name', $positionName)
-                    ->first();
-
-                if (! $position) {
-                    $positionId = DB::table('positions')->insertGetId([
+                $position = Position::firstOrCreate(
+                    [
                         'department_id' => $employee->department_id,
                         'name' => $positionName,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } else {
-                    $positionId = $position->id;
-                }
+                    ]
+                );
 
-                DB::table('employees')->where('id', $employee->id)->update([
-                    'position_id' => $positionId,
-                    'updated_at' => now(),
-                ]);
+                $employee->forceFill(['position_id' => $position->id])->save();
 
                 if ($employee->user_id) {
-                    DB::table('users')->where('id', $employee->user_id)->update([
+                    User::find($employee->user_id)?->update([
                         'department_id' => $employee->department_id,
-                        'position_id' => $positionId,
-                        'updated_at' => now(),
+                        'position_id' => $position->id,
                     ]);
                 }
             });

@@ -1,8 +1,8 @@
 <?php
 
+use App\Models\LeaveType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -74,13 +74,13 @@ return new class extends Migration
         });
 
         if (Schema::hasColumn('leave_types', 'slug')) {
-            DB::table('leave_types')->orderBy('id')->get()->groupBy('name')->each(function ($rows) {
-                $rows->skip(1)->each(fn ($row) => DB::table('leave_types')->where('id', $row->id)->delete());
+            LeaveType::query()->orderBy('id')->get()->groupBy('name')->each(function ($rows): void {
+                $rows->skip(1)->each(fn (LeaveType $type) => $type->delete());
             });
 
-            DB::table('leave_types')->orderBy('id')->get()->each(function ($type) {
+            LeaveType::query()->orderBy('id')->get()->each(function (LeaveType $type): void {
                 $slug = Str::slug($type->name);
-                DB::table('leave_types')->where('id', $type->id)->update(['slug' => $slug ?: 'leave-type-'.$type->id]);
+                $type->forceFill(['slug' => $slug ?: 'leave-type-'.$type->id])->save();
             });
         }
 

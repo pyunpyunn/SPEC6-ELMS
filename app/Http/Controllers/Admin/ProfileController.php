@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Hr\HrController;
 use App\Http\Requests\Hr\ProfileRequest;
+use App\Http\Requests\Hr\StoreHrLeaveRequest;
+use App\Http\Requests\UpdatePasswordRequest;
 use App\Models\SystemNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +19,7 @@ class ProfileController extends Controller
         return app(HrController::class)->myLeave($request);
     }
 
-    public function storeMyLeave(Request $request): RedirectResponse
+    public function storeMyLeave(StoreHrLeaveRequest $request): RedirectResponse
     {
         return app(HrController::class)->storeMyLeave($request);
     }
@@ -42,7 +44,7 @@ class ProfileController extends Controller
         return app(HrController::class)->updateProfile($request);
     }
 
-    public function password(Request $request): RedirectResponse
+    public function password(UpdatePasswordRequest $request): RedirectResponse
     {
         return app(HrController::class)->updatePassword($request);
     }

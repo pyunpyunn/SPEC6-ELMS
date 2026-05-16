@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Manager\LeaveDecisionRequest;
+use App\Http\Requests\Manager\ProfileRequest;
 use App\Http\Requests\Manager\StoreManagerLeaveRequest;
-use App\Models\Department;
+use App\Http\Requests\UpdatePasswordRequest;
 use App\Models\Employee;
 use App\Models\LeaveApplication;
 use App\Models\LeaveBalance;
@@ -17,7 +18,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -264,15 +264,9 @@ class ManagerController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request): RedirectResponse
+    public function updateProfile(ProfileRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.auth()->id()],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'address' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $employee = $request->user()->employee;
         $request->user()->fill(['name' => $validated['first_name'].' '.$validated['last_name'], 'email' => $validated['email']]);
@@ -294,12 +288,9 @@ class ManagerController extends Controller
         return back()->with('success', 'Profile updated.');
     }
 
-    public function updatePassword(Request $request): RedirectResponse
+    public function updatePassword(UpdatePasswordRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
+        $validated = $request->validated();
 
         $request->user()->update(['password' => Hash::make($validated['password'])]);
 
@@ -346,6 +337,7 @@ class ManagerController extends Controller
     {
         if (! $manager) {
             $query->whereKey(0);
+
             return;
         }
 

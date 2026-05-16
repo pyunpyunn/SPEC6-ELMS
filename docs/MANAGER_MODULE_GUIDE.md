@@ -6,11 +6,11 @@ The Manager module covers the manager role in the Employee Leave Management Syst
 
 ## Test Account
 
-Use the seeded manager account:
+Only the HR account is seeded by default. Create a manager through HR Employee Directory or activate a registered user as a manager position before testing this module.
 
 ```text
-Email: manager@test.com
-Password: password
+Example manager role source: IT Manager, Finance Manager, or Operations Manager
+Temporary password for HR-created accounts: password
 ```
 
 After login, the user is redirected to:
@@ -48,8 +48,8 @@ Route::middleware('role:manager')
 | `app/Http/Requests/Manager/StoreManagerLeaveRequest.php` | Validation for manager leave filing |
 | `resources/views/manager/layout.blade.php` | Manager sidebar/header layout |
 | `resources/views/manager/dashboard.blade.php` | Manager dashboard |
-| `resources/views/manager/approvals.blade.php` | Approval inbox |
-| `resources/views/manager/request-show.blade.php` | Request review page |
+| `resources/views/manager/approvals/index.blade.php` | Approval inbox |
+| `resources/views/manager/approvals/show.blade.php` | Request review page |
 | `resources/views/manager/calendar.blade.php` | Team calendar |
 | `resources/views/manager/team.blade.php` | Team overview |
 | `resources/views/manager/my-leave.blade.php` | Manager leave filing/history |

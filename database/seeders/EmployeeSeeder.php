@@ -13,39 +13,10 @@ class EmployeeSeeder extends Seeder
     public function run(): void
     {
         $this->profile('hr@company.com', 'HR-2000-001', 'HR', 'HR Administrator', [
-            'first_name' => 'HR',
-            'last_name' => 'Administrator',
+            'first_name' => 'Kathleen',
+            'last_name' => 'Barro',
             'gender' => 'female',
             'daily_rate' => 0,
-        ]);
-
-        $itManager = $this->profile('manager@test.com', 'IT-3000-001', 'IT', 'IT Manager', [
-            'first_name' => 'IT',
-            'last_name' => 'Manager',
-            'gender' => 'male',
-            'daily_rate' => 1500,
-        ]);
-
-        $this->profile('elena.garcia@company.com', 'FIN-4000-001', 'FIN', 'Finance Manager', [
-            'first_name' => 'Elena',
-            'last_name' => 'Garcia',
-            'gender' => 'female',
-            'daily_rate' => 1500,
-        ]);
-
-        $this->profile('staff@test.com', 'IT-3002-001', 'IT', 'Developer', [
-            'first_name' => 'Staff',
-            'last_name' => 'Employee',
-            'gender' => 'male',
-            'daily_rate' => 1000,
-            'manager_id' => $itManager?->id,
-        ]);
-
-        $this->profile('female.staff@test.com', 'OPS-5002-001', 'OPS', 'Operations Staff', [
-            'first_name' => 'Female',
-            'last_name' => 'Staff',
-            'gender' => 'female',
-            'daily_rate' => 1000,
         ]);
     }
 

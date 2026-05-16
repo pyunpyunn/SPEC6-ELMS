@@ -20,7 +20,7 @@ This project uses one Laravel application with shared models and separate role f
 
 ## Route Groups
 
-- `admin.*` routes use `/admin` and require `role:hr_admin`.
+- `admin.*` routes use `/admin` and require `role:hr` or HR Admin access.
 - `manager.*` routes use `/manager` and require `role:manager`.
 - `employee.*` routes use `/employee` and require `role:employee`.
 

@@ -1,8 +1,8 @@
 <?php
 
+use App\Models\LeaveType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -15,9 +15,10 @@ return new class extends Migration
             }
         });
 
-        DB::table('leave_types')
-            ->whereRaw('LOWER(name) = ?', ['vacation leave'])
-            ->update(['is_compensable' => true]);
+        LeaveType::query()
+            ->get()
+            ->filter(fn (LeaveType $leaveType) => strtolower($leaveType->name) === 'vacation leave')
+            ->each(fn (LeaveType $leaveType) => $leaveType->update(['is_compensable' => true]));
     }
 
     public function down(): void
