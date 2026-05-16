@@ -56,4 +56,85 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    /**
+     * Get the position ID from the employee profile ID.
+     * Format: DEPT-POSITIONID-COUNT
+     * Example: HR-2000-001 -> position_id = 2000
+     */
+    public function getPositionIdFromEmployeeIdAttribute(): int
+    {
+        return (int) ($this->employee?->positionCode() ?? 0);
+    }
+
+    public function derivedRole(): string
+    {
+        $roles = collect([$this->role, $this->employee?->accessRole()])
+            ->filter()
+            ->map(fn (string $role) => $role === 'hr' ? 'hr_admin' : $role);
+
+        if ($roles->contains('hr_admin')) {
+            return 'hr_admin';
+        }
+
+        if ($roles->contains('manager')) {
+            return 'manager';
+        }
+
+        return 'employee';
+    }
+
+    /**
+     * Check if user is an HR Admin.
+     */
+    public function isHR(): bool
+    {
+        return $this->derivedRole() === 'hr_admin';
+    }
+
+    /**
+     * Check if user is a manager.
+     */
+    public function isManager(): bool
+    {
+        return $this->derivedRole() === 'manager';
+    }
+
+    /**
+     * Check if user is a regular employee.
+     */
+    public function isEmployee(): bool
+    {
+        return $this->derivedRole() === 'employee';
+    }
+
+    public function hasAccessRole(string $role): bool
+    {
+        return match ($role) {
+            'hr', 'hr_admin' => $this->isHR(),
+            'manager' => $this->isManager(),
+            'employee' => $this->isEmployee(),
+            default => $this->derivedRole() === $role,
+        };
+    }
+
+    /**
+     * Get the access level for determining route/view visibility.
+     * Used by middleware and views to determine access level.
+     *
+     * @return string 'hr', 'manager', 'employee'
+     */
+    public function getAccessLevel(): string
+    {
+        return match ($this->derivedRole()) {
+            'hr_admin' => 'hr',
+            'manager' => 'manager',
+            default => 'employee',
+        };
+    }
 }

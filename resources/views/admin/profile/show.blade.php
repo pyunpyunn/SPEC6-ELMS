@@ -102,8 +102,9 @@
                     @endforeach
                 </select>
                 <select name="year" onchange="this.form.submit()">
-                    <option value="{{ $year }}">{{ $year }}</option>
-                    <option value="{{ $year - 1 }}">{{ $year - 1 }}</option>
+                    @foreach($years ?? [now()->year] as $availableYear)
+                        <option value="{{ $availableYear }}" @selected($year === $availableYear)>{{ $availableYear }}</option>
+                    @endforeach
                 </select>
             </form>
         </div>

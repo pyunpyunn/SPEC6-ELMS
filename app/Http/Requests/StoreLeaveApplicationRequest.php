@@ -8,7 +8,7 @@ class StoreLeaveApplicationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, ['employee', 'manager', 'hr_admin'], true);
+        return (bool) $this->user();
     }
 
     public function rules(): array

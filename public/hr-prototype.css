@@ -381,8 +381,9 @@ textarea{resize:vertical;min-height:82px;line-height:1.5}
 .leave-proof-section.visible{display:block}
 
 /* ── DEPARTMENT CARD ── */
-.dept-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:box-shadow var(--transition);cursor:pointer}
-.dept-card:hover{box-shadow:var(--shadow-md)}
+.dept-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:box-shadow var(--transition),border-color var(--transition);cursor:pointer;display:block;text-decoration:none;color:inherit}
+.dept-card:hover{box-shadow:var(--shadow-md);border-color:var(--primary)}
+.dept-card-action{opacity:1!important}
 .dept-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
 .dept-icon{width:40px;height:40px;border-radius:9px;background:var(--primary-bg);display:flex;align-items:center;justify-content:center;color:var(--primary)}
 .dept-icon svg{width:19px;height:19px}

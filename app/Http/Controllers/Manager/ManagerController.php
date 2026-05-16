@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ManagerController extends Controller
@@ -55,6 +56,8 @@ class ManagerController extends Controller
                 })
                 ->when($request->filled('leave_type_id'), fn ($query) => $query->where('leave_type_id', $request->integer('leave_type_id')))
                 ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
+                ->when($request->filled('date_from'), fn ($query) => $query->whereDate('start_date', '>=', $request->input('date_from')))
+                ->when($request->filled('date_to'), fn ($query) => $query->whereDate('start_date', '<=', $request->input('date_to')))
                 ->latest()
                 ->paginate(10)
                 ->withQueryString(),
@@ -174,36 +177,67 @@ class ManagerController extends Controller
 
         $validated = $request->validated();
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
-        $totalDays = $this->workingDaysBetween(Carbon::parse($validated['start_date']), Carbon::parse($validated['end_date']));
-        $balance = LeaveBalance::where('employee_id', $employee->id)
-            ->where('leave_type_id', $leaveType->id)
-            ->where('year', Carbon::parse($validated['start_date'])->year)
-            ->first();
-
-        if (! $balance || $balance->remaining_days < $totalDays) {
-            return back()->withErrors(['leave_type_id' => 'You do not have enough remaining balance for this request.'])->withInput();
+        if (! $leaveType->is_active) {
+            throw ValidationException::withMessages(['leave_type_id' => 'This leave type is currently inactive.']);
         }
 
-        $leave = LeaveApplication::create([
-            'employee_id' => $employee->id,
-            'leave_type_id' => $leaveType->id,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'total_days' => $totalDays,
-            'reason' => $validated['reason'],
-            'status' => 'pending',
-            'proof_path' => $request->file('proof')?->store('leave-proofs', 'public'),
-        ]);
+        abort_unless($leaveType->isVisibleForGender($employee->gender), 422, 'This leave type is not available for the employee gender on record.');
 
-        SystemNotification::sendToRole(
-            'hr_admin',
-            'Manager leave request pending',
-            $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
-            route('admin.requests.index'),
-            'leave_request'
-        );
+        $totalDays = $this->workingDaysBetween(Carbon::parse($validated['start_date']), Carbon::parse($validated['end_date']));
 
-        return back()->with('success', 'Leave request submitted to HR.');
+        if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
+            throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.'.']);
+        }
+
+        $proofPath = $request->file('proof')?->store('leave-proofs', 'public');
+        $status = $leaveType->requires_approval ? 'pending' : 'approved';
+
+        $leave = DB::transaction(function () use ($employee, $leaveType, $validated, $totalDays, $proofPath, $status) {
+            $balance = LeaveBalance::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('year', Carbon::parse($validated['start_date'])->year)
+                ->lockForUpdate()
+                ->first();
+            $pendingDays = LeaveApplication::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('status', 'pending')
+                ->whereYear('start_date', Carbon::parse($validated['start_date'])->year)
+                ->sum('total_days');
+
+            if (! $balance || ($balance->remaining_days - (int) $pendingDays) < $totalDays) {
+                throw ValidationException::withMessages(['leave_type_id' => 'You do not have enough remaining balance for this request.']);
+            }
+
+            $leave = LeaveApplication::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $leaveType->id,
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'total_days' => $totalDays,
+                'reason' => $validated['reason'],
+                'status' => $status,
+                'reviewed_at' => $status === 'approved' ? now() : null,
+                'proof_path' => $proofPath,
+            ]);
+
+            if ($status === 'approved') {
+                $balance->increment('used_days', $totalDays);
+            }
+
+            return $leave;
+        })->load(['employee', 'leaveType']);
+
+        if ($leave->status === 'pending') {
+            SystemNotification::sendToRole(
+                'hr_admin',
+                'Manager leave request pending',
+                $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
+                route('admin.requests.index'),
+                'leave_request'
+            );
+        }
+
+        return back()->with('success', $leave->status === 'pending' ? 'Leave request submitted to HR.' : 'Leave request submitted and auto-approved.');
     }
 
     public function notifications(Request $request): View
@@ -275,7 +309,12 @@ class ManagerController extends Controller
     private function baseData(Request $request): array
     {
         $manager = $this->managerEmployee($request);
-        $balances = $manager?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? collect();
+        $balances = $manager?->leaveBalances()
+            ->with('leaveType')
+            ->where('year', now()->year)
+            ->get()
+            ->filter(fn (LeaveBalance $balance) => $balance->leaveType?->isVisibleForGender($manager?->gender))
+            ->values() ?? collect();
 
         return [
             'manager' => $manager,
@@ -328,14 +367,8 @@ class ManagerController extends Controller
 
     private function visibleLeaveTypes(?Employee $employee)
     {
-        $gender = strtolower((string) ($employee?->gender ?? ''));
-
         return LeaveType::where('is_active', true)->get()
-            ->filter(function (LeaveType $leaveType) use ($gender) {
-                $name = strtolower($leaveType->name);
-
-                return ! (($gender === 'female' && str_contains($name, 'paternity')) || ($gender === 'male' && str_contains($name, 'maternity')));
-            })
+            ->filter(fn (LeaveType $leaveType) => $leaveType->isVisibleForGender($employee?->gender))
             ->sortBy('name');
     }
 

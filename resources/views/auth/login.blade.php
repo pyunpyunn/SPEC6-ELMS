@@ -79,7 +79,7 @@
             <form method="POST" action="{{ route('login') }}">
                 @csrf
                 <label>Employee ID or Email</label>
-                <input type="text" name="email" value="{{ old('email', 'HR-0001') }}" required autofocus>
+                <input type="text" name="email" value="{{ old('email', 'HR-2000-001') }}" required autofocus>
 
                 <label>Password</label>
                 <div style="position: relative; display: flex; align-items: center;">
@@ -104,7 +104,7 @@
                 </div>
             </form>
 
-            <div class="hint">Default HR account: <strong>HR-0001</strong> or <strong>hr@company.com</strong> / <strong>password</strong>.</div>
+            <div class="hint">Default HR account: <strong>HR-2000-001</strong> or <strong>hr@company.com</strong> / <strong>password</strong>.</div>
             <div class="foot">
                 <span>Need an account?</span>
                 <a href="{{ route('register') }}" style="color:var(--accent2);font-weight:700;text-decoration:none">Register here</a>

@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -78,6 +79,7 @@ class HrController extends Controller
     public function users(Request $request): View
     {
         $allUsers = User::with('employee.departmentRecord', 'employee.positionRecord')
+            ->where('status', '!=', 'pending')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->string('search'));
                 $query->where(function ($sub) use ($search) {
@@ -96,7 +98,7 @@ class HrController extends Controller
             'pendingUsers' => User::where('status', 'pending')->latest()->paginate(10, ['*'], 'pending_page'),
             'allUsers' => $allUsers,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
-            'managers' => Employee::with('user', 'departmentRecord')->whereHas('user', fn ($q) => $q->where('role', 'manager'))->get(),
+            'managers' => $this->managerEmployees(),
             'positions' => Position::orderBy('name')->get(),
             'userFilters' => [
                 'search' => $request->string('search')->toString(),
@@ -109,8 +111,6 @@ class HrController extends Controller
     public function activateUser(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'employee_id' => ['required', 'string', 'max:30', 'unique:employees,employee_id'],
-            'role' => ['required', 'in:employee,manager,hr_admin'],
             'department_id' => ['required', 'exists:departments,id'],
             'position_id' => ['required', 'exists:positions,id'],
             'manager_id' => ['nullable', 'exists:employees,id'],
@@ -126,24 +126,16 @@ class HrController extends Controller
                 ->withInput();
         }
 
-        // Validate employee ID format matches role
-        $validPrefixes = [
-            'employee' => 'EMP-',
-            'manager' => 'MGR-',
-            'hr_admin' => 'HR-',
-        ];
-        
-        $expectedPrefix = $validPrefixes[$validated['role']] ?? '';
-        if ($expectedPrefix && !str_starts_with($validated['employee_id'], $expectedPrefix)) {
-            return back()->withErrors(['employee_id' => "Employee ID must start with '{$expectedPrefix}' for {$validated['role']} role."]);
-        }
-
         DB::transaction(function () use ($validated, $user, $position) {
             $department = $position->department;
             $name = $this->splitName($user->name);
 
+            // Generate employee ID
+            $employeeId = Employee::generateEmployeeId($department->code, $position->name);
+            $role = Employee::accessRoleFor($department->code, $position->name);
+
             $user->update([
-                'role' => $validated['role'],
+                'role' => $role,
                 'status' => 'active',
                 'pending_employee_id' => null,
                 'department_id' => $department->id,
@@ -152,7 +144,7 @@ class HrController extends Controller
 
             $employee = Employee::create([
                 'user_id' => $user->id,
-                'employee_id' => $validated['employee_id'],
+                'employee_id' => $employeeId,
                 'department_id' => $department->id,
                 'position_id' => $position->id,
                 'manager_id' => $validated['manager_id'] ?? null,
@@ -184,17 +176,22 @@ class HrController extends Controller
 
     public function employees(Request $request): View
     {
+        $departmentId = $request->filled('department_id') ? $request->integer('department_id') : null;
+
         $employees = Employee::with(['user', 'departmentRecord', 'positionRecord', 'manager.user'])
-            ->when($request->search, fn ($q, $search) => $q->where(function ($query) use ($search) {
-                $query->where('employee_id', 'like', "%{$search}%")
-                    ->orWhere('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereHas('user', fn ($uq) => $uq->where('email', 'like', "%{$search}%"));
-            }))
-            ->when($request->department_id, fn ($q, $id) => $q->where('department_id', $id))
-            ->when($request->position_id, fn ($q, $id) => $q->where('position_id', $id))
-            ->when($request->position, fn ($q, $position) => $q->where('position', $position))
-            ->when($request->employment_status, fn ($q, $status) => $q->where('employment_status', $status))
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim($request->string('search')->toString());
+                $query->where(function ($sub) use ($search) {
+                    $sub->where('employee_id', 'like', "%{$search}%")
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery->where('email', 'like', "%{$search}%"));
+                });
+            })
+            ->when($departmentId, fn ($query) => $query->where('department_id', $departmentId))
+            ->when($request->filled('position_id'), fn ($query) => $query->where('position_id', $request->integer('position_id')))
+            ->when($request->filled('position'), fn ($query) => $query->where('position', $request->string('position')))
+            ->when($request->filled('employment_status'), fn ($query) => $query->where('employment_status', $request->string('employment_status')))
             ->orderBy('employee_id')
             ->paginate(10)
             ->withQueryString();
@@ -203,19 +200,47 @@ class HrController extends Controller
             'employees' => $employees,
             'positions' => Position::orderBy('name')->get(),
             'nextEmployeeId' => $this->nextEmployeeId(),
+            'selectedDepartment' => $departmentId ? Department::find($departmentId) : null,
+            'selectedDepartmentId' => $departmentId,
         ]);
     }
 
     public function showEmployee(Employee $employee): View
     {
-        $employee->load(['user', 'departmentRecord', 'manager.user', 'leaveBalances.leaveType', 'leaveApplications.leaveType']);
+        $currentYear = now()->year;
+        $year = request()->integer('year') ?: $currentYear;
+        $typeId = request()->integer('leave_type_id') ?: null;
+
+        $yearsWithRecords = LeaveBalance::where('employee_id', $employee->id)
+            ->distinct()
+            ->pluck('year')
+            ->sort()
+            ->values()
+            ->all();
+
+        $years = collect(array_unique(array_merge([$currentYear], $yearsWithRecords)))
+            ->sort()
+            ->reverse()
+            ->values();
+
+        $employee->load([
+            'user',
+            'departmentRecord',
+            'manager.user',
+            'leaveBalances' => fn ($query) => $query
+                ->where('year', $year)
+                ->when($typeId, fn ($balanceQuery) => $balanceQuery->where('leave_type_id', $typeId))
+                ->with('leaveType'),
+            'leaveApplications.leaveType',
+        ]);
 
         return view('admin.profile.show', [
             'employee' => $employee,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
             'leaveBalances' => $this->visibleLeaveBalances($employee),
-            'year' => now()->year,
-            'selectedTypeId' => null,
+            'year' => $year,
+            'years' => $years,
+            'selectedTypeId' => $typeId,
             'viewingEmployee' => true,
         ]);
     }
@@ -232,11 +257,12 @@ class HrController extends Controller
 
         DB::transaction(function () use ($request, $position) {
             $department = $position->department;
+            $role = Employee::accessRoleFor($department->code, $position->name);
             $user = User::create([
                 'name' => "{$request->first_name} {$request->last_name}",
                 'email' => $request->email,
                 'password' => Hash::make('password'),
-                'role' => $request->role,
+                'role' => $role,
                 'status' => 'active',
                 'department_id' => $department->id,
                 'position_id' => $position->id,
@@ -248,6 +274,11 @@ class HrController extends Controller
             $payload['position'] = $position->name;
             $payload['department'] = $department?->name;
             $payload['contact_info'] = $request->contact_info ?: $request->email;
+
+            // Generate employee ID if not provided
+            if (empty($payload['employee_id'])) {
+                $payload['employee_id'] = Employee::generateEmployeeId($department->code, $position->name);
+            }
 
             $employee = Employee::create($payload + [
                 'user_id' => $user->id,
@@ -272,10 +303,11 @@ class HrController extends Controller
 
         DB::transaction(function () use ($request, $employee, $position) {
             $department = $position->department;
+            $role = Employee::accessRoleFor($department->code, $position->name);
             $employee->user->update([
                 'name' => "{$request->first_name} {$request->last_name}",
                 'email' => $request->email,
-                'role' => $request->role,
+                'role' => $role,
                 'status' => $request->employment_status === 'active' ? 'active' : 'inactive',
                 'department_id' => $department->id,
                 'position_id' => $position->id,
@@ -305,7 +337,7 @@ class HrController extends Controller
     {
         return view('admin.departments.index', [
             'departments' => Department::with(['manager', 'employees.user', 'employees.leaveApplications' => fn ($query) => $query->where('status', 'approved')->whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())])->withCount('employees')->orderBy('name')->get(),
-            'managers' => User::where('role', 'manager')->where('status', 'active')->orderBy('name')->get(),
+            'managers' => $this->managerUsers(),
         ]);
     }
 
@@ -340,12 +372,8 @@ class HrController extends Controller
 
     public function updateLeaveType(LeaveTypeRequest $request, LeaveType $leaveType): RedirectResponse
     {
-        $oldAllocation = $leaveType->annual_allocation;
         $leaveType->update($this->leaveTypePayload($request));
-
-        if ((int) $oldAllocation !== (int) $request->annual_allocation) {
-            $this->seedTypeBalances($leaveType, true);
-        }
+        $this->seedTypeBalances($leaveType, true);
 
         return back()->with('success', 'Leave type updated. Current-year balances were recalculated.');
     }
@@ -365,6 +393,8 @@ class HrController extends Controller
             ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $id)))
             ->when($request->leave_type_id, fn ($q, $id) => $q->where('leave_type_id', $id))
             ->when($request->status, fn ($q, $status) => $q->where('status', $status))
+            ->when($request->date_from, fn ($q, $date) => $q->whereDate('start_date', '>=', $date))
+            ->when($request->date_to, fn ($q, $date) => $q->whereDate('start_date', '<=', $date))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -441,7 +471,9 @@ class HrController extends Controller
             'employees' => Employee::with('user')->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->orderBy('last_name')->get(),
             'positions' => Employee::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->select('position')->distinct()->orderBy('position')->pluck('position'),
             'summaries' => Department::with('employees.leaveApplications')->get(),
-            'balances' => $balanceQuery->get(),
+            'balances' => $balanceQuery->get()
+                ->filter(fn (LeaveBalance $balance) => $balance->leaveType?->isVisibleForGender($balance->employee?->gender))
+                ->values(),
             'employeeReport' => $employeeReport,
             'year' => $year,
             'selectedDepartmentId' => $departmentId,
@@ -458,24 +490,29 @@ class HrController extends Controller
         return response()->streamDownload(function () use ($request, $type) {
             $out = fopen('php://output', 'w');
             if ($type === 'balances') {
-                fputcsv($out, ['Employee ID', 'Name', 'Department', 'Position', 'Leave Type', 'Year', 'Allocated', 'Used', 'Remaining', 'Daily Rate', 'Compensation']);
+                fputcsv($out, ['Employee ID', 'Name', 'Department', 'Position', 'Leave Type', 'Compensable', 'Year', 'Allocated', 'Used', 'Remaining', 'Daily Rate', 'Compensation']);
                 LeaveBalance::with(['employee.user', 'employee.departmentRecord', 'leaveType'])
                     ->when($request->year, fn ($q, $year) => $q->where('year', $year))
                     ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $id)))
                     ->chunk(100, function ($balances) use ($out) {
                         foreach ($balances as $balance) {
+                            if (! $balance->leaveType?->isVisibleForGender($balance->employee?->gender)) {
+                                continue;
+                            }
+
                             fputcsv($out, [
                                 $balance->employee->employee_id,
                                 $balance->employee->full_name,
                                 $balance->employee->departmentRecord?->name,
                                 $balance->employee->position,
                                 $balance->leaveType->name,
+                                $balance->leaveType->is_compensable ? 'Yes' : 'No',
                                 $balance->year,
                                 $balance->allocated_days,
                                 $balance->used_days,
                                 $balance->remaining_days,
                                 $balance->employee->daily_rate,
-                                $balance->remaining_days * (float) $balance->employee->daily_rate,
+                                $balance->leaveType->is_compensable ? $balance->remaining_days * (float) $balance->employee->daily_rate : 0,
                             ]);
                         }
                     });
@@ -522,16 +559,23 @@ class HrController extends Controller
 
     public function myLeave(Request $request): View
     {
-        $employee = ($request->user() ?: auth()->user())?->employee?->load(['leaveBalances.leaveType', 'leaveApplications.leaveType', 'departmentRecord']);
+        $year = $request->integer('year') ?: now()->year;
+        $employee = ($request->user() ?: auth()->user())?->employee?->load([
+            'leaveBalances' => fn ($query) => $query->where('year', $year)->with('leaveType'),
+            'leaveApplications.leaveType',
+            'departmentRecord',
+        ]);
         $leaveBalances = $this->visibleLeaveBalances($employee);
 
         return view('admin.my-leave', [
             'employee' => $employee,
-            'year' => $request->integer('year') ?: now()->year,
+            'year' => $year,
             'selectedTypeId' => $request->integer('leave_type_id') ?: null,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
             'leaveBalances' => $leaveBalances,
-            'compensationEstimate' => $leaveBalances->sum(fn ($balance) => $balance->remaining_days * (float) ($employee?->daily_rate ?? 0)),
+            'compensationEstimate' => $leaveBalances
+                ->filter(fn ($balance) => (bool) $balance->leaveType?->is_compensable)
+                ->sum(fn ($balance) => $balance->remaining_days * (float) ($employee?->daily_rate ?? 0)),
         ]);
     }
 
@@ -549,31 +593,68 @@ class HrController extends Controller
         abort_unless($employee, 403);
 
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
-        abort_unless($this->isVisibleForGender($leaveType->name, $employee->gender), 422, 'This leave type is not available for the employee gender on record.');
+
+        if (! $leaveType->is_active) {
+            throw ValidationException::withMessages(['leave_type_id' => 'This leave type is currently inactive.']);
+        }
+
+        abort_unless($leaveType->isVisibleForGender($employee->gender), 422, 'This leave type is not available for the employee gender on record.');
 
         $totalDays = $this->workingDaysBetween(Carbon::parse($validated['start_date']), Carbon::parse($validated['end_date']));
+
+        if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
+            throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.'.']);
+        }
+
         $proofPath = $request->file('proof')?->store('leave-proofs', 'public');
+        $status = $leaveType->requires_approval ? 'pending' : 'approved';
 
-        $leave = LeaveApplication::create([
-            'employee_id' => $employee->id,
-            'leave_type_id' => $leaveType->id,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'total_days' => $totalDays,
-            'reason' => $validated['reason'],
-            'status' => 'pending',
-            'proof_path' => $proofPath,
-        ]);
+        $leave = DB::transaction(function () use ($employee, $leaveType, $validated, $totalDays, $proofPath, $status) {
+            $balance = LeaveBalance::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('year', Carbon::parse($validated['start_date'])->year)
+                ->lockForUpdate()
+                ->first();
+            $pendingDays = LeaveApplication::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('status', 'pending')
+                ->whereYear('start_date', Carbon::parse($validated['start_date'])->year)
+                ->sum('total_days');
 
-        SystemNotification::sendToRole(
-            'hr_admin',
-            'Leave request pending',
-            $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
-            route('admin.requests.index'),
-            'leave_request'
-        );
+            if (! $balance || ($balance->remaining_days - (int) $pendingDays) < $totalDays) {
+                throw ValidationException::withMessages(['leave_type_id' => 'You do not have enough remaining balance for this request.']);
+            }
 
-        return back()->with('success', 'Leave request submitted.');
+            $leave = LeaveApplication::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $leaveType->id,
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'total_days' => $totalDays,
+                'reason' => $validated['reason'],
+                'status' => $status,
+                'reviewed_at' => $status === 'approved' ? now() : null,
+                'proof_path' => $proofPath,
+            ]);
+
+            if ($status === 'approved') {
+                $balance->increment('used_days', $totalDays);
+            }
+
+            return $leave;
+        })->load(['employee', 'leaveType']);
+
+        if ($leave->status === 'pending') {
+            SystemNotification::sendToRole(
+                'hr_admin',
+                'Leave request pending',
+                $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
+                route('admin.requests.index'),
+                'leave_request'
+            );
+        }
+
+        return back()->with('success', $leave->status === 'pending' ? 'Leave request submitted.' : 'Leave request submitted and auto-approved.');
     }
 
     public function notifications(): View
@@ -598,14 +679,31 @@ class HrController extends Controller
 
     public function profile(): View
     {
-        $year = request()->integer('year') ?: now()->year;
+        $currentYear = now()->year;
+        $year = request()->integer('year') ?: $currentYear;
         $typeId = request()->integer('leave_type_id') ?: null;
+        $employee = auth()->user()->employee;
+
+        // Get all years with leave balances + current year
+        $yearsWithRecords = LeaveBalance::where('employee_id', $employee?->id)
+            ->distinct()
+            ->pluck('year')
+            ->sort()
+            ->values()
+            ->all();
+        
+        // Ensure current year is always included
+        $allYears = collect(array_unique(array_merge([$currentYear], $yearsWithRecords)))
+            ->sort()
+            ->reverse()
+            ->values();
 
         return view('admin.profile.show', [
-            'employee' => auth()->user()->employee?->load(['departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->when($typeId, fn ($b) => $b->where('leave_type_id', $typeId))->with('leaveType'), 'leaveApplications.leaveType']),
-            'leaveTypes' => $this->visibleLeaveTypes(auth()->user()->employee),
-            'leaveBalances' => $this->visibleLeaveBalances(auth()->user()->employee),
+            'employee' => $employee?->load(['departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->when($typeId, fn ($b) => $b->where('leave_type_id', $typeId))->with('leaveType'), 'leaveApplications.leaveType']),
+            'leaveTypes' => $this->visibleLeaveTypes($employee),
+            'leaveBalances' => $this->visibleLeaveBalances($employee),
             'year' => $year,
+            'years' => $allYears,
             'selectedTypeId' => $typeId,
         ]);
     }
@@ -640,9 +738,30 @@ class HrController extends Controller
     {
         return [
             'departments' => Department::with('positions')->where('is_active', true)->orderBy('name')->get(),
-            'managers' => Employee::with('user')->whereHas('user', fn ($q) => $q->where('role', 'manager'))->get(),
+            'managers' => $this->managerEmployees(),
             'positions' => Position::orderBy('name')->get(),
+            'positionConfig' => config('positions.position_ids') ?? [],
+            'departmentPrefixes' => config('positions.department_prefixes') ?? [],
         ];
+    }
+
+    private function managerEmployees()
+    {
+        return Employee::with(['user', 'departmentRecord'])
+            ->where('employment_status', 'active')
+            ->orderBy('last_name')
+            ->get()
+            ->filter(fn (Employee $employee) => $employee->isManagerPosition())
+            ->values();
+    }
+
+    private function managerUsers()
+    {
+        return $this->managerEmployees()
+            ->pluck('user')
+            ->filter()
+            ->sortBy('name')
+            ->values();
     }
 
     private function seedBalancesFor(Employee $employee): void
@@ -656,22 +775,9 @@ class HrController extends Controller
     private function visibleLeaveBalances(?Employee $employee)
     {
         $balances = $employee?->leaveBalances?->load('leaveType') ?? collect();
-        $gender = strtolower((string) ($employee?->gender ?? ''));
 
         return $balances
-            ->filter(function ($balance) use ($gender) {
-                $name = strtolower($balance->leaveType?->name ?? '');
-
-                if ($gender === 'female' && str_contains($name, 'paternity')) {
-                    return false;
-                }
-
-                if ($gender === 'male' && str_contains($name, 'maternity')) {
-                    return false;
-                }
-
-                return true;
-            })
+            ->filter(fn ($balance) => $balance->leaveType?->isVisibleForGender($employee?->gender))
             ->sortBy(function ($balance) {
                 $name = strtolower($balance->leaveType?->name ?? '');
 
@@ -687,41 +793,11 @@ class HrController extends Controller
             });
     }
 
-    private function isVisibleForGender(string $leaveTypeName, ?string $gender): bool
-    {
-        $gender = strtolower((string) $gender);
-        $name = strtolower($leaveTypeName);
-
-        if ($gender === 'female' && str_contains($name, 'paternity')) {
-            return false;
-        }
-
-        if ($gender === 'male' && str_contains($name, 'maternity')) {
-            return false;
-        }
-
-        return true;
-    }
-
     private function visibleLeaveTypes(?Employee $employee)
     {
-        $gender = strtolower((string) ($employee?->gender ?? ''));
-
         return LeaveType::where('is_active', true)
             ->get()
-            ->filter(function (LeaveType $leaveType) use ($gender) {
-                $name = strtolower($leaveType->name);
-
-                if ($gender === 'female' && str_contains($name, 'paternity')) {
-                    return false;
-                }
-
-                if ($gender === 'male' && str_contains($name, 'maternity')) {
-                    return false;
-                }
-
-                return true;
-            })
+            ->filter(fn (LeaveType $leaveType) => $leaveType->isVisibleForGender($employee?->gender))
             ->sortBy(fn (LeaveType $leaveType) => match (true) {
                 str_contains(strtolower($leaveType->name), 'sick') => 0,
                 str_contains(strtolower($leaveType->name), 'vacation') => 1,
@@ -758,6 +834,7 @@ class HrController extends Controller
             'slug' => Str::slug($request->name),
             'annual_allocation' => $request->annual_allocation,
             'requires_approval' => $request->boolean('requires_approval'),
+            'is_compensable' => $request->boolean('is_compensable'),
             'requires_proof' => $request->boolean('requires_proof'),
             'proof_rules' => $request->proof_rules,
             'is_active' => $request->boolean('is_active', true),
@@ -779,10 +856,7 @@ class HrController extends Controller
 
     private function nextEmployeeId(): string
     {
-        $latest = Employee::orderByDesc('id')->value('employee_id');
-        $number = $latest ? ((int) preg_replace('/\D/', '', $latest)) + 1 : 1;
-
-        return 'EMP-'.str_pad((string) $number, 4, '0', STR_PAD_LEFT);
+        return '(Auto-generated based on department & position)';
     }
 
     private function workingDaysBetween(Carbon $start, Carbon $end): int

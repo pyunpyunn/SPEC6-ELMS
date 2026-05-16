@@ -112,6 +112,11 @@ class NotificationFlowTest extends TestCase
             'name' => 'Information Technology',
             'is_active' => true,
         ]);
+        $hrDepartment = Department::create([
+            'code' => 'HR',
+            'name' => 'Human Resources',
+            'is_active' => true,
+        ]);
 
         $hrUser = User::create([
             'name' => 'HR Admin',
@@ -122,12 +127,12 @@ class NotificationFlowTest extends TestCase
         ]);
         Employee::create([
             'user_id' => $hrUser->id,
-            'employee_id' => 'HR-0001',
-            'department_id' => $department->id,
+            'employee_id' => 'HR-2000-001',
+            'department_id' => $hrDepartment->id,
             'first_name' => 'HR',
             'last_name' => 'Admin',
-            'department' => $department->name,
-            'position' => 'HR Admin',
+            'department' => $hrDepartment->name,
+            'position' => 'HR Administrator',
             'date_hired' => now(),
             'contact_info' => $hrUser->email,
         ]);
@@ -141,7 +146,7 @@ class NotificationFlowTest extends TestCase
         ]);
         $manager = Employee::create([
             'user_id' => $managerUser->id,
-            'employee_id' => 'MGR-0001',
+            'employee_id' => 'IT-3000-001',
             'department_id' => $department->id,
             'first_name' => 'Manager',
             'last_name' => 'User',
@@ -160,7 +165,7 @@ class NotificationFlowTest extends TestCase
         ]);
         $employee = Employee::create([
             'user_id' => $employeeUser->id,
-            'employee_id' => 'EMP-0001',
+            'employee_id' => 'IT-3002-001',
             'department_id' => $department->id,
             'manager_id' => $manager->id,
             'first_name' => 'Employee',

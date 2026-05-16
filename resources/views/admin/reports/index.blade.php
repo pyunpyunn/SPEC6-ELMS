@@ -33,7 +33,7 @@
             <table class="report-table">
                 <thead><tr><th>Employee</th><th>Leave</th><th>Remaining</th><th>Compensation</th></tr></thead>
                 <tbody>
-                    @forelse($balances->take(12) as $balance)
+                    @forelse($balances->filter(fn ($balance) => (bool) $balance->leaveType?->is_compensable)->take(12) as $balance)
                         <tr>
                             <td>{{ $balance->employee->full_name }}<div class="muted">{{ $balance->employee->departmentRecord?->name }} · {{ $balance->employee->position }}</div></td>
                             <td>{{ $balance->leaveType->name }}</td>
@@ -100,13 +100,14 @@
                     <table class="report-table" style="margin-top:14px;width:100%">
                         <thead><tr><th>Leave Type</th><th>Allocated</th><th>Used</th><th>Remaining</th><th>Yearly Compensation</th></tr></thead>
                         <tbody>
-                            @foreach($employeeReport->leaveBalances as $balance)
+                            @foreach($employeeReport->leaveBalances->filter(fn ($balance) => $balance->leaveType?->isVisibleForGender($employeeReport->gender)) as $balance)
+                                @php($isCompensable = (bool) $balance->leaveType?->is_compensable)
                                 <tr>
-                                    <td>{{ $balance->leaveType->name }}</td>
+                                    <td>{{ $balance->leaveType->name }}<div class="muted">{{ $isCompensable ? 'Compensable' : 'Not compensable' }}</div></td>
                                     <td>{{ (int) $balance->allocated_days }}</td>
                                     <td>{{ (int) $balance->used_days }}</td>
                                     <td>{{ (int) $balance->remaining_days }}</td>
-                                    <td>PHP {{ number_format($balance->remaining_days * $employeeReport->daily_rate, 2) }}</td>
+                                    <td>PHP {{ number_format($isCompensable ? $balance->remaining_days * $employeeReport->daily_rate : 0, 2) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

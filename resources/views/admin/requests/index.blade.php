@@ -140,8 +140,11 @@
                 <label style="display:block;margin-bottom:7px">Attached Document</label>
                 <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
                     <span id="reviewProofName" style="font-size:15px;color:var(--text)">medical_certificate.pdf</span>
-                    <button class="btn btn-outline btn-sm" type="button" style="margin-left:auto">View Proof</button>
+                    <a id="reviewProofLink" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer" style="margin-left:auto" href="#">View Proof</a>
                 </div>
+                @if(isset($leave) && $leave->proof_path && str_ends_with(strtolower($leave->proof_path), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                    <img id="reviewProofPreview" src="" alt="Proof document" style="max-width:100%;margin-top:12px;border-radius:8px;border:1px solid var(--border);display:none">
+                @endif
             </div>
             <div class="form-group">
                 <label>Remarks <span class="req">*</span></label>
@@ -170,8 +173,29 @@ function openReviewModal(data, decision = 'approved') {
     document.getElementById('reviewReason').value = data.reason || '';
     document.getElementById('reviewForm').action = data.review_action || '#';
     document.getElementById('reviewDecisionStatus').value = decision;
-    document.getElementById('reviewProofSection').style.display = data.proof ? 'block' : 'none';
-    document.getElementById('reviewProofName').textContent = data.proof ? data.proof.split('/').pop() : 'medical_certificate.pdf';
+    
+    // Handle proof document
+    if (data.proof) {
+        const proofUrl = '{{ asset('storage') }}/' + data.proof;
+        const fileName = data.proof.split('/').pop();
+        document.getElementById('reviewProofSection').style.display = 'block';
+        document.getElementById('reviewProofName').textContent = fileName;
+        document.getElementById('reviewProofLink').href = proofUrl;
+        
+        // Show image preview for image files
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const isImage = imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+        const previewImg = document.getElementById('reviewProofPreview');
+        if (previewImg && isImage) {
+            previewImg.src = proofUrl;
+            previewImg.style.display = 'block';
+        } else if (previewImg) {
+            previewImg.style.display = 'none';
+        }
+    } else {
+        document.getElementById('reviewProofSection').style.display = 'none';
+    }
+    
     document.getElementById('reviewStatusBadge').innerHTML = '<span class="badge badge-' + ((data.status || 'Pending').toLowerCase()) + '">' + (data.status || 'Pending') + '</span>';
     document.getElementById('reviewModal').classList.add('open');
 }

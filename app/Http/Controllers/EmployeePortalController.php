@@ -10,6 +10,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class EmployeePortalController extends Controller
 {
@@ -37,6 +39,7 @@ class EmployeePortalController extends Controller
         $employee = Auth::user()->employee;
 
         abort_unless($employee, 403, 'Employee profile is required before filing leave.');
+        $this->syncCurrentYearBalances($employee);
 
         $validated = $request->validate([
             'leave_type_id' => ['required', 'exists:leave_types,id'],
@@ -47,8 +50,22 @@ class EmployeePortalController extends Controller
         ]);
 
         $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
-        abort_unless($this->isVisibleForGender($leaveType->name, $employee->gender), 422, 'This leave type is not available for the employee gender on record.');
+
+        if (! $leaveType->is_active) {
+            throw ValidationException::withMessages([
+                'leave_type_id' => 'This leave type is currently inactive.',
+            ]);
+        }
+
+        abort_unless($leaveType->isVisibleForGender($employee->gender), 422, 'This leave type is not available for the employee gender on record.');
         $totalDays = $this->inclusiveDays($validated['start_date'], $validated['end_date']);
+
+        if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
+            throw ValidationException::withMessages([
+                'proof' => 'A supporting document is required for '.$leaveType->name.'.',
+            ]);
+        }
+
         $balance = LeaveBalance::where('employee_id', $employee->id)
             ->where('leave_type_id', $leaveType->id)
             ->where('year', Carbon::parse($validated['start_date'])->year)
@@ -60,27 +77,62 @@ class EmployeePortalController extends Controller
             ->sum('total_days');
 
         if (! $balance || ($balance->remaining_days - (int) $pendingDays) < $totalDays) {
-            return back()
-                ->withErrors(['leave_type_id' => 'You do not have enough remaining balance for this leave request.'])
-                ->withInput();
+            throw ValidationException::withMessages([
+                'leave_type_id' => 'You do not have enough remaining balance for this leave request.',
+            ]);
         }
 
-        $leave = LeaveApplication::create([
-            'employee_id' => $employee->id,
-            'leave_type_id' => $validated['leave_type_id'],
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'total_days' => $totalDays,
-            'reason' => $validated['reason'],
-            'status' => 'pending',
-            'proof_path' => $request->file('proof')?->store('leave-proofs', 'public'),
-        ])->load(['employee.user', 'employee.manager.user', 'employee.departmentRecord', 'leaveType']);
+        $proofPath = $request->file('proof')?->store('leave-proofs', 'public');
+        $status = $leaveType->requires_approval ? 'pending' : 'approved';
 
-        $this->notifyLeaveSubmitted($leave);
+        $leave = DB::transaction(function () use ($employee, $leaveType, $validated, $totalDays, $proofPath, $status) {
+            $lockedBalance = LeaveBalance::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('year', Carbon::parse($validated['start_date'])->year)
+                ->lockForUpdate()
+                ->first();
+            $pendingDays = LeaveApplication::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('status', 'pending')
+                ->whereYear('start_date', Carbon::parse($validated['start_date'])->year)
+                ->sum('total_days');
+
+            if (! $lockedBalance || ($lockedBalance->remaining_days - (int) $pendingDays) < $totalDays) {
+                throw ValidationException::withMessages([
+                    'leave_type_id' => 'You do not have enough remaining balance for this leave request.',
+                ]);
+            }
+
+            $leave = LeaveApplication::create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => $leaveType->id,
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'total_days' => $totalDays,
+                'reason' => $validated['reason'],
+                'status' => $status,
+                'reviewed_at' => $status === 'approved' ? now() : null,
+                'proof_path' => $proofPath,
+            ]);
+
+            if ($status === 'approved') {
+                $lockedBalance->increment('used_days', $totalDays);
+            }
+
+            return $leave;
+        })->load(['employee.user', 'employee.manager.user', 'employee.departmentRecord', 'leaveType']);
+
+        if ($leave->status === 'pending') {
+            $this->notifyLeaveSubmitted($leave);
+        } else {
+            $this->notifyLeaveAutoApproved($leave);
+        }
 
         return redirect()
             ->route('employee.leaves.index')
-            ->with('success', 'Leave request submitted. It is now pending approval.');
+            ->with('success', $leave->status === 'pending'
+                ? 'Leave request submitted. It is now pending approval.'
+                : 'Leave request submitted and approved based on the leave type configuration.');
     }
 
     public function leaveHistory()
@@ -90,7 +142,16 @@ class EmployeePortalController extends Controller
 
     public function myLeave()
     {
-        return view('employee.leaves.index', $this->portalData());
+        $data = $this->portalData();
+        $status = request('status');
+
+        if (in_array($status, ['pending', 'approved', 'rejected', 'cancelled'], true)) {
+            $data['leaveApplications'] = $data['leaveApplications']
+                ->where('status', $status)
+                ->values();
+        }
+
+        return view('employee.leaves.index', $data);
     }
 
     public function cancelLeave(LeaveApplication $leaveApplication)
@@ -110,8 +171,10 @@ class EmployeePortalController extends Controller
 
     public function reports()
     {
+        $employee = Auth::user()?->employee;
+
         return view('employee.reports', $this->portalData() + [
-            'dailyRate' => self::DAILY_RATE,
+            'dailyRate' => (float) ($employee?->daily_rate ?? self::DAILY_RATE),
         ]);
     }
 
@@ -149,35 +212,57 @@ class EmployeePortalController extends Controller
                 ->latest()
                 ->get()
                 ->map(function ($leave) {
-                    $leave->days = $this->inclusiveDays($leave->start_date, $leave->end_date);
+                    $leave->days = (int) ($leave->total_days ?: $this->inclusiveDays($leave->start_date, $leave->end_date));
                     return $leave;
                 })
             : collect();
 
-        $this->ensureDefaultLeaveTypes();
-
         $order = collect($this->defaultLeaveTypes())->pluck('name')->flip();
+        $currentYear = now()->year;
 
-        $leaveTypes = LeaveType::orderBy('name')
-            ->get()
-            ->filter(fn (LeaveType $type) => $this->isVisibleForGender($type->name, $employee?->gender))
-            ->sortBy(fn ($type) => $order[$type->name] ?? 999)
+        if ($employee) {
+            $this->syncCurrentYearBalances($employee);
+        }
+
+        $pendingDaysByType = $leaveApplications
+            ->where('status', 'pending')
+            ->filter(fn ($leave) => $leave->start_date->year === $currentYear)
+            ->groupBy('leave_type_id')
+            ->map(fn ($leaves) => (int) $leaves->sum('total_days'));
+
+        $leaveTypes = $employee
+            ? LeaveBalance::with('leaveType')
+                ->where('employee_id', $employee->id)
+                ->where('year', $currentYear)
+                ->whereHas('leaveType', fn ($query) => $query->where('is_active', true))
+                ->get()
+            : collect();
+
+        $leaveTypes = $leaveTypes
+            ->filter(fn (LeaveBalance $balance) => $balance->leaveType?->isVisibleForGender($employee?->gender))
+            ->sortBy(fn (LeaveBalance $balance) => $order[$balance->leaveType->name] ?? 999)
             ->values()
-            ->map(function ($type) use ($leaveApplications) {
-            $used = $leaveApplications
-                ->where('leave_type_id', $type->id)
-                ->whereIn('status', ['approved', 'pending'])
-                ->sum('days');
-            $total = (int) ($type->annual_allocation ?? 0);
+            ->map(function (LeaveBalance $balance) use ($pendingDaysByType) {
+            $type = $balance->leaveType;
+            $pending = (int) ($pendingDaysByType[$type->id] ?? 0);
+            $used = (int) $balance->used_days + $pending;
+            $total = (int) $balance->allocated_days;
 
             return (object) [
                 'id' => $type->id,
                 'name' => $type->name,
                 'used_days' => $used,
+                'approved_used_days' => (int) $balance->used_days,
+                'pending_days' => $pending,
                 'total_days' => $total,
                 'remaining_days' => max(0, $total - $used),
+                'actual_remaining_days' => $balance->remaining_days,
                 'percent_used' => $total > 0 ? min(100, round(($used / $total) * 100)) : 0,
-                'policy_note' => $this->policyNote($type->name),
+                'policy_note' => $this->policyNote($type),
+                'requires_approval' => (bool) $type->requires_approval,
+                'requires_proof' => (bool) $type->requires_proof,
+                'is_compensable' => (bool) $type->is_compensable,
+                'proof_rules' => $type->proof_rules,
             ];
         });
 
@@ -198,16 +283,6 @@ class EmployeePortalController extends Controller
         return $start && $end ? $start->diffInDays($end) + 1 : 0;
     }
 
-    private function ensureDefaultLeaveTypes(): void
-    {
-        foreach ($this->defaultLeaveTypes() as $leaveType) {
-            LeaveType::query()->updateOrCreate(
-                ['name' => $leaveType['name']],
-                ['annual_allocation' => $leaveType['annual_allocation'], 'requires_approval' => true]
-            );
-        }
-    }
-
     private function defaultLeaveTypes(): array
     {
         return [
@@ -220,30 +295,36 @@ class EmployeePortalController extends Controller
         ];
     }
 
-    private function policyNote(string $name): string
+    private function policyNote(LeaveType $type): string
     {
-        return match ($name) {
+        if ($type->proof_rules) {
+            return $type->proof_rules;
+        }
+
+        return match ($type->name) {
             'Maternity Leave' => '105 days; 120 days if solo parent; 60 days if stillbirth or miscarriage. Female employees only.',
             'Paternity Leave' => '7 days per delivery/miscarriage, first 4 only. Male employees only.',
             'Bereavement Leave' => '15 days/year. Also called RIP leave in the prototype notes.',
-            default => (int) LeaveType::where('name', $name)->value('annual_allocation') . ' days/year.',
+            default => (int) $type->annual_allocation.' days/year.'.($type->requires_approval ? '' : ' Auto-approved.'),
         };
     }
 
-    private function isVisibleForGender(string $leaveTypeName, ?string $gender): bool
+    private function syncCurrentYearBalances($employee): void
     {
-        $gender = strtolower((string) $gender);
-        $name = strtolower($leaveTypeName);
+        $year = now()->year;
 
-        if ($gender === 'female' && str_contains($name, 'paternity')) {
-            return false;
-        }
+        LeaveType::where('is_active', true)->get()->each(function (LeaveType $type) use ($employee, $year): void {
+            $usedDays = LeaveApplication::where('employee_id', $employee->id)
+                ->where('leave_type_id', $type->id)
+                ->where('status', 'approved')
+                ->whereYear('start_date', $year)
+                ->sum('total_days');
 
-        if ($gender === 'male' && str_contains($name, 'maternity')) {
-            return false;
-        }
-
-        return true;
+            LeaveBalance::updateOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
+                ['allocated_days' => $type->annual_allocation, 'used_days' => $usedDays]
+            );
+        });
     }
 
     private function notifyLeaveSubmitted(LeaveApplication $leave): void
@@ -259,10 +340,12 @@ class EmployeePortalController extends Controller
         }
 
         if ($managerRecipients->isEmpty() && $leave->employee->department_id) {
-            $managerRecipients = User::where('role', 'manager')
+            $managerRecipients = User::with('employee.departmentRecord')
                 ->where('status', 'active')
                 ->whereHas('employee', fn ($query) => $query->where('department_id', $leave->employee->department_id))
-                ->get();
+                ->get()
+                ->filter(fn (User $user) => $user->hasAccessRole('manager'))
+                ->values();
         }
 
         $managerRecipients
@@ -281,6 +364,25 @@ class EmployeePortalController extends Controller
             $body,
             route('admin.requests.index'),
             'leave_request'
+        );
+    }
+
+    private function notifyLeaveAutoApproved(LeaveApplication $leave): void
+    {
+        SystemNotification::sendTo(
+            $leave->employee->user,
+            'Leave request approved',
+            'Your '.$leave->leaveType->name.' request was automatically approved by the leave configuration.',
+            route('employee.leaves.show', $leave),
+            'leave_status'
+        );
+
+        SystemNotification::sendToRole(
+            'hr_admin',
+            'Leave request auto-approved',
+            $leave->employee->full_name."'s ".$leave->leaveType->name.' request was automatically approved.',
+            route('admin.requests.index'),
+            'leave_status'
         );
     }
 }

@@ -14,15 +14,20 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create only the default HR account
-        User::updateOrCreate(
-            ['email' => 'hr@company.com'],
+        collect([
+            ['HR Administrator', 'hr@company.com', 'password', 'hr_admin'],
+            ['IT Manager', 'manager@test.com', 'password', 'manager'],
+            ['Finance Manager', 'elena.garcia@company.com', 'password', 'manager'],
+            ['Staff Employee', 'staff@test.com', 'staffpassword123', 'employee'],
+            ['Female Staff', 'female.staff@test.com', 'password', 'employee'],
+        ])->each(fn (array $user) => User::updateOrCreate(
+            ['email' => $user[1]],
             [
-                'name' => 'HR Administrator',
-                'password' => Hash::make('password'),
-                'role' => 'hr_admin',
+                'name' => $user[0],
+                'password' => Hash::make($user[2]),
+                'role' => $user[3],
                 'status' => 'active',
             ]
-        );
+        ));
     }
 }

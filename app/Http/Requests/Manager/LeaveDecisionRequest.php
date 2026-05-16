@@ -19,7 +19,7 @@ class LeaveDecisionRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->role === 'manager';
+        return (bool) $this->user()?->hasAccessRole('manager');
     }
 
     public function rules(): array

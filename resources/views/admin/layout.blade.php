@@ -70,13 +70,8 @@
         <div class="sb-footer">
             @php
                 $sidebarEmployee = auth()->user()->employee;
-                $sidebarGender = strtolower((string) ($sidebarEmployee?->gender ?? ''));
                 $sidebarBalances = collect($sidebarEmployee?->leaveBalances()->with('leaveType')->where('year', now()->year)->get() ?? [])
-                    ->filter(function ($balance) use ($sidebarGender) {
-                        $name = strtolower($balance->leaveType?->name ?? '');
-
-                        return ! (($sidebarGender === 'female' && str_contains($name, 'paternity')) || ($sidebarGender === 'male' && str_contains($name, 'maternity')));
-                    })
+                    ->filter(fn ($balance) => $balance->leaveType?->isVisibleForGender($sidebarEmployee?->gender))
                     ->sortBy(function ($balance) {
                         $name = strtolower($balance->leaveType?->name ?? '');
 
@@ -94,30 +89,19 @@
             @endphp
             <div class="sb-leave-balance">
                 <div class="sb-balance-title">
-                    <span>Leave Balance</span>
-                    <select class="sb-balance-filter" id="sidebarBalanceFilter" onchange="filterSidebarBalance(this.value)">
-                        <option value="all">All</option>
-                        @foreach($sidebarBalances as $balance)
+                    <span>My Leave Balance</span>
+                    <select class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
+                        <option value="all">All Types</option>
+                        @foreach($sidebarBalances ?? [] as $balance)
                             <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div id="sidebarBalanceItems">
-                    @forelse($sidebarBalances->take(4) as $balance)
-                        @php
-                            $used = (int) $balance->used_days;
-                            $total = (int) $balance->allocated_days;
-                            $percent = $total > 0 ? min(100, round(($used / $total) * 100)) : 0;
-                        @endphp
-                        <div class="sb-balance-row" data-type="lt-{{ $balance->leave_type_id }}">
-                            <div class="sb-balance-item">
-                                <span class="sb-balance-label">{{ $balance->leaveType->name }}</span>
-                                <span class="sb-balance-val">{{ $used }}/{{ $total }}</span>
-                            </div>
-                            <div class="sb-lb-bar"><div class="sb-lb-fill {{ $percent > 70 ? 'danger' : ($percent > 45 ? 'warn' : '') }}" style="width: {{ $percent }}%"></div></div>
-                        </div>
+                    @forelse($sidebarBalances ?? [] as $balance)
+                        <div class="sb-balance-item" data-type="lt-{{ $balance->leave_type_id }}"><span class="sb-balance-label">{{ $balance->leaveType->name }}</span><span class="sb-balance-val">{{ (int) $balance->remaining_days }}/{{ (int) $balance->allocated_days }}</span></div>
                     @empty
-                        <div class="sb-balance-item" data-type="all"><span class="sb-balance-label">No balances yet</span></div>
+                        <div class="sb-balance-item" data-type="all"><span class="sb-balance-label">No balances yet</span><span class="sb-balance-val">0/0</span></div>
                     @endforelse
                 </div>
             </div>
@@ -137,11 +121,11 @@
                     <button class="notif-btn" type="button" onclick="toggleNotifications()" title="Notifications">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                         @php($unread = auth()->user()->notifications()->whereNull('read_at')->count())
-                        @if($unread)<span class="notif-badge">{{ $unread }}</span>@endif
+                        <span class="notif-badge" data-notification-count style="{{ $unread ? '' : 'display:none' }}">{{ $unread }}</span>
                     </button>
                     <div class="notif-dropdown" id="notifDropdown">
                         <div class="notif-header"><h4>Notifications</h4><a class="notif-mark" href="{{ route('admin.notifications') }}">View all</a></div>
-                        <div class="notif-list">
+                        <div class="notif-list" data-notification-list>
                             @forelse(auth()->user()->notifications()->latest()->take(5)->get() as $notice)
                                 <a class="notif-item {{ $notice->read_at ? '' : 'unread' }}" href="{{ route('admin.notifications.read', $notice) }}">
                                     <span class="notif-dot"></span><span class="notif-content"><p>{{ $notice->title }}</p><span>{{ $notice->created_at->diffForHumans() }}</span></span>
@@ -178,11 +162,7 @@
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
 function toggleProfile(){document.getElementById('profileDropdown').classList.toggle('open')}
 function toggleNotifications(){document.getElementById('notifDropdown').classList.toggle('open')}
-function filterSidebarBalance(value){
-    document.querySelectorAll('#sidebarBalanceItems .sb-balance-row').forEach(function(row){
-        row.style.display = value === 'all' || !value || row.dataset.type === value ? '' : 'none';
-    });
-}
+function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(!type||type==='all'||item.dataset.type===type)?'flex':'none'})}
 function toggleDark(){document.documentElement.classList.toggle('dark');localStorage.setItem('elms-dark',document.documentElement.classList.contains('dark')?'1':'0')}
 if(localStorage.getItem('elms-dark')==='1'){document.documentElement.classList.add('dark')}
 document.addEventListener('DOMContentLoaded',function(){const filter=document.getElementById('sidebarBalanceFilter');if(filter){filterSidebarBalance(filter.value)}})
@@ -190,6 +170,36 @@ document.addEventListener('click',function(e){
     if(!e.target.closest('.profile-area')&&!e.target.closest('#profileDropdown')){document.getElementById('profileDropdown')?.classList.remove('open')}
     if(!e.target.closest('.notif-wrap')){document.getElementById('notifDropdown')?.classList.remove('open')}
 })
+function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g,function(char){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char];
+    })
+}
+async function refreshNotifications(){
+    try{
+        const response=await fetch(@json(route('notifications.feed')),{headers:{'Accept':'application/json'},credentials:'same-origin'});
+        if(!response.ok)return;
+        const data=await response.json();
+        const count=Number(data.unread_count||0);
+        document.querySelectorAll('[data-notification-count]').forEach(function(badge){
+            badge.textContent=count;
+            badge.style.display=count>0?'flex':'none';
+        });
+        document.querySelectorAll('[data-notification-list]').forEach(function(list){
+            if(!Array.isArray(data.notifications)||data.notifications.length===0){
+                list.innerHTML='<div class="notif-item"><span class="notif-content"><p>No notifications yet.</p></span></div>';
+                return;
+            }
+            list.innerHTML=data.notifications.map(function(notice){
+                return '<a class="notif-item '+(notice.unread?'unread':'')+'" href="'+escapeHtml(notice.read_url)+'"><span class="notif-dot"></span><span class="notif-content"><p>'+escapeHtml(notice.title)+'</p><span>'+escapeHtml(notice.created_at)+'</span></span></a>';
+            }).join('');
+        });
+    }catch(error){
+        // Keep the server-rendered notifications if the refresh cannot complete.
+    }
+}
+refreshNotifications();
+setInterval(refreshNotifications,5000);
 </script>
 @stack('scripts')
 </body>

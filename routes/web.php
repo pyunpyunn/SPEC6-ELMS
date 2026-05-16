@@ -14,6 +14,8 @@ use App\Http\Controllers\Hr\HrController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
 use App\Http\Controllers\Manager\LeaveApprovalController;
 use App\Http\Controllers\Manager\ManagerController;
+use App\Models\SystemNotification;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,14 +23,22 @@ Route::get('/', function () {
 });
 
 Route::middleware('auth')->get('/home', function () {
-    return match (auth()->user()->role) {
-        'hr_admin' => redirect()->route('admin.dashboard'),
+    $user = auth()->user();
+
+    if ($user->status !== 'active') {
+        return redirect()
+            ->route('employee.profile')
+            ->with('warning', 'Your account is not approved yet. HR must activate your account before you can use ELMS modules.');
+    }
+
+    return match ($user->getAccessLevel()) {
+        'hr' => redirect()->route('admin.dashboard'),
         'manager' => redirect()->route('manager.dashboard'),
         default => redirect()->route('employee.dashboard'),
     };
 })->name('home');
 
-Route::middleware('auth')->get('/positions-by-department/{department_id}', function (int $department_id) {
+Route::middleware(['auth', 'account.approved'])->get('/positions-by-department/{department_id}', function (int $department_id) {
         $positions = \App\Models\Position::where('department_id', $department_id)
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -36,12 +46,42 @@ Route::middleware('auth')->get('/positions-by-department/{department_id}', funct
         return response()->json($positions);
 })->name('positions.by-department');
 
+Route::middleware(['auth', 'account.approved'])->get('/notifications/feed', function (Request $request) {
+    $notifications = $request->user()
+        ->notifications()
+        ->latest()
+        ->take(5)
+        ->get()
+        ->map(fn (SystemNotification $notification) => [
+            'id' => $notification->id,
+            'title' => $notification->title,
+            'created_at' => $notification->created_at?->diffForHumans(),
+            'unread' => $notification->read_at === null,
+            'read_url' => route('notifications.read', $notification),
+        ]);
+
+    return response()->json([
+        'unread_count' => $request->user()->notifications()->whereNull('read_at')->count(),
+        'notifications' => $notifications,
+    ]);
+})->name('notifications.feed');
+
+Route::middleware(['auth', 'account.approved'])->get('/notifications/{notification}/read', function (SystemNotification $notification) {
+    abort_unless($notification->user_id === auth()->id(), 403);
+
+    if (! $notification->read_at) {
+        $notification->update(['read_at' => now()]);
+    }
+
+    return redirect($notification->action_url ?: route('home'));
+})->name('notifications.read');
+
 Route::middleware(['auth', 'profile.complete'])->group(function () {
     Route::delete('/leave/{leaveApplication}', [LeaveApplicationController::class, 'destroy'])
-        ->middleware('role:employee')
+        ->middleware(['account.approved', 'role:employee'])
         ->name('leave.destroy');
 
-    Route::middleware('role:hr_admin')
+    Route::middleware(['account.approved', 'role:hr'])
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
@@ -80,7 +120,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::put('/profile/password', [AdminProfileController::class, 'password'])->name('profile.password');
         });
 
-    Route::middleware('role:manager')
+    Route::middleware(['account.approved', 'role:manager'])
         ->prefix('manager')
         ->name('manager.')
         ->group(function () {
@@ -103,7 +143,13 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::put('/profile/password', [ManagerController::class, 'updatePassword'])->name('profile.password');
         });
 
-    Route::middleware('role:employee')
+    Route::prefix('employee')
+        ->name('employee.')
+        ->group(function () {
+            Route::get('/profile', [LeaveApplicationController::class, 'profile'])->name('profile');
+        });
+
+    Route::middleware(['account.approved', 'role:employee'])
         ->prefix('employee')
         ->name('employee.')
         ->group(function () {
@@ -117,6 +163,5 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/leave-balances', [LeaveApplicationController::class, 'reports'])->name('leave-balances');
             Route::get('/notifications', [LeaveApplicationController::class, 'notifications'])->name('notifications');
             Route::get('/notifications/{notification}/read', [LeaveApplicationController::class, 'readNotification'])->name('notifications.read');
-            Route::get('/profile', [LeaveApplicationController::class, 'profile'])->name('profile');
         });
 });

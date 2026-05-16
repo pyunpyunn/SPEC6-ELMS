@@ -10,38 +10,25 @@ class EmployeeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'hr_admin';
+        return (bool) $this->user()?->hasAccessRole('hr');
     }
 
     public function rules(): array
     {
         $employeeId = $this->route('employee')?->id;
         $userId = $this->route('employee')?->user_id;
-        $role = $this->input('role');
 
         return [
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'role' => ['required', Rule::in(['employee', 'manager', 'hr_admin'])],
+            'role' => ['nullable', Rule::in(['employee', 'manager', 'hr_admin'])],
             'employee_id' => [
-                'required',
+                'nullable',
                 'string',
                 'max:30',
                 Rule::unique('employees', 'employee_id')->ignore($employeeId),
-                function ($attribute, $value, $fail) use ($role) {
-                    $validPrefixes = [
-                        'employee' => 'EMP-',
-                        'manager' => 'MGR-',
-                        'hr_admin' => 'HR-',
-                    ];
-                    
-                    $expectedPrefix = $validPrefixes[$role] ?? '';
-                    if ($expectedPrefix && !str_starts_with($value, $expectedPrefix)) {
-                        $fail("Employee ID must start with '{$expectedPrefix}' for {$role} role.");
-                    }
-                },
             ],
             'department_id' => ['required', 'exists:departments,id'],
             'position_id' => ['required', 'exists:positions,id'],

@@ -27,7 +27,7 @@
         <a class="sb-item {{ request()->routeIs('manager.team') ? 'active' : '' }}" href="{{ route('manager.team') }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg><span>Team Overview</span></a>
 
         <div class="sb-section">Communication</div>
-        <a class="sb-item {{ request()->routeIs('manager.notifications') ? 'active' : '' }}" href="{{ route('manager.notifications') }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Notifications</span>@if($unreadCount ?? 0)<span class="badge-dot">{{ $unreadCount }}</span>@endif</a>
+        <a class="sb-item {{ request()->routeIs('manager.notifications') ? 'active' : '' }}" href="{{ route('manager.notifications') }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Notifications</span><span class="badge-dot" data-notification-count style="{{ ($unreadCount ?? 0) ? '' : 'display:none' }}">{{ $unreadCount ?? 0 }}</span></a>
 
         <div class="sb-section">Personal</div>
         <a class="sb-item {{ request()->routeIs('manager.my-leave') ? 'active' : '' }}" href="{{ route('manager.my-leave') }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg><span>Apply for Leave</span></a>
@@ -74,11 +74,11 @@
             <div class="notif-wrap" id="notifWrap">
                 <button class="notif-btn" type="button" onclick="toggleNotif()" title="Notifications">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                    @if($unreadCount ?? 0)<span class="notif-badge">{{ $unreadCount }}</span>@endif
+                    <span class="notif-badge" data-notification-count style="{{ ($unreadCount ?? 0) ? '' : 'display:none' }}">{{ $unreadCount ?? 0 }}</span>
                 </button>
                 <div class="notif-dropdown" id="notifDropdown">
                     <div class="notif-header"><h4>Notifications</h4><a class="notif-mark" href="{{ route('manager.notifications') }}">View all</a></div>
-                    <div class="notif-list">
+                    <div class="notif-list" data-notification-list>
                         @forelse($latestNotifications ?? [] as $notice)
                             <a class="notif-item {{ $notice->read_at ? '' : 'unread' }}" href="{{ route('manager.notifications.read', $notice) }}"><div class="notif-dot"></div><div class="notif-content"><p>{{ $notice->title }}</p><span>{{ $notice->created_at->diffForHumans() }}</span></div></a>
                         @empty
@@ -120,6 +120,32 @@ document.addEventListener('click',function(e){if(!e.target.closest('#notifWrap')
 function toggleDark(){document.documentElement.classList.toggle('dark');localStorage.setItem('manager-dark',document.documentElement.classList.contains('dark')?'1':'0')}
 if(localStorage.getItem('manager-dark')==='1'){document.documentElement.classList.add('dark')}
 function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(!type||type==='all'||item.dataset.type===type)?'flex':'none'})}
+function escapeHtml(value){return String(value ?? '').replace(/[&<>"']/g,function(char){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]})}
+async function refreshNotifications(){
+    try{
+        const response=await fetch(@json(route('notifications.feed')),{headers:{'Accept':'application/json'},credentials:'same-origin'});
+        if(!response.ok)return;
+        const data=await response.json();
+        const count=Number(data.unread_count||0);
+        document.querySelectorAll('[data-notification-count]').forEach(function(badge){
+            badge.textContent=count;
+            badge.style.display=count>0?'flex':'none';
+        });
+        document.querySelectorAll('[data-notification-list]').forEach(function(list){
+            if(!Array.isArray(data.notifications)||data.notifications.length===0){
+                list.innerHTML='<div class="notif-item"><div class="notif-content"><p>No notifications yet.</p></div></div>';
+                return;
+            }
+            list.innerHTML=data.notifications.map(function(notice){
+                return '<a class="notif-item '+(notice.unread?'unread':'')+'" href="'+escapeHtml(notice.read_url)+'"><div class="notif-dot"></div><div class="notif-content"><p>'+escapeHtml(notice.title)+'</p><span>'+escapeHtml(notice.created_at)+'</span></div></a>';
+            }).join('');
+        });
+    }catch(error){
+        // Keep the server-rendered notifications if the refresh cannot complete.
+    }
+}
+refreshNotifications();
+setInterval(refreshNotifications,5000);
 </script>
 @stack('scripts')
 </body>

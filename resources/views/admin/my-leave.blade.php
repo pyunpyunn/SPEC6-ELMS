@@ -6,6 +6,7 @@
     if ($selectedTypeId) {
         $visibleBalances = $visibleBalances->filter(fn ($balance) => $balance->leave_type_id === $selectedTypeId);
     }
+    $compensableBalances = $visibleBalances->filter(fn ($balance) => (bool) $balance->leaveType?->is_compensable);
 @endphp
 
 <div class="page active" id="page-myleave">
@@ -35,7 +36,7 @@
     <div class="comp-card" style="max-width:460px;margin-bottom:22px">
         <div class="comp-title">Estimated Yearly Compensation</div>
         <div class="comp-amount">₱{{ number_format($compensationEstimate ?? 0, 2) }}</div>
-        <div class="comp-sub">{{ $visibleBalances->sum(fn ($b) => (int) $b->remaining_days) }} unused days × ₱{{ number_format((float)($employee?->daily_rate ?? 0), 2) }}/day · paid at year-end</div>
+        <div class="comp-sub">{{ $compensableBalances->sum(fn ($b) => (int) $b->remaining_days) }} compensable unused days × ₱{{ number_format((float)($employee?->daily_rate ?? 0), 2) }}/day · paid at year-end</div>
     </div>
 
     <div class="flash flash-warning">
@@ -93,7 +94,7 @@
                     <select id="applyLeaveType" name="leave_type_id" onchange="handleLeaveTypeChange()" required>
                         <option value="">Select leave type...</option>
                         @foreach($leaveTypes as $type)
-                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            <option value="{{ $type->id }}" data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}" data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}" data-proof-rules="{{ $type->proof_rules }}">{{ $type->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -132,20 +133,19 @@ function closeApplyModal(event) {
 
 function handleLeaveTypeChange() {
     const select = document.getElementById('applyLeaveType');
-    const type = select.options[select.selectedIndex]?.text?.toLowerCase() || '';
+    const option = select.options[select.selectedIndex];
     const proofSec = document.getElementById('proofSection');
     const proofReq = document.getElementById('proofRequired');
     const proofHint = document.getElementById('proofHint');
-    if (type.includes('sick')) {
-        proofSec.classList.add('visible');
-        proofReq.textContent = '(required if 3+ days)';
-        proofHint.textContent = 'For 1–2 day sick leave, no certificate is needed. For 3+ days, medical certificate is required.';
-    } else if (type.includes('maternity') || type.includes('bereavement')) {
+
+    if (option?.dataset.requiresProof === '1') {
         proofSec.classList.add('visible');
         proofReq.textContent = '*';
-        proofHint.textContent = 'Proof document required for this leave type.';
+        proofHint.textContent = option.dataset.proofRules || 'Proof document required for this leave type.';
     } else {
         proofSec.classList.remove('visible');
+        proofReq.textContent = '';
+        proofHint.textContent = option?.dataset.requiresApproval === '0' ? 'This leave type is auto-approved by configuration.' : '';
     }
 }
 

@@ -29,21 +29,23 @@
                 </thead>
                 <tbody>
                     @foreach($leaveTypes as $type)
+                        @php($compensation = $type->is_compensable ? $dailyRate * $type->actual_remaining_days : 0)
                         <tr>
                             <td>
                                 <div class="td-name">{{ $type->name }}</div>
-                                <div class="td-sub">{{ $type->policy_note }}</div>
+                                <div class="td-sub">{{ $type->is_compensable ? 'Compensable' : 'Not compensable' }} · {{ $type->policy_note }}</div>
                             </td>
                             <td>{{ $type->total_days }}</td>
                             <td>{{ $type->used_days }}</td>
                             <td>{{ $type->remaining_days }}</td>
                             <td class="font-mono">₱{{ number_format($dailyRate, 2) }}</td>
-                            <td class="font-mono" style="color:var(--success)">₱{{ number_format($dailyRate * $type->remaining_days, 2) }}</td>
+                            <td class="font-mono" style="color:var(--success)">₱{{ number_format($compensation, 2) }}</td>
                         </tr>
                     @endforeach
+                    @php($totalCompensation = $leaveTypes->sum(fn ($type) => $type->is_compensable ? $dailyRate * $type->actual_remaining_days : 0))
                     <tr style="font-weight:700;background:var(--surface2)">
                         <td colspan="5">Total Yearly Compensation Estimate</td>
-                        <td class="font-mono" style="color:var(--success)">₱{{ number_format($dailyRate * $leaveTypes->sum('remaining_days'), 2) }}</td>
+                        <td class="font-mono" style="color:var(--success)">₱{{ number_format($totalCompensation, 2) }}</td>
                     </tr>
                 </tbody>
             </table>

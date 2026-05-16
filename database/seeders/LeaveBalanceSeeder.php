@@ -11,7 +11,23 @@ class LeaveBalanceSeeder extends Seeder
 {
     public function run(): void
     {
-        // Leave balances are automatically created when employees are registered
-        // This seeder is left empty to allow starting from a clean slate
+        $year = now()->year;
+        $leaveTypes = LeaveType::where('is_active', true)->get();
+
+        Employee::where('employment_status', 'active')->get()->each(function (Employee $employee) use ($leaveTypes, $year): void {
+            $leaveTypes->each(function (LeaveType $leaveType) use ($employee, $year): void {
+                LeaveBalance::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'leave_type_id' => $leaveType->id,
+                        'year' => $year,
+                    ],
+                    [
+                        'allocated_days' => (int) $leaveType->annual_allocation,
+                        'used_days' => 0,
+                    ]
+                );
+            });
+        });
     }
 }

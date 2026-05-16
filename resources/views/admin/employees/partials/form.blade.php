@@ -1,8 +1,17 @@
 <div><label>First Name</label><input name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
 <div><label>Last Name</label><input name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
 <div><label>Email</label><input type="email" name="email" value="{{ old('email', $employee?->user?->email) }}" required></div>
-<div><label>Role</label><select name="role" required><option value="employee" @selected(old('role', $employee?->user?->role) === 'employee')>Employee</option><option value="manager" @selected(old('role', $employee?->user?->role) === 'manager')>Manager</option><option value="hr_admin" @selected(old('role', $employee?->user?->role) === 'hr_admin')>HR Admin</option></select></div>
-<div><label>Employee ID</label><input name="employee_id" value="{{ old('employee_id', $employee?->employee_id ?? $nextEmployeeId) }}" required></div>
+<div><label>Access Role</label><input value="Auto-derived from department and position" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed"></div>
+<div>
+    <label>Employee ID</label>
+    @if($employee)
+        <input type="text" value="{{ $employee->employee_id }}" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed">
+        <small style="display:block;margin-top:4px;color:#666">Cannot be changed for existing employees</small>
+    @else
+        <input type="text" value="{{ $nextEmployeeId }}" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed">
+        <small style="display:block;margin-top:4px;color:#666">Format: DEPT-POSID-COUNT (auto-generated)</small>
+    @endif
+</div>
 <div><label>Department</label><select name="department_id" id="department_id" required><option value="">-- Select Department --</option>@foreach($departments as $d)<option value="{{ $d->id }}" @selected(old('department_id', $employee?->department_id) == $d->id)>{{ $d->name }}</option>@endforeach</select></div>
 <div><label>Position</label><select name="position_id" id="position_id" required><option value="">-- Select Department First --</option></select></div>
 <div><label>Manager</label><select name="manager_id"><option value="">No manager</option>@foreach($managers as $m)<option value="{{ $m->id }}" @selected(old('manager_id', $employee?->manager_id) == $m->id)>{{ $m->full_name }}</option>@endforeach</select></div>
@@ -15,6 +24,10 @@
 <div class="full"><button class="btn primary">{{ $button }}</button></div>
 
 <script>
+const positionConfig = @js($positionConfig ?? []);
+const departmentPrefixes = @js($departmentPrefixes ?? []);
+const departments = @js($departments ?? []);
+
 document.getElementById('department_id').addEventListener('change', function () {
     const departmentId = this.value;
     const positionSelect = document.getElementById('position_id');
@@ -23,6 +36,7 @@ document.getElementById('department_id').addEventListener('change', function () 
 
     if (!departmentId) {
         positionSelect.innerHTML = '<option value="">-- Select Department First --</option>';
+        updateIdPreview();
         return;
     }
 
@@ -33,6 +47,7 @@ document.getElementById('department_id').addEventListener('change', function () 
 
             if (data.length === 0) {
                 positionSelect.innerHTML = '<option value="">No positions found</option>';
+                updateIdPreview();
                 return;
             }
 
@@ -43,11 +58,51 @@ document.getElementById('department_id').addEventListener('change', function () 
                 option.selected = String(position.id) === String('{{ old('position_id', $employee?->position_id) }}');
                 positionSelect.appendChild(option);
             });
+            
+            updateIdPreview();
         })
         .catch(() => {
             positionSelect.innerHTML = '<option value="">Error loading positions</option>';
+            updateIdPreview();
         });
 });
+
+document.getElementById('position_id').addEventListener('change', updateIdPreview);
+
+function updateIdPreview() {
+    const departmentId = document.getElementById('department_id').value;
+    const positionId = document.getElementById('position_id').value;
+    
+    if (!departmentId || !positionId) {
+        return;
+    }
+    
+    // Find department code
+    const dept = departments.find(d => String(d.id) === String(departmentId));
+    if (!dept) return;
+    
+    const deptCode = dept.code;
+    const prefix = departmentPrefixes[deptCode];
+    const posIds = positionConfig[deptCode];
+    
+    // Find position ID
+    let posId = null;
+    const position = dept.positions?.find(p => String(p.id) === String(positionId));
+    if (position && posIds) {
+        for (const [id, name] of Object.entries(posIds)) {
+            if (name === position.name) {
+                posId = id;
+                break;
+            }
+        }
+    }
+    
+    if (prefix && posId !== null) {
+        // Here you could fetch count from server if needed
+        // For now just show format preview
+        console.log(`ID Format: ${prefix}-${posId}-###`);
+    }
+}
 
 document.getElementById('department_id').dispatchEvent(new Event('change'));
 </script>

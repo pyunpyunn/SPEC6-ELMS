@@ -18,7 +18,7 @@ class GenderLeaveVisibilityTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $hr = User::where('email', 'hr@company.com')->firstOrFail();
-        $employee = Employee::where('employee_id', 'EMP-STAFF-01')->firstOrFail();
+        $employee = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
 
         $this->actingAs($hr)->put(route('admin.employees.update', $employee), [
             'first_name' => $employee->first_name,
@@ -55,8 +55,8 @@ class GenderLeaveVisibilityTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $male = Employee::where('employee_id', 'EMP-STAFF-01')->firstOrFail();
-        $female = Employee::where('employee_id', 'EMP-0018')->firstOrFail();
+        $male = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
+        $female = Employee::where('employee_id', 'OPS-5002-001')->firstOrFail();
 
         $this->actingAs($male->user)
             ->get(route('employee.leaves.index'))
@@ -75,7 +75,7 @@ class GenderLeaveVisibilityTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $male = Employee::where('employee_id', 'EMP-STAFF-01')->firstOrFail();
+        $male = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
         $maternity = LeaveType::where('name', 'Maternity Leave')->firstOrFail();
 
         $this->actingAs($male->user)->post(route('employee.leaves.store'), [
@@ -83,6 +83,37 @@ class GenderLeaveVisibilityTest extends TestCase
             'start_date' => now()->addDay()->toDateString(),
             'end_date' => now()->addDays(2)->toDateString(),
             'reason' => 'Not available for male employee.',
+        ])->assertStatus(422);
+    }
+
+    public function test_gender_specific_leave_types_are_hidden_when_gender_is_not_male_or_female(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $employee = Employee::where('employee_id', 'IT-3002-001')->firstOrFail();
+        $employee->update(['gender' => 'other']);
+
+        $this->actingAs($employee->user)
+            ->get(route('employee.leaves.index'))
+            ->assertOk()
+            ->assertDontSee('Maternity Leave')
+            ->assertDontSee('Paternity Leave');
+
+        $maternity = LeaveType::where('name', 'Maternity Leave')->firstOrFail();
+        $paternity = LeaveType::where('name', 'Paternity Leave')->firstOrFail();
+
+        $this->actingAs($employee->user)->post(route('employee.leaves.store'), [
+            'leave_type_id' => $maternity->id,
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'reason' => 'Gender-specific leave should not be available.',
+        ])->assertStatus(422);
+
+        $this->actingAs($employee->user)->post(route('employee.leaves.store'), [
+            'leave_type_id' => $paternity->id,
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'reason' => 'Gender-specific leave should not be available.',
         ])->assertStatus(422);
     }
 }

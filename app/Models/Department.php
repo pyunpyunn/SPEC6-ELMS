@@ -22,7 +22,12 @@ class Department extends Model
 
     public function manager(): HasOne
     {
-        return $this->hasOne(Employee::class)->whereHas('user', fn ($query) => $query->where('role', 'manager'));
+        return $this->hasOne(Employee::class)
+            ->where(function ($query) {
+                $query->where('employee_id', 'like', '%-3000-%')
+                    ->orWhere('employee_id', 'like', '%-4000-%')
+                    ->orWhere('employee_id', 'like', '%-5000-%');
+            });
     }
 
     public function employees(): HasMany

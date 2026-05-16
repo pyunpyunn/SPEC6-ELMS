@@ -10,7 +10,9 @@
         ->where('status', 'approved')
         ->filter(fn ($leave) => $leave->start_date->year === now()->year)
         ->sum('days');
-    $yearlyCompensation = $totalRemaining * 1000;
+    $compensableRemaining = $leaveTypes->where('is_compensable', true)->sum('actual_remaining_days');
+    $dailyRate = (float) ($employee?->daily_rate ?? 0);
+    $yearlyCompensation = $compensableRemaining * $dailyRate;
 @endphp
 
 @if($errors->any())
@@ -31,26 +33,26 @@
 </div>
 
 <div class="stats-grid">
-    <div class="stat-card">
+    <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('employee.leave-balances') }}">
         <div class="stat-value" style="color:var(--primary)">{{ $totalRemaining }}</div>
         <div class="stat-label">My Leave Balance</div>
         <div class="stat-sub">Total remaining days</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('employee.leaves.index', ['status' => 'approved']) }}">
         <div class="stat-value" style="color:var(--success)">{{ $leavesTakenThisYear }}</div>
         <div class="stat-label">Leaves Taken This Year</div>
         <div class="stat-sub">Approved days</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('employee.leaves.index', ['status' => 'pending']) }}">
         <div class="stat-value" style="color:var(--warning)">{{ $pendingLeaves }}</div>
         <div class="stat-label">Pending Requests</div>
         <div class="stat-sub">Awaiting review</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('employee.reports') }}">
         <div class="stat-value">₱{{ number_format($yearlyCompensation) }}</div>
         <div class="stat-label">Yearly Compensation Estimate</div>
-        <div class="stat-sub">₱1,000/day x unused days</div>
-    </div>
+        <div class="stat-sub">Compensable unused days only</div>
+    </a>
 </div>
 
 <div class="employee-grid">

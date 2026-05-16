@@ -13,10 +13,10 @@
             @csrf
             <div style="margin-bottom:14px">
                 <label>Leave Type</label>
-                <select class="form-control" name="leave_type_id" required>
+                <select class="form-control" name="leave_type_id" id="managerLeaveType" onchange="updateManagerProofHint()" required>
                     @foreach($leaveTypes as $type)
                         @php($balance = $employee?->leaveBalances->firstWhere('leave_type_id', $type->id))
-                        <option value="{{ $type->id }}" @selected(old('leave_type_id') == $type->id)>{{ $type->name }} ({{ (int) ($balance?->remaining_days ?? 0) }} left)</option>
+                        <option value="{{ $type->id }}" data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}" data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}" data-proof-rules="{{ $type->proof_rules }}" @selected(old('leave_type_id') == $type->id)>{{ $type->name }} ({{ (int) ($balance?->remaining_days ?? 0) }} left)</option>
                     @endforeach
                 </select>
             </div>
@@ -24,7 +24,7 @@
                 <div><label>Start Date</label><input class="form-control" type="date" name="start_date" value="{{ old('start_date') }}" required></div>
                 <div><label>End Date</label><input class="form-control" type="date" name="end_date" value="{{ old('end_date') }}" required></div>
                 <div class="form-full"><label>Reason</label><textarea class="form-control" name="reason" rows="4" required>{{ old('reason') }}</textarea></div>
-                <div class="form-full"><label>Attach Document</label><input class="form-control" type="file" name="proof"></div>
+                <div class="form-full"><label>Attach Document</label><input class="form-control" type="file" name="proof"><div class="muted" id="managerProofHint">Upload proof when required by the selected leave type.</div></div>
             </div>
             <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:18px">Submit Request to HR</button>
         </form>
@@ -53,3 +53,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function updateManagerProofHint(){
+    const option = document.getElementById('managerLeaveType')?.selectedOptions?.[0];
+    const hint = document.getElementById('managerProofHint');
+    if (!option || !hint) return;
+
+    hint.textContent = [
+        option.dataset.requiresProof === '1' ? 'Proof required.' : 'Proof optional.',
+        option.dataset.requiresApproval === '0' ? 'Auto-approved.' : 'Requires HR approval.',
+        option.dataset.proofRules || '',
+    ].filter(Boolean).join(' ');
+}
+document.addEventListener('DOMContentLoaded', updateManagerProofHint);
+</script>
+@endpush

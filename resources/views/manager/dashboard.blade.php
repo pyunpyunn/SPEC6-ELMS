@@ -10,9 +10,9 @@
 <div class="dash-layout">
     <div>
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">{{ $stats['pending'] }}</div><div class="stat-label">Pending Requests</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:var(--primary)">{{ $stats['on_leave_today'] }}</div><div class="stat-label">On Leave Today</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:var(--success)">{{ $stats['approved_mtd'] }}</div><div class="stat-label">Approved MTD</div></div>
+            <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('manager.approvals.index', ['status' => 'pending']) }}"><div class="stat-value" style="color:var(--warning)">{{ $stats['pending'] }}</div><div class="stat-label">Pending Requests</div></a>
+            <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('manager.calendar') }}"><div class="stat-value" style="color:var(--primary)">{{ $stats['on_leave_today'] }}</div><div class="stat-label">On Leave Today</div></a>
+            <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('manager.approvals.index', ['status' => 'approved', 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->endOfMonth()->toDateString()]) }}"><div class="stat-value" style="color:var(--success)">{{ $stats['approved_mtd'] }}</div><div class="stat-label">Approved MTD</div></a>
         </div>
         <div class="card">
             <div class="card-header"><span class="card-title">Action Required</span><a class="btn btn-outline btn-sm" href="{{ route('manager.approvals.index') }}">Open Inbox</a></div>

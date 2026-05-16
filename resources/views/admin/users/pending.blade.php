@@ -5,7 +5,7 @@
     <div class="page-header">
         <div>
             <h1>User Verification</h1>
-            <p>Review pending accounts and manage active users</p>
+            <p>Review pending registrations, then manage approved system users</p>
         </div>
     </div>
 
@@ -15,7 +15,7 @@
 
     <div class="tab-bar" style="margin-bottom:20px">
         <a class="tab-item active" href="#" onclick="switchVerificationTab('pending'); return false;">Pending <span class="badge badge-pending" style="margin-left:6px">{{ $pendingUsers->total() }}</span></a>
-        <a class="tab-item" href="#" onclick="switchVerificationTab('all'); return false;">All Users</a>
+        <a class="tab-item" href="#" onclick="switchVerificationTab('all'); return false;">All Users <span class="badge badge-active" style="margin-left:6px">{{ $allUsers->total() }}</span></a>
     </div>
 
     <!-- PENDING USERS TAB -->
@@ -61,9 +61,10 @@
         <div class="pagination">{{ $pendingUsers->links() }}</div>
     </div>
 
-    <!-- ALL USERS TAB -->
+    <!-- ALL USERS TAB (approved / registered accounts only) -->
     <div class="tab-pane" id="all-tab" style="display:none">
         <div class="card" style="box-shadow:none;border:none">
+            <p class="muted" style="margin:0 0 14px">Only HR-approved accounts appear here. Pending registrations stay in the Pending tab until activated.</p>
             <form class="filter-bar" method="GET" action="{{ route('admin.users.index') }}">
                 <div class="search-wrap">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -78,7 +79,6 @@
                 <select name="status">
                     <option value="">All Status</option>
                     <option value="active" @selected(($userFilters['status'] ?? request('status')) === 'active')>Active</option>
-                    <option value="pending" @selected(($userFilters['status'] ?? request('status')) === 'pending')>Pending</option>
                     <option value="inactive" @selected(($userFilters['status'] ?? request('status')) === 'inactive')>Inactive</option>
                 </select>
                 <button class="btn btn-primary btn-sm" type="submit">Filter</button>
@@ -131,7 +131,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7">No users found.</td></tr>
+                    <tr><td colspan="7">No registered users found. Approved accounts will appear here after activation.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -149,7 +149,7 @@
         <form class="modal-body form" method="POST" id="activateForm">
             @csrf
             <div class="flash flash-warning">
-                Verify the employee by confirming their Employee ID, then assign role, department, position, and manager before activating.
+                Choose the department and position. The Employee ID and access role are derived automatically from that selection.
             </div>
             <div class="form-group">
                 <label>Full Name</label>
@@ -166,8 +166,8 @@
             </div>
             <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
                 <div class="form-group">
-                    <label>Employee ID <span class="req">*</span></label>
-                    <input type="text" name="employee_id" id="activateEmployeeId" required>
+                    <label>Employee ID</label>
+                    <input type="text" id="activateEmployeeId" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed;font-family:var(--mono)" value="Auto-generated">
                 </div>
                 <div class="form-group">
                     <label>Email</label>
@@ -175,13 +175,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Assign Role <span class="req">*</span></label>
-                <select name="role" id="activateRole" required>
-                    <option value="">Select role...</option>
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="hr_admin">HR Admin</option>
-                </select>
+                <label>Access Role</label>
+                <input id="activateAccessRole" value="Auto-derived from department and position" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed">
             </div>
             <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
                 <div class="form-group">
@@ -257,9 +252,8 @@ function openActivateModal(data) {
     document.getElementById('activateTitle').textContent = data.name || 'User';
     document.getElementById('activateName').value = data.name || '';
     document.getElementById('activateEmail').value = data.email || '';
-    document.getElementById('activateEmployeeId').value = data.employee_id || '';
+    document.getElementById('activateEmployeeId').value = data.employee_id || 'Auto-generated after activation';
     document.getElementById('activateGender').value = data.gender || '';
-    document.getElementById('activateRole').value = data.role || 'employee';
     document.getElementById('activateDepartment').value = data.department_id || '';
     loadActivatePositions(data.department_id || '', data.position_id || '');
     document.getElementById('activateDateHired').value = data.date_hired || '{{ now()->toDateString() }}';

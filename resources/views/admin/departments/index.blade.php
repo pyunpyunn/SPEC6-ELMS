@@ -5,7 +5,7 @@
     <div class="page-header">
         <div>
             <h1>Departments</h1>
-            <p>View department membership, managers, and positions</p>
+            <p>Click a department to open the employee directory filtered to that team</p>
         </div>
         <div class="page-actions">
             <button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('deptModal').classList.add('open')">New Department</button>
@@ -20,12 +20,16 @@
                 $managerName = $department->manager?->full_name ?? 'Unassigned';
                 $managerPosition = $department->manager?->position ?? 'No manager assigned';
             @endphp
-            <div class="dept-card">
+            <a
+                href="{{ route('admin.employees.index', ['department_id' => $department->id]) }}"
+                class="dept-card"
+                aria-label="View {{ $department->name }} employees"
+            >
                 <div class="dept-card-top">
                     <div class="dept-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg>
                     </div>
-                    <a class="dept-leave-link" href="{{ route('admin.employees.index', ['department_id' => $department->id]) }}">View All →</a>
+                    <span class="dept-leave-link dept-card-action">View employees →</span>
                 </div>
                 <div class="dept-name">{{ $department->name }}</div>
                 <div class="dept-mgr">Manager: {{ $managerName }} · {{ $managerPosition }}</div>
@@ -40,7 +44,7 @@
                         <span class="dept-pos-badge">No positions yet</span>
                     @endforelse
                 </div>
-            </div>
+            </a>
         @endforeach
     </div>
 </div>

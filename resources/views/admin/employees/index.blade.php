@@ -5,12 +5,23 @@
     <div class="page-header">
         <div>
             <h1>Employee Directory</h1>
-            <p>Manage employee records, view profiles, and edit details</p>
+            @if($selectedDepartment ?? null)
+                <p>Showing employees in <strong>{{ $selectedDepartment->name }}</strong></p>
+            @else
+                <p>Manage employee records, view profiles, and edit details</p>
+            @endif
         </div>
         <div class="page-actions">
             <button class="btn btn-primary btn-sm" type="button" onclick="openEmployeeModal('create')">Add Employee</button>
         </div>
     </div>
+
+    @if($selectedDepartment ?? null)
+        <div class="flash flash-warning" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <span>Filtered by department: <strong>{{ $selectedDepartment->name }}</strong> ({{ $employees->total() }} {{ Str::plural('employee', $employees->total()) }})</span>
+            <a class="btn btn-outline btn-sm" href="{{ route('admin.employees.index', request()->except('department_id')) }}">Clear department filter</a>
+        </div>
+    @endif
 
     <form class="filter-bar" method="GET">
         <div class="search-wrap">
@@ -20,7 +31,7 @@
         <select name="department_id">
             <option value="">All Departments</option>
             @foreach($departments as $department)
-                <option value="{{ $department->id }}" @selected(request('department_id') == $department->id)>{{ $department->name }}</option>
+                <option value="{{ $department->id }}" @selected((int) ($selectedDepartmentId ?? request('department_id')) === $department->id)>{{ $department->name }}</option>
             @endforeach
         </select>
         <select name="employment_status">
@@ -64,7 +75,6 @@
                             'first_name' => $employee->first_name,
                             'last_name' => $employee->last_name,
                             'email' => $employee->user?->email,
-                            'role' => $employee->user?->role,
                             'employee_id' => $employee->employee_id,
                             'gender' => $employee->gender,
                             'department_id' => $employee->department_id,
@@ -108,14 +118,14 @@
                     </select>
                 </div>
                 <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" name="email" id="employeeEmail" required></div>
-                <div class="form-group"><label>Role <span class="req">*</span></label>
-                    <select name="role" id="employeeRole" required>
-                        <option value="employee">Employee</option>
-                        <option value="manager">Manager</option>
-                        <option value="hr_admin">HR Admin</option>
-                    </select>
+                <div class="form-group"><label>Access Role</label>
+                    <input id="employeeAccessRole" value="Auto-derived from department and position" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed">
                 </div>
-                <div class="form-group"><label>Employee ID <span class="req">*</span></label><input name="employee_id" id="employeeId" required style="font-family:var(--mono)"></div>
+                <div class="form-group">
+                    <label>Employee ID</label>
+                    <input type="text" id="employeeId" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed;font-family:var(--mono)">
+                    <small id="employeeIdHint" style="display:block;margin-top:4px;color:#666"></small>
+                </div>
                 <div class="form-group"><label>Department <span class="req">*</span></label>
                     <select name="department_id" id="employeeDepartment" required>
                         <option value="">Select department...</option>
@@ -215,8 +225,18 @@ function openEmployeeModal(mode, employee) {
     document.getElementById('employeeFirstName').value = employee?.first_name || '';
     document.getElementById('employeeLastName').value = employee?.last_name || '';
     document.getElementById('employeeEmail').value = employee?.email || '';
-    document.getElementById('employeeRole').value = employee?.role || 'employee';
-    document.getElementById('employeeId').value = employee?.employee_id || '{{ $nextEmployeeId }}';
+    
+    // Set employee ID display
+    const idField = document.getElementById('employeeId');
+    const idHint = document.getElementById('employeeIdHint');
+    if (mode === 'edit' && employee?.employee_id) {
+        idField.value = employee.employee_id;
+        idHint.textContent = 'Cannot be changed for existing employees';
+    } else {
+        idField.value = '(Auto-generated)';
+        idHint.textContent = 'Format: DEPT-POSID-COUNT (will be generated when department & position are selected)';
+    }
+    
     document.getElementById('employeeGender').value = employee?.gender || '';
     document.getElementById('employeeDepartment').value = employee?.department_id || '{{ $departments->first()->id ?? '' }}';
     
