@@ -211,8 +211,18 @@ class ManagerController extends Controller
             ]);
         }
 
-        if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
-            throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.'.']);
+        $proofRequired = false;
+
+        if ($leaveType->requires_proof) {
+            if ($leaveType->max_document_days === null || $leaveType->max_document_days <= 0) {
+                $proofRequired = true;
+            } else {
+                $proofRequired = $totalDays >= $leaveType->max_document_days;
+            }
+        }
+
+        if ($proofRequired && ! $request->hasFile('proof')) {
+            throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.' when the request is '.$leaveType->max_document_days.' or more working days.']);
         }
 
         $proofPath = $request->file('proof')?->store('leave-proofs', 'public');

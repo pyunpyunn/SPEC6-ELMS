@@ -94,6 +94,11 @@
                         <div class="lt-stat-val">{{ $type->requires_approval ? 'Yes' : 'No' }}</div>
                         <div class="lt-stat-sub">{{ $type->requires_approval ? 'Manager / HR approval' : 'Auto-approved' }}</div>
                     </div>
+                    <div class="lt-stat-box">
+                        <div class="lt-stat-label">Gender Restriction</div>
+                        <div class="lt-stat-val">{{ $type->gender ? ucfirst($type->gender) : 'All' }}</div>
+                        <div class="lt-stat-sub">{{ $type->gender ? 'Restricted to ' . ucfirst($type->gender) : 'Available to all' }}</div>
+                    </div>
                 </div>
 
                 <div class="lt-flags">
@@ -101,11 +106,23 @@
                     <span class="lt-flag {{ $type->is_compensable ? 'noapproval' : 'proof' }}">{{ $type->is_compensable ? 'Compensable' : 'Not Compensable' }}</span>
                     <span class="lt-flag proof">{{ $type->requires_proof ? 'Proof Required' : 'Proof Conditional' }}</span>
                     <span class="lt-flag {{ $type->is_active ? 'noapproval' : 'proof' }}">{{ $type->is_active ? 'Active' : 'Inactive' }}</span>
+                    @if($type->gender)
+                        <span class="lt-flag noapproval">{{ ucfirst($type->gender) }} Only</span>
+                    @endif
                 </div>
 
                 <div class="lt-rules">
                     <div style="font-weight:700;color:var(--text);margin-bottom:8px">Rules & Notes</div>
                     <div style="line-height:1.8">{{ $type->proof_rules ?: 'No special proof rules configured.' }}</div>
+
+                    <div style="margin-top:10px">
+                        <div style="font-weight:700;color:var(--text);margin-bottom:6px">Document Upload Requirement</div>
+                        <div style="line-height:1.8">
+                            {{ $type->max_document_days !== null
+                                ? 'Maximum days before submitting document: ' . (int) $type->max_document_days . ' day(s).'
+                                : 'No max document days configured.' }}
+                        </div>
+                    </div>
                 </div>
 
                 <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">
@@ -114,11 +131,13 @@
                             'id' => $type->id,
                             'name' => $type->name,
                             'annual_allocation' => $type->annual_allocation,
+                            'gender' => $type->gender,
                             'is_active' => $type->is_active ? 1 : 0,
                             'requires_approval' => $type->requires_approval ? 1 : 0,
                             'is_compensable' => $type->is_compensable ? 1 : 0,
                             'requires_proof' => $type->requires_proof ? 1 : 0,
                             'proof_rules' => $type->proof_rules,
+                            'max_document_days' => $type->max_document_days,
                             'action' => route('admin.leave-types.update', $type),
                             'delete_action' => route('admin.leave-types.destroy', $type),
                         ];
@@ -171,6 +190,19 @@
             </div>
 
             <div>
+                <label>Gender</label>
+                <select name="gender" id="leaveTypeGender">
+                    <option value="">All Genders</option>
+                    <option value="male">Male Only</option>
+                    <option value="female">Female Only</option>
+                    <option value="other">Other</option>
+                </select>
+                <div class="form-hint" style="margin-top:6px">
+                    Leave this empty to make available to all genders.
+                </div>
+            </div>
+
+            <div>
                 <label>Status</label>
                 <select name="is_active" id="leaveTypeStatus">
                     <option value="1">Active</option>
@@ -205,6 +237,22 @@
             <div class="full">
                 <label>Proof Rules</label>
                 <textarea name="proof_rules" id="leaveTypeRules" placeholder="Sick leave needs medical certificate for 3+ days" rows="3"></textarea>
+            </div>
+
+            <div id="maxDocumentDaysField" style="display:none;">
+                <label>Max Document Days <span class="req">*</span></label>
+                <input
+                    type="number"
+                    name="max_document_days"
+                    id="leaveTypeMaxDocumentDays"
+                    min="0"
+                    max="365"
+                    value="0"
+                    placeholder="0 = no max / immediate"
+                >
+                <div class="form-hint" style="margin-top:6px">
+                    Maximum days before a user must upload a document (optional).
+                </div>
             </div>
         </form>
 
@@ -260,15 +308,26 @@ function openLeaveTypeModal(data = null) {
         if (enableMode) {
             document.getElementById('leaveTypeName').value = data.name || '';
             document.getElementById('leaveTypeAllocation').value = data.annual_allocation ?? 15;
+            document.getElementById('leaveTypeGender').value = data.gender || '';
             document.getElementById('leaveTypeStatus').value = '1';
             document.getElementById('leaveTypeApproval').value = String(data.requires_approval ?? 1);
             document.getElementById('leaveTypeCompensable').value = String(data.is_compensable ?? 0);
             document.getElementById('leaveTypeProof').value = String(data.requires_proof ?? 0);
             document.getElementById('leaveTypeRules').value = data.proof_rules || '';
-            deleteButton.style.display = 'none';
+            document.getElementById('leaveTypeMaxDocumentDays').value = data.max_document_days ?? '';
         } else {
-            deleteButton.style.display = 'none';
+            document.getElementById('leaveTypeName').value = '';
+            document.getElementById('leaveTypeAllocation').value = 15;
+            document.getElementById('leaveTypeGender').value = '';
+            document.getElementById('leaveTypeStatus').value = '1';
+            document.getElementById('leaveTypeApproval').value = '1';
+            document.getElementById('leaveTypeCompensable').value = '0';
+            document.getElementById('leaveTypeProof').value = '0';
+            document.getElementById('leaveTypeRules').value = '';
+            document.getElementById('leaveTypeMaxDocumentDays').value = '';
         }
+        deleteButton.style.display = 'none';
+        toggleLeaveTypeDocumentDays();
 
         return;
     }
@@ -281,13 +340,33 @@ function openLeaveTypeModal(data = null) {
 
     document.getElementById('leaveTypeName').value = data.name || '';
     document.getElementById('leaveTypeAllocation').value = data.annual_allocation ?? 15;
+    document.getElementById('leaveTypeGender').value = data.gender || '';
     document.getElementById('leaveTypeStatus').value = String(data.is_active ?? 1);
     document.getElementById('leaveTypeApproval').value = String(data.requires_approval ?? 1);
     document.getElementById('leaveTypeCompensable').value = String(data.is_compensable ?? 0);
     document.getElementById('leaveTypeProof').value = String(data.requires_proof ?? 0);
     document.getElementById('leaveTypeRules').value = data.proof_rules || '';
+    document.getElementById('leaveTypeMaxDocumentDays').value = data.max_document_days ?? '';
+    toggleLeaveTypeDocumentDays();
 
     deleteButton.style.display = 'inline-block';
+}
+
+function toggleLeaveTypeDocumentDays() {
+    const proofField = document.getElementById('leaveTypeProof');
+    const documentDays = document.getElementById('maxDocumentDaysField');
+    const documentInput = document.getElementById('leaveTypeMaxDocumentDays');
+
+    if (!proofField || !documentDays || !documentInput) {
+        return;
+    }
+
+    const show = proofField.value === '1';
+    documentDays.style.display = show ? '' : 'none';
+
+    if (!show) {
+        documentInput.value = '';
+    }
 }
 
 function closeLeaveTypeModal() {
@@ -331,6 +410,8 @@ document.querySelectorAll('.lt-enable-btn').forEach((button) => {
 document.querySelectorAll('[data-leave-tab]').forEach((tab) => {
     tab.addEventListener('click', () => showLeaveType(Number(tab.dataset.leaveTab), tab));
 });
+
+document.getElementById('leaveTypeProof')?.addEventListener('change', toggleLeaveTypeDocumentDays);
 
 document.getElementById('deleteButton')?.addEventListener('click', deleteLeaveType);
 

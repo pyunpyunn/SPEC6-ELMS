@@ -661,8 +661,18 @@ class HrController extends Controller
             ]);
         }
 
-        if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
-            throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.'.']);
+        $proofRequired = false;
+
+        if ($leaveType->requires_proof) {
+            if ($leaveType->max_document_days === null || $leaveType->max_document_days <= 0) {
+                $proofRequired = true;
+            } else {
+                $proofRequired = $totalDays >= $leaveType->max_document_days;
+            }
+        }
+
+        if ($proofRequired && ! $request->hasFile('proof')) {
+            throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.' when the request is '.$leaveType->max_document_days.' or more working days.']);
         }
 
         $proofPath = $request->file('proof')?->store('leave-proofs', 'public');
@@ -709,7 +719,8 @@ class HrController extends Controller
                 'Leave request pending',
                 $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
                 route('admin.requests.index'),
-                'leave_request'
+                'leave_request',
+                auth()->id()
             );
         }
 
@@ -889,10 +900,12 @@ class HrController extends Controller
             'name' => $request->name,
             'slug' => Str::slug($request->name),
             'annual_allocation' => $request->annual_allocation,
+            'gender' => $request->gender,
             'requires_approval' => $request->boolean('requires_approval'),
             'is_compensable' => $request->boolean('is_compensable'),
             'requires_proof' => $request->boolean('requires_proof'),
             'proof_rules' => $request->proof_rules,
+            'max_document_days' => $request->input('max_document_days'),
             'is_active' => $request->boolean('is_active', true),
         ];
     }

@@ -95,7 +95,7 @@
                     <select id="applyLeaveType" name="leave_type_id" onchange="handleLeaveTypeChange()" required>
                         <option value="">Select leave type...</option>
                         @foreach($leaveTypes as $type)
-                            <option value="{{ $type->id }}" data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}" data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}" data-proof-rules="{{ $type->proof_rules }}">{{ $type->name }}</option>
+                            <option value="{{ $type->id }}" data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}" data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}" data-proof-rules="{{ $type->proof_rules }}" data-max-document-days="{{ $type->max_document_days ?? '' }}">{{ $type->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -104,7 +104,7 @@
                 <div class="flash flash-error" id="applyWeekendError" style="display:none;margin-top:10px">You can't select a weekend date.</div>
                 <div class="form-group span2"><label>Total Working Days</label><input id="applyTotalDays" readonly placeholder="Auto calculated"></div>
                 <div class="form-group span2"><label>Reason <span class="req">*</span></label><textarea id="applyReason" name="reason" placeholder="Describe your reason for leave..." required></textarea></div>
-                <div class="form-group span2 leave-proof-section" id="proofSection">
+                <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none;">
                     <label>Supporting Document <span id="proofRequired" class="req"></span></label>
                     <div class="file-upload" onclick="document.getElementById('proofFile').click()">
                         <p>Drag & drop or click to upload</p>
@@ -133,22 +133,67 @@ function closeApplyModal(event) {
     document.getElementById('applyLeaveModal').classList.remove('open');
 }
 
-function handleLeaveTypeChange() {
+function getSelectedLeaveTypeData() {
     const select = document.getElementById('applyLeaveType');
-    const option = select.options[select.selectedIndex];
-    const proofSec = document.getElementById('proofSection');
+    const option = select?.options?.[select.selectedIndex];
+    if (!option) return null;
+
+    return {
+        requiresProof: option.dataset.requiresProof === '1',
+        maxDocumentDays: option.dataset.maxDocumentDays ? parseInt(option.dataset.maxDocumentDays, 10) : null,
+        requiresApproval: option.dataset.requiresApproval === '1',
+        proofRules: option.dataset.proofRules || '',
+    };
+}
+
+function updateProofVisibility() {
+    const proofSection = document.getElementById('proofSection');
     const proofReq = document.getElementById('proofRequired');
     const proofHint = document.getElementById('proofHint');
+    const proofFile = document.getElementById('proofFile');
+    const totalText = document.getElementById('applyTotalDays')?.value || '';
+    const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
+    const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
+    const selected = getSelectedLeaveTypeData();
 
-    if (option?.dataset.requiresProof === '1') {
-        proofSec.classList.add('visible');
-        proofReq.textContent = '*';
-        proofHint.textContent = option.dataset.proofRules || 'Proof document required for this leave type.';
-    } else {
-        proofSec.classList.remove('visible');
-        proofReq.textContent = '';
-        proofHint.textContent = option?.dataset.requiresApproval === '0' ? 'This leave type is auto-approved by configuration.' : '';
+    if (!proofSection || !proofReq || !proofHint || !proofFile || !selected) return;
+
+    const { requiresProof, maxDocumentDays, requiresApproval, proofRules } = selected;
+    let shouldShow = false;
+    let message = '';
+
+    if (requiresProof) {
+        if (maxDocumentDays === null || maxDocumentDays <= 0) {
+            shouldShow = workingDays > 0;
+            message = proofRules || 'Proof document required for this leave type.';
+        } else {
+            shouldShow = workingDays >= maxDocumentDays;
+            message = proofRules || `Proof document required for ${maxDocumentDays} or more working days.`;
+        }
     }
+
+    proofSection.style.display = shouldShow ? 'block' : 'none';
+    proofFile.required = shouldShow;
+
+    if (!shouldShow) {
+        proofFile.value = '';
+    }
+
+    if (shouldShow) {
+        proofReq.textContent = '*';
+        proofHint.textContent = message;
+    } else {
+        proofReq.textContent = '';
+        proofHint.textContent = requiresProof && maxDocumentDays > 0
+            ? `Document upload becomes required once the request reaches ${maxDocumentDays} working days.`
+            : requiresApproval
+                ? 'This leave type is auto-approved by configuration.'
+                : '';
+    }
+}
+
+function handleLeaveTypeChange() {
+    updateProofVisibility();
 }
 
 function pad2(n) {
@@ -221,11 +266,16 @@ function setupWeekendAndPastGuards() {
 function calcDays() {
     const start = document.getElementById('applyStart').value;
     const end = document.getElementById('applyEnd').value;
-    if (!start || !end) return;
+    if (!start || !end) {
+        document.getElementById('applyTotalDays').value = '';
+        updateProofVisibility();
+        return;
+    }
     const s = new Date(start);
     const e = new Date(end);
     if (e < s) {
         document.getElementById('applyTotalDays').value = 'Invalid range';
+        updateProofVisibility();
         return;
     }
     let count = 0;
@@ -234,11 +284,13 @@ function calcDays() {
         if (day !== 0 && day !== 6) count++;
     }
     document.getElementById('applyTotalDays').value = count + ' working day' + (count !== 1 ? 's' : '');
+    updateProofVisibility();
 }
 
 // Initialize guards when scripts load
 document.addEventListener('DOMContentLoaded', function () {
     setupWeekendAndPastGuards();
+    updateProofVisibility();
 });
 
 </script>

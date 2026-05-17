@@ -33,12 +33,18 @@ class SystemNotification extends Model
     /**
      * @return Collection<int, self>
      */
-    public static function sendToRole(string $role, string $title, string $body, ?string $url = null, string $type = 'info'): Collection
-    {
+    public static function sendToRole(
+        string $role,
+        string $title,
+        string $body,
+        ?string $url = null,
+        string $type = 'info',
+        ?int $excludeUserId = null
+    ): Collection {
         return User::with('employee.departmentRecord')
             ->where('status', 'active')
             ->get()
-            ->filter(fn (User $user) => $user->hasAccessRole($role))
+            ->filter(fn (User $user) => $user->hasAccessRole($role) && ($excludeUserId === null || $user->id !== $excludeUserId))
             ->map(fn (User $user) => self::sendTo($user, $title, $body, $url, $type));
     }
 }

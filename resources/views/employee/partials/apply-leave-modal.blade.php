@@ -40,6 +40,7 @@
                                 <option
                                     value="{{ $type->id }}"
                                     data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}"
+                                    data-max-document-days="{{ $type->max_document_days ?? '' }}"
                                     data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}"
                                     data-proof-rules="{{ $type->proof_rules }}"
                                     @selected(old('leave_type_id') == $type->id)
@@ -141,71 +142,78 @@ function closeModal(id) {
     document.getElementById(id)?.classList.remove('open');
 }
 
-function applySickLeaveProofVisibilityRule_old() {
-    const leaveTypeSelect = document.getElementById('applyLeaveType');
-    const proofSection = document.getElementById('proofSection');
-    const proofFile = document.getElementById('proofFile');
+function getSelectedLeaveTypeData() {
+    const select = document.getElementById('applyLeaveType');
+    const option = select?.options?.[select.selectedIndex];
+    if (!option) return null;
 
-    if (!leaveTypeSelect || !proofSection || !proofFile) return;
-
-    const selectedOptionText = leaveTypeSelect?.options?.[leaveTypeSelect.selectedIndex]?.textContent?.toLowerCase?.() || '';
-    const isSick = selectedOptionText.includes('sick');
-
-    const totalText = document.getElementById('applyTotalDays')?.value || '';
-    const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
-    const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
-
-    const shouldShow = isSick && workingDays >= 3;
-
-    proofSection.style.display = shouldShow ? 'block' : 'none';
-    proofFile.required = shouldShow;
+    return {
+        requiresProof: option.dataset.requiresProof === '1',
+        maxDocumentDays: option.dataset.maxDocumentDays ? parseInt(option.dataset.maxDocumentDays, 10) : null,
+        requiresApproval: option.dataset.requiresApproval === '1',
+        proofRules: option.dataset.proofRules || '',
+    };
 }
 
-function applySickLeaveProofVisibilityRule() {
-    const leaveTypeSelect = document.getElementById('applyLeaveType');
+function updateProofVisibility() {
     const proofSection = document.getElementById('proofSection');
+    const proofReq = document.getElementById('proofRequired');
+    const proofHint = document.getElementById('proofHint');
     const proofFile = document.getElementById('proofFile');
-
-    if (!leaveTypeSelect || !proofSection || !proofFile) return;
-
-    const selectedOptionText = leaveTypeSelect?.options?.[leaveTypeSelect.selectedIndex]?.textContent?.toLowerCase?.() || '';
-    const isSick = selectedOptionText.includes('sick');
-
     const totalText = document.getElementById('applyTotalDays')?.value || '';
     const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
     const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
+    const selected = getSelectedLeaveTypeData();
 
-    const shouldShow = isSick && workingDays >= 3;
+    if (!proofSection || !proofReq || !proofHint || !proofFile || !selected) return;
+
+    const { requiresProof, maxDocumentDays, requiresApproval, proofRules } = selected;
+    let shouldShow = false;
+    let message = '';
+
+    if (requiresProof) {
+        if (maxDocumentDays === null || maxDocumentDays <= 0) {
+            shouldShow = workingDays > 0;
+            message = proofRules || 'Proof document required for this leave type.';
+        } else {
+            shouldShow = workingDays >= maxDocumentDays;
+            message = proofRules || `Proof document required for ${maxDocumentDays} or more working days.`;
+        }
+    }
 
     proofSection.style.display = shouldShow ? 'block' : 'none';
     proofFile.required = shouldShow;
+
+    if (!shouldShow) {
+        proofFile.value = '';
+    }
+
+    if (shouldShow) {
+        proofReq.textContent = '*';
+        proofHint.textContent = message;
+    } else {
+        proofReq.textContent = '';
+        proofHint.textContent = requiresProof && maxDocumentDays > 0
+            ? `Document upload becomes required once the request reaches ${maxDocumentDays} working days.`
+            : requiresApproval
+                ? 'This leave type is auto-approved by configuration.'
+                : '';
+    }
 }
 
 function handleLeaveTypeChange() {
-    const select = document.getElementById('applyLeaveType');
-    const option = select?.options?.[select.selectedIndex];
-    const proofSec = document.getElementById('proofSection');
+    const selected = getSelectedLeaveTypeData();
     const proofReq = document.getElementById('proofRequired');
     const proofHint = document.getElementById('proofHint');
 
-    if (!option || !proofSec || !proofReq || !proofHint) return;
+    if (!selected || !proofReq || !proofHint) return;
 
-    const requiresProof = option.dataset.requiresProof === '1';
-    const requiresApproval = option.dataset.requiresApproval === '0';
-    const proofRules = option.dataset.proofRules || '';
+    updateProofVisibility();
 
-    if (requiresProof) {
-        proofSec.style.display = 'block';
-        proofReq.textContent = '*';
-        proofHint.textContent = proofRules || 'Proof document required for this leave type.';
-    } else {
-        proofSec.style.display = 'none';
+    if (!selected.requiresProof) {
         proofReq.textContent = '';
-        proofHint.textContent = requiresApproval ? 'This leave type is auto-approved by configuration.' : '';
+        proofHint.textContent = selected.requiresApproval ? 'This leave type is auto-approved by configuration.' : '';
     }
-
-    // Override for sick leave: only show proof section when 3+ working days
-    applySickLeaveProofVisibilityRule();
 }
 
 function pad2(n) {
@@ -281,8 +289,7 @@ function calcDays() {
 
     totalEl.value = count + ' working day' + (count !== 1 ? 's' : '');
 
-    // Sick leave proof depends on computed working days
-    applySickLeaveProofVisibilityRule();
+    updateProofVisibility();
 }
 
 function dismissWeekendError() {
@@ -398,11 +405,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (startInput) clampWeekend(startInput);
     if (endInput) clampWeekend(endInput);
 
-    // Conditional proof
-    handleLeaveTypeChange();
-
     // Working days if old input exists
     calcDays();
+
+    // Conditional proof visibility after working days calculation
+    handleLeaveTypeChange();
 
     // If old leave_type_id exists but onchange didn't fire
     document.getElementById('applyLeaveType')?.addEventListener('change', function () {
