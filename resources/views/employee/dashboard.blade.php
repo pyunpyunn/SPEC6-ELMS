@@ -28,7 +28,14 @@
         <p>{{ now()->format('l, F d, Y') }} · {{ $employeeId }} · {{ $employee->position ?? 'Employee' }}</p>
     </div>
     <div class="page-actions">
-        <button class="btn btn-primary" type="button" onclick="openModal('applyLeaveModal')">Quick Apply Leave</button>
+        <button
+            class="btn btn-primary"
+            type="button"
+            {{ ($isOnLeaveToday ?? false) ? 'disabled' : '' }}
+            onclick="{{ ($isOnLeaveToday ?? false) ? '' : "openModal('applyLeaveModal')" }}"
+        >
+            Quick Apply Leave
+        </button>
     </div>
 </div>
 

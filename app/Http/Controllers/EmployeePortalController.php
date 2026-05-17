@@ -58,15 +58,6 @@ class EmployeePortalController extends Controller
         // Past dates are not allowed (UI disables, backend enforces)
         abort_if($startDate->lt(now()->startOfDay()), 422, 'You cannot file leave for past dates.');
 
-        // Disallow any weekend days in the selected range (Sat/Sun).
-        for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
-            if ($date->isWeekend()) {
-                throw ValidationException::withMessages([
-                    'start_date' => "You can't file leave during weekends.",
-                ]);
-            }
-        }
-
         $totalDays = $this->workingDaysBetween($startDate, $endDate);
 
         // Duplicate prevention:
@@ -308,12 +299,20 @@ class EmployeePortalController extends Controller
                 ];
             });
 
+        $isOnLeaveToday = $employee
+            ? (clone $leaveApplications)
+                ->where('status', 'approved')
+                ->filter(fn ($leave) => $leave->start_date->lte(now()) && $leave->end_date->gte(now()))
+                ->isNotEmpty()
+            : false;
+
         return [
             'user' => $user,
             'employee' => $employee,
             'leaveTypes' => $leaveTypes,
             'employeeLeaveBalances' => $leaveTypes,
             'leaveApplications' => $leaveApplications,
+            'isOnLeaveToday' => (bool) $isOnLeaveToday,
         ];
     }
 

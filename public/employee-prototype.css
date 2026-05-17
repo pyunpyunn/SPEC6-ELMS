@@ -253,35 +253,3 @@ textarea { min-height: 92px; resize: vertical; }
   .form-group.span2 { grid-column: auto; }
   .detail-row { grid-template-columns: 1fr; gap: 2px; }
 }
-
-/* Shared polish: keep employee cards and search/filter controls aligned with HR. */
-.stat-card,.card,.leave-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  overflow:hidden;
-  box-shadow:none;
-  transition:border-color var(--transition),box-shadow var(--transition),transform var(--transition);
-}
-.stat-card:hover,.card:hover,.leave-card:hover{box-shadow:var(--shadow-md)}
-.filters,.filter-bar{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  margin-bottom:18px;
-  flex-wrap:wrap;
-  padding:12px 14px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-}
-.filters input,.filters select,.filter-bar input,.filter-bar select{
-  min-height:40px;
-  padding:8px 12px;
-  border:1px solid var(--border);
-  border-radius:var(--radius-sm);
-  background:var(--surface2);
-  color:var(--text);
-  font-size:12px;
-}
-.filters input,.filter-bar input{min-width:240px;flex:1}
