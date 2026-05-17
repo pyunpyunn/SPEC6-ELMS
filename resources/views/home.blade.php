@@ -14,7 +14,7 @@
         <p>Your employee workspace for leave filing, balances, notifications, and profile details.</p>
     </div>
     <div class="page-actions">
-        <a href="{{ route('dashboard.employee') }}" class="btn btn-primary">Employee Dashboard</a>
+        <a href="{{ route('employee.dashboard') }}" class="btn btn-primary">Employee Dashboard</a>
         <a href="{{ route('employee.profile') }}" class="btn btn-outline">My Profile</a>
     </div>
 </div>
@@ -50,8 +50,8 @@
         <div class="card-body">
             <p class="td-sub">Check your balance or file a new leave request.</p>
             <div class="page-actions" style="margin-top:14px">
-                <a href="{{ route('dashboard.employee') }}" class="btn btn-primary">Open Leave Dashboard</a>
-                <a href="{{ route('employee.leave.create') }}" class="btn btn-outline">Apply Leave</a>
+                <a href="{{ route('employee.dashboard') }}" class="btn btn-primary">Open Leave Dashboard</a>
+                <a href="{{ route('employee.leaves.create') }}" class="btn btn-outline">Apply Leave</a>
                 <a href="{{ route('employee.profile') }}" class="btn btn-outline">Employee Profile</a>
             </div>
         </div>

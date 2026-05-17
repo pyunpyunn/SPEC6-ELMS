@@ -70,7 +70,7 @@
                 <a href="{{ route('register') }}">Register</a>
             </div>
             <h3>Welcome back</h3>
-            <p>Sign in to continue to the HR dashboard.</p>
+            <p>Sign in with your employee ID or email address.</p>
 
             @if ($errors->any())
                 <div class="err">{{ $errors->first() }}</div>
@@ -78,8 +78,8 @@
 
             <form method="POST" action="{{ route('login') }}">
                 @csrf
-                <label>Email</label>
-                <input type="email" name="email" value="{{ old('email', 'hr@company.com') }}" required autofocus>
+                <label>Employee ID or Email</label>
+                <input type="text" name="email" value="{{ old('email', 'HR-2000-001') }}" required autofocus>
 
                 <label>Password</label>
                 <div style="position: relative; display: flex; align-items: center;">
@@ -104,7 +104,7 @@
                 </div>
             </form>
 
-            <div class="hint">Default HR account: <strong>hr@company.com</strong> / <strong>password</strong>.</div>
+            <div class="hint">Default HR account: <strong>HR-2000-001</strong> or <strong>hr@company.com</strong> / <strong>password</strong>.</div>
             <div class="foot">
                 <span>Need an account?</span>
                 <a href="{{ route('register') }}" style="color:var(--accent2);font-weight:700;text-decoration:none">Register here</a>

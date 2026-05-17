@@ -1,35 +1,32 @@
 # Naming Conventions
 
+## Roles
+
+- Database role values: `employee`, `manager`, `hr_admin`.
+- Folder and route naming uses `admin` for HR Admin pages because it is shorter and easier to scan.
+
 ## Routes
-- HR route names use the `hr.` prefix, for example `hr.dashboard`, `hr.employees.index`, and `hr.reports.export`.
-- Shared routes are `profile`, `notifications`, and Laravel Fortify auth routes.
 
-## Controllers and Requests
-- HR controller: `App\Http\Controllers\Hr\HrController`.
-- HR validation requests live in `App\Http\Requests\Hr`.
-- Request classes: `EmployeeRequest`, `DepartmentRequest`, `LeaveTypeRequest`, `ProfileRequest`.
+- HR Admin routes use `admin.*` names and `/admin` URLs.
+- Manager routes use `manager.*` names and `/manager` URLs.
+- Employee routes use `employee.*` names and `/employee` URLs.
+- Resource routes use plural nouns: `employees`, `leave-types`, and `leaves`.
 
-## Models
-- `User` owns authentication, role, and status.
-- `Employee` stores company profile data and public employee ID.
-- `Department` stores department setup and assigned manager.
-- `LeaveType` stores leave policy configuration.
-- `LeaveApplication` stores leave filings and HR/manager review data.
-- `LeaveBalance` stores yearly allocations and usage.
-- `SystemNotification` stores in-app alerts.
+## Controllers
 
-## Blade Views
-- Shared HR layout: `resources/views/hr/layout.blade.php`.
-- Main HR pages are grouped by module under `resources/views/hr`.
-- Reusable create/edit fields use `partials/form.blade.php` inside each module folder.
-- Prototype styling is loaded from `public/hr-prototype.css`, extracted from `kuan1.html`.
+- Admin controllers live in `App\Http\Controllers\Admin`.
+- Manager controllers live in `App\Http\Controllers\Manager`.
+- Employee controllers live in `App\Http\Controllers\Employee`.
+- Shared models stay in `App\Models`.
 
-## CSS Classes
-- `.card`, `.card-h`, `.card-b`: framed content blocks.
-- `.filters`: compact filter rows.
-- `.form`: responsive two-column forms.
-- `.badge`: status and role labels.
-- `.grid`, `.stats`, `.two`, `.cards`: responsive grid layouts.
-- `.sidebar`, `.nav`, `.sb-foot`: navigation shell.
-- `.sb-item`, `.sb-section`, `.sb-leave-balance`: prototype sidebar navigation and leave balance UI.
-- `.full-cal-grid`, `.full-cal-dow`, `.full-cal-body`, `.cal-cell`, `.cal-event`: company calendar grid.
+## Views
+
+- Admin views live in `resources/views/admin`.
+- Manager views live in `resources/views/manager`.
+- Employee views live in `resources/views/employee`.
+- Shared layouts and layout helpers live in `resources/views/layouts`.
+
+## Validation
+
+- Shared Form Request classes live in `app/Http/Requests`.
+- Role-specific request classes may live in subfolders such as `app/Http/Requests/Manager`.

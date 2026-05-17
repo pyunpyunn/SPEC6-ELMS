@@ -9,7 +9,7 @@ class DepartmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'hr_admin';
+        return (bool) $this->user()?->hasAccessRole('hr');
     }
 
     public function rules(): array

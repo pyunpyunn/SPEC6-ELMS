@@ -2,21 +2,22 @@
 
 ## Default Access
 - HR account: `hr@company.com`
+- Employee ID login: `HR-2000-001`
 - Password: `password`
-- Temporary password for HR-created employees: `temp_pass`
+- Temporary password for HR-created employees: `password`
 
 ## Main Routes
-- `/hr/dashboard` - HR dashboard with department filter, cards, recent requests, department leave summary, and calendar shortcut.
-- `/hr/users/pending` - pending user verification and activation.
-- `/hr/employees` - employee master list with CRUD-style create/edit/deactivate.
-- `/hr/departments` - department CRUD and department employee viewer.
-- `/hr/leave-types` - leave type configuration and add leave type.
-- `/hr/my-leave` - simplified HR user's own leave balances, request history, and yearly compensation estimate.
-- `/hr/requests` - master request log. Add `?department_id=ID` for per-department request logs.
-- `/hr/reports` - department summaries, yearly compensation, individual balance report.
-- `/hr/reports/export?type=leaves` - CSV leave export.
-- `/hr/reports/export?type=balances` - CSV balance export.
-- `/hr/calendar` - global approved leave calendar.
+- `/admin/dashboard` - HR dashboard with department filter, cards, recent requests, department leave summary, and calendar shortcut.
+- `/admin/users/pending` - pending user verification and activation.
+- `/admin/employees` - employee master list with CRUD-style create/edit/deactivate.
+- `/admin/departments` - department CRUD and department employee viewer.
+- `/admin/leave-types` - leave type configuration and add leave type.
+- `/admin/my-leave` - simplified HR user's own leave balances, request history, and yearly compensation estimate.
+- `/admin/requests` - master request log. Add `?department_id=ID` for per-department request logs.
+- `/admin/reports` - department summaries, yearly compensation, individual balance report.
+- `/admin/reports/export?type=leaves` - CSV leave export.
+- `/admin/reports/export?type=balances` - CSV balance export.
+- `/admin/calendar` - global approved leave calendar.
 - `/notifications` - user/system notifications.
 - `/profile` - HR profile.
 
@@ -24,7 +25,7 @@
 - `users.status`: `pending`, `active`, `inactive`.
 - `users.pending_employee_id`: employee ID entered during registration and used by HR verification.
 - `users.role`: `employee`, `manager`, `hr_admin`.
-- `employees.employee_id`: public company employee identifier, format `EMP-0001`.
+- `employees.employee_id`: public company employee identifier, format `DEPT-POSITIONID-COUNT` such as `HR-2000-001`.
 - `departments.code`: short department code such as `HR`, `IT`, `FIN`.
 - `leave_balances`: yearly balance per employee and leave type.
 - `system_notifications`: in-app notifications for HR and users.

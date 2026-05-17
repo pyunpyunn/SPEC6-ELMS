@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -15,9 +14,16 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE leave_balances MODIFY allocated_days INT UNSIGNED NOT NULL');
-        DB::statement('ALTER TABLE leave_balances MODIFY used_days INT UNSIGNED NOT NULL DEFAULT 0');
-        DB::statement('ALTER TABLE leave_applications MODIFY total_days INT UNSIGNED NOT NULL DEFAULT 1');
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            Schema::table('leave_balances', function (Blueprint $table) {
+                $table->unsignedInteger('allocated_days')->change();
+                $table->unsignedInteger('used_days')->default(0)->change();
+            });
+
+            Schema::table('leave_applications', function (Blueprint $table) {
+                $table->unsignedInteger('total_days')->default(1)->change();
+            });
+        }
     }
 
     public function down(): void
