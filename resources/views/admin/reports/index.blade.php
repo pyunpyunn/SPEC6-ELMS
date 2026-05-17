@@ -1,7 +1,7 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="page-head">
+<div class="page-head" id="page-reports">
     <div>
         <h1>Analytics & Reports</h1>
         <div class="muted">Department summaries, yearly compensation, and individual balance reports</div>
@@ -13,17 +13,19 @@
 </div>
 
 <form class="analytics-filter-bar" method="GET">
-    <select name="department_id" onchange="this.form.submit()">
-        <option value="">All Departments</option>
-        @foreach($departments as $department)
-            <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>{{ $department->name }}</option>
-        @endforeach
-    </select>
-    <select name="year" onchange="this.form.submit()">
-        <option value="{{ $year }}">{{ $year }}</option>
-        <option value="{{ $year - 1 }}">{{ $year - 1 }}</option>
-    </select>
-    <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+    <div class="filter-bar-row">
+        <select name="department_id" onchange="this.form.submit()">
+            <option value="">All Departments</option>
+            @foreach($departments as $department)
+                <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>{{ $department->name }}</option>
+            @endforeach
+        </select>
+        <select name="year" onchange="this.form.submit()">
+            <option value="{{ $year }}">{{ $year }}</option>
+            <option value="{{ $year - 1 }}">{{ $year - 1 }}</option>
+        </select>
+        <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+    </div>
 </form>
 
 <div class="grid two">
@@ -33,7 +35,7 @@
             <table class="report-table">
                 <thead><tr><th>Employee</th><th>Leave</th><th>Remaining</th><th>Compensation</th></tr></thead>
                 <tbody>
-                    @forelse($balances->filter(fn ($balance) => (bool) $balance->leaveType?->is_compensable)->take(12) as $balance)
+                    @forelse($balances as $balance)
                         <tr>
                             <td>{{ $balance->employee->full_name }}<div class="muted">{{ $balance->employee->departmentRecord?->name }} · {{ $balance->employee->position }}</div></td>
                             <td>{{ $balance->leaveType->name }}</td>
@@ -46,6 +48,7 @@
                 </tbody>
             </table>
         </div>
+        <div class="pagination">{{ $balances->links('vendor.pagination.hr', ['anchor' => 'page-reports']) }}</div>
     </div>
     <div class="card">
         <div class="card-h">Leave Summary by Department</div>
@@ -64,29 +67,33 @@
     <div class="card-h">Individual Balance Report</div>
     <div class="card-b">
         <form class="analytics-filter-bar" method="GET">
-            <select name="department_id" onchange="this.form.submit()">
-                <option value="">Choose department</option>
-                @foreach($departments as $department)
-                    <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>{{ $department->name }}</option>
-                @endforeach
-            </select>
-            <select name="position">
-                <option value="">All positions</option>
-                @foreach($positions as $position)
-                    <option @selected(request('position') === $position)>{{ $position }}</option>
-                @endforeach
-            </select>
-            <select name="employee_id" required>
-                <option value="">Choose employee</option>
-                @foreach($employees as $employee)
-                    <option value="{{ $employee->id }}" @selected(request('employee_id') == $employee->id)>{{ $employee->full_name }} - {{ $employee->position }}</option>
-                @endforeach
-            </select>
-            <select name="year">
-                <option value="{{ $year }}">{{ $year }}</option>
-                <option value="{{ $year - 1 }}">{{ $year - 1 }}</option>
-            </select>
-            <button class="btn btn-primary btn-sm" type="submit">Generate Report</button>
+            <div class="filter-bar-row">
+                <select name="department_id" onchange="this.form.submit()">
+                    <option value="">Choose department</option>
+                    @foreach($departments as $department)
+                        <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>{{ $department->name }}</option>
+                    @endforeach
+                </select>
+                <select name="position">
+                    <option value="">All positions</option>
+                    @foreach($positions as $position)
+                        <option @selected(request('position') === $position)>{{ $position }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="filter-bar-row">
+                <select name="employee_id" required>
+                    <option value="">Choose employee</option>
+                    @foreach($employees as $employee)
+                        <option value="{{ $employee->id }}" @selected(request('employee_id') == $employee->id)>{{ $employee->full_name }} - {{ $employee->position }}</option>
+                    @endforeach
+                </select>
+                <select name="year">
+                    <option value="{{ $year }}">{{ $year }}</option>
+                    <option value="{{ $year - 1 }}">{{ $year - 1 }}</option>
+                </select>
+                <button class="btn btn-primary btn-sm" type="submit">Generate Report</button>
+            </div>
         </form>
 
         @if($employeeReport)

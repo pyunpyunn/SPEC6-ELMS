@@ -14,8 +14,8 @@
     </div>
 
     <div class="tab-bar" style="margin-bottom:20px">
-        <a class="tab-item active" href="#" onclick="switchVerificationTab('pending'); return false;">Pending <span class="badge badge-pending" style="margin-left:6px">{{ $pendingUsers->total() }}</span></a>
-        <a class="tab-item" href="#" onclick="switchVerificationTab('all'); return false;">All Users <span class="badge badge-active" style="margin-left:6px">{{ $allUsers->total() }}</span></a>
+        <a class="tab-item active" href="#pending" onclick="switchVerificationTab('pending'); return false;">Pending <span class="badge badge-pending" style="margin-left:6px">{{ $pendingUsers->total() }}</span></a>
+        <a class="tab-item" href="#all" onclick="switchVerificationTab('all'); return false;">All Users <span class="badge badge-active" style="margin-left:6px">{{ $allUsers->total() }}</span></a>
     </div>
 
     <!-- PENDING USERS TAB -->
@@ -58,7 +58,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="pagination">{{ $pendingUsers->links() }}</div>
+        <div class="pagination">{{ $pendingUsers->links('vendor.pagination.hr', ['anchor' => 'pending']) }}</div>
     </div>
 
     <!-- ALL USERS TAB (approved / registered accounts only) -->
@@ -136,7 +136,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="pagination">{{ $allUsers->links() }}</div>
+        <div class="pagination">{{ $allUsers->links('vendor.pagination.hr', ['anchor' => 'all']) }}</div>
     </div>
 </div>
 
@@ -245,6 +245,18 @@ function switchVerificationTab(tab) {
         tabItems[1].classList.add('active');
     }
 }
+
+function handleVerificationHash() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'all') {
+        switchVerificationTab('all');
+    } else {
+        switchVerificationTab('pending');
+    }
+}
+
+window.addEventListener('load', handleVerificationHash);
+window.addEventListener('hashchange', handleVerificationHash);
 
 function openActivateModal(data) {
     activateState.id = data.id;

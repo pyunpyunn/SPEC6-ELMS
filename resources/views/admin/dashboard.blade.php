@@ -14,7 +14,7 @@
 
     <div class="dash-dept-filter">
         <label>Dashboard Department Filter</label>
-        <form method="GET">
+        <form method="GET" style="margin-left:auto;">
             <select name="department_id" onchange="this.form.submit()">
                 <option value="">All Departments</option>
                 @foreach($departments as $department)
@@ -26,16 +26,45 @@
 
     <div class="stats-grid">
         <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('admin.employees.index', array_filter(['department_id' => $selectedDepartmentId])) }}">
-            <div class="stat-top"><div><div class="stat-value">{{ $stats['employees'] }}</div><div class="stat-label">Total Employees</div></div><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
+            <div class="stat-top">
+                <div>
+                    <div class="stat-value">{{ $stats['employees'] }}</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+            </div>
         </a>
         <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('admin.requests.index', array_filter(['department_id' => $selectedDepartmentId, 'status' => 'pending'])) }}">
-            <div class="stat-top"><div><div class="stat-value">{{ $stats['pending_manager'] }}</div><div class="stat-label">Pending Manager Leave Approval</div><div class="stat-change down"><span class="badge badge-pending">Needs review</span></div></div><div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
+            <div class="stat-top">
+                <div>
+                    <div class="stat-value">{{ $stats['pending_manager'] }}</div>
+                    <div class="stat-label">Pending Manager Leave Approval</div>
+                </div>
+            </div>
+            <div class="stat-card-bottom">
+                <span class="badge badge-pending">Needs review</span>
+            </div>
         </a>
         <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('admin.users.pending', ['status' => 'pending']) }}">
-            <div class="stat-top"><div><div class="stat-value">{{ $stats['pending_users'] }}</div><div class="stat-label">Pending Verification for Registered Accounts</div><div class="stat-change down"><span class="badge badge-pending">Verify users</span></div></div><div class="stat-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M17 11l2 2 4-4"/></svg></div></div>
+            <div class="stat-top">
+                <div>
+                    <div class="stat-value">{{ $stats['pending_users'] }}</div>
+                    <div class="stat-label">Pending Verification for Registered Accounts</div>
+                </div>
+            </div>
+            <div class="stat-card-bottom">
+                <span class="badge badge-pending">Verify users</span>
+            </div>
         </a>
         <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('admin.requests.index', array_filter(['department_id' => $selectedDepartmentId, 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->endOfMonth()->toDateString()])) }}">
-            <div class="stat-top"><div><div class="stat-value">{{ $stats['leaves_this_month'] }}</div><div class="stat-label">Total Leaves This Month</div><div class="stat-change up">{{ $stats['most_used'] }} most used</div></div><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+            <div class="stat-top">
+                <div>
+                    <div class="stat-value">{{ $stats['leaves_this_month'] }}</div>
+                    <div class="stat-label">Total Leaves This Month</div>
+                </div>
+            </div>
+            <div class="stat-card-bottom">
+                <span class="badge badge-approved">{{ $stats['most_used'] }} most used</span>
+            </div>
         </a>
     </div>
 
@@ -96,7 +125,7 @@
                     <div class="mini-cal" id="miniCal"></div>
                 </a>
             </div>
-            <div class="info-card">
+            <div class="info-card" id="on-leave-today">
                 <div class="info-card-header">On Leave Today</div>
                 <div class="info-card-body" style="display:flex;flex-direction:column;gap:10px">
                     @forelse($onLeaveToday as $leave)
@@ -104,6 +133,10 @@
                     @empty
                         <div style="font-size:15px;color:var(--text3)">No one is on approved leave today.</div>
                     @endforelse
+
+                    <div class="pagination">
+                        {{ $onLeaveToday->withQueryString()->links('vendor.pagination.hr', ['anchor' => 'on-leave-today']) }}
+                    </div>
                 </div>
             </div>
         </div>

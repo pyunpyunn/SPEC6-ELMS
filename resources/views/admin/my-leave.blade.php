@@ -43,7 +43,7 @@
         As HR Admin, your leave requests are reviewed by another designated HR Admin or the CEO/Director.
     </div>
 
-    <div class="card" style="margin-top:18px">
+    <div class="card" style="margin-top:18px" id="page-myleave">
         <div class="card-header">
             <span class="card-title">My Leave Requests</span>
         </div>
@@ -51,7 +51,7 @@
             <table>
                 <thead><tr><th>Leave Type</th><th>Start</th><th>End</th><th>Days</th><th>Reason</th><th>Status</th><th>Reviewed By</th><th>Action</th></tr></thead>
                 <tbody>
-                @forelse(($employee?->leaveApplications ?? collect())->sortByDesc('created_at') as $leave)
+                @forelse($leaveApplications as $leave)
                     <tr>
                         <td>{{ $leave->leaveType->name }}</td>
                         <td>{{ $leave->start_date->format('M d') }}</td>
@@ -74,6 +74,7 @@
                 </tbody>
             </table>
         </div>
+        <div class="pagination">{{ $leaveApplications->links('vendor.pagination.hr', ['anchor' => 'page-myleave']) }}</div>
     </div>
 </div>
 

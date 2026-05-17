@@ -24,26 +24,30 @@
             <input type="hidden" name="department_id" value="{{ $selectedDepartment->id }}">
         @endif
 
-        <div class="search-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input name="search" value="{{ request('search') }}" placeholder="Search by employee name or ID">
+        <div class="filter-bar-row">
+            <div class="search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input name="search" value="{{ request('search') }}" placeholder="Search leave requests by name, ID, or type...">
+            </div>
         </div>
 
-        <select name="leave_type_id">
-            <option value="">All Leave Types</option>
-            @foreach($leaveTypes as $type)
-                <option value="{{ $type->id }}" @selected(request('leave_type_id') == $type->id)>{{ $type->name }}</option>
-            @endforeach
-        </select>
+        <div class="filter-bar-row">
+            <select name="leave_type_id">
+                <option value="">All Leave Types</option>
+                @foreach($leaveTypes as $type)
+                    <option value="{{ $type->id }}" @selected(request('leave_type_id') == $type->id)>{{ $type->name }}</option>
+                @endforeach
+            </select>
 
-        <select name="status">
-            <option value="">All Status</option>
-            @foreach(['pending','approved','rejected','cancelled'] as $status)
-                <option value="{{ $status }}" @selected(request('status') === $status)>{{ ucfirst($status) }}</option>
-            @endforeach
-        </select>
+            <select name="status">
+                <option value="">All Status</option>
+                @foreach(['pending','approved','rejected','cancelled'] as $status)
+                    <option value="{{ $status }}" @selected(request('status') === $status)>{{ ucfirst($status) }}</option>
+                @endforeach
+            </select>
 
-        <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+            <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+        </div>
     </form>
 
     <div class="table-wrap">
@@ -117,7 +121,7 @@
         </table>
     </div>
 
-    <div class="pagination">{{ $requests->links() }}</div>
+    <div class="pagination">{{ $requests->links('vendor.pagination.hr', ['anchor' => 'page-requests']) }}</div>
 </div>
 
 <div class="modal-overlay" id="reviewModal" onclick="closeReviewModal(event)">

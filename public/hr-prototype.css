@@ -302,11 +302,13 @@ textarea{resize:vertical;min-height:82px;line-height:1.5}
 .tab-pane{display:none}.tab-pane.active{display:block}
 
 /* ── SEARCH + FILTER BAR ── */
-.filter-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
-.search-wrap{position:relative;flex:1;min-width:200px}
-.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text3);pointer-events:none}
-.search-wrap input{padding-left:32px}
-.filter-bar select{padding:8px 11px;min-width:130px}
+.filter-bar{display:grid;gap:14px;margin-bottom:22px;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:28px;box-shadow:0 18px 40px rgba(0,0,0,.06);}
+.filter-bar-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+.search-wrap{position:relative;flex:1 1 440px;min-width:260px;display:flex;align-items:center;border-radius:24px;background:var(--surface2);border:1px solid var(--border2);padding:12px 16px;}
+.search-wrap svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text3);pointer-events:none}
+.search-wrap input{border:none;background:transparent;color:var(--text);width:100%;padding-left:36px;min-width:0;font-size:14px;line-height:1.4;outline:none}
+.filter-bar select{flex:1 1 180px;min-width:190px;padding:12px 16px;border:1px solid var(--border2);border-radius:24px;background:var(--surface2);color:var(--text);font-size:14px;appearance:none}
+.filter-bar button{min-height:46px;border-radius:24px;padding:0 24px;white-space:nowrap;}
 
 /* ── PAGINATION ── */
 .pagination{display:flex;align-items:center;gap:4px;padding:14px 20px;border-top:1px solid var(--border)}
@@ -540,29 +542,219 @@ td{font-size:12px}
 }
 .card:hover,.info-card:hover,.stat-card:hover,.dept-card:hover,.lt-config-card:hover,.my-bal-card:hover,.comp-card:hover{box-shadow:var(--shadow-md)}
 .comp-card{background:var(--surface)}
-.filter-bar,.analytics-filter-bar{
-  gap:10px;
-  padding:12px 14px;
+.analytics-filter-bar{
+  display:grid;
+  gap:14px;
+  margin-bottom:18px;
+  padding:18px 20px;
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:var(--radius);
+  border-radius:28px;
+  box-shadow:0 18px 40px rgba(0,0,0,.06);
+}
+.analytics-filter-bar .filter-bar-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+}
+.analytics-filter-bar select{
+  flex:1 1 220px;
+  min-width:190px;
+  padding:12px 16px;
+  border:1px solid var(--border2);
+  border-radius:24px;
+  background:var(--surface2);
+  color:var(--text);
+  font-size:14px;
+  appearance:none;
+}
+.analytics-filter-bar button{
+  min-height:46px;
+  border-radius:24px;
+  padding:0 24px;
+  white-space:nowrap;
+}
+
+/* HR-only: soften borders + add subtle shadow so separators don't look like gridlines */
+.hr .card,
+.hr .info-card,
+.hr .stat-card,
+.hr .dept-card,
+.hr .lt-config-card,
+.hr .my-bal-card,
+.hr .comp-card,
+.hr .table-wrap,
+.hr .filter-bar,
+.hr .analytics-filter-bar,
+.hr .dash-dept-filter {
+  border:1px solid rgba(66,72,68,0.18) !important;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.06);
+}
+
+/* HR dashboard: badges at bottom of stat cards (after icon removal) */
+.hr .stats-grid .stat-card{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+/* Pagination (On Leave Today) — professional, minimal */
+.hr .pagination{
+  margin-top:10px;
+  display:flex;
+  justify-content:center;
+}
+
+.hr .pagination nav{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+
+.hr .pagination li{
+  list-style:none;
+}
+
+/* Ensure Laravel chevrons don't blow up */
+.hr .pagination svg{
+  width:12px !important;
+  height:12px !important;
+}
+
+/* Laravel renders:
+   - ul/li with links/spans inside
+   - current page has class "active"
+   - disabled has class "disabled"
+*/
+.hr .pagination a,
+.hr .pagination span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:28px;
+  height:28px;
+  padding:0 10px;
+  border-radius:8px;
+  border:1px solid rgba(66,72,68,0.12);
+  background:rgba(66,72,68,0.02);
+  color:var(--text2);
+  font-weight:600;
+  font-size:12px;
+  line-height:1;
   box-shadow:none;
 }
-.search-wrap{flex:1 1 260px;min-width:220px}
-.search-wrap svg{left:13px;width:15px;height:15px}
+
+.hr .pagination a:hover{
+  border-color:rgba(42,99,73,0.40);
+  background:rgba(42,99,73,0.05);
+  color:var(--primary);
+  text-decoration:none;
+}
+
+.hr .pagination .active a,
+.hr .pagination .active,
+.hr .pagination a.active{
+  background:var(--primary);
+  border-color:var(--primary);
+  color:#fff;
+}
+
+/* Previous / Next look like regular controls (no heavy emphasis) */
+.hr .pagination .prev a,
+.hr .pagination .next a{
+  font-weight:600;
+  letter-spacing:0;
+}
+
+/* Disabled */
+.hr .pagination .disabled,
+.hr .pagination .disabled span{
+  opacity:0.45;
+  pointer-events:none;
+}
+
+/* dark-mode pagination tweaks */
+html.dark .hr .pagination a,
+html.dark .hr .pagination span{
+  border-color:rgba(170,208,177,0.20);
+  background:rgba(170,208,177,0.04);
+  color:var(--text2);
+}
+
+html.dark .hr .pagination a:hover{
+  border-color:rgba(170,208,177,0.45);
+  background:rgba(170,208,177,0.08);
+  color:var(--primary);
+}
+
+html.dark .hr .pagination .active,
+html.dark .hr .pagination a.active{
+  border-color:var(--primary);
+  background:var(--primary);
+  color:#fff;
+}
+.hr .stats-grid .stat-card-bottom{
+  margin-top:auto;
+  padding:0 0 2px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* HR tables: make row separators very thin + low contrast */
+.hr th,
+.hr td {
+  border-bottom: 1px solid rgba(66,72,68,0.08) !important;
+}
+
+/* keep table header divider slightly stronger than body, but still subtle */
+.hr thead tr {
+  border-bottom: 1px solid rgba(66,72,68,0.14) !important;
+}
+
+/* HR dark mode: stronger but still not “solid” */
+html.dark .hr .card,
+html.dark .hr .info-card,
+html.dark .hr .stat-card,
+html.dark .hr .dept-card,
+html.dark .hr .lt-config-card,
+html.dark .hr .my-bal-card,
+html.dark .hr .comp-card,
+html.dark .hr .table-wrap,
+html.dark .hr .filter-bar,
+html.dark .hr .analytics-filter-bar,
+html.dark .hr .dash-dept-filter {
+  border:1px solid rgba(170,208,177,0.24) !important;
+  box-shadow: 0 2px 18px rgba(0,0,0,0.28);
+}
+
+html.dark .hr th,
+html.dark .hr td {
+  border-bottom: 1px solid rgba(170,208,177,0.14) !important;
+}
+
+html.dark .hr thead tr {
+  border-bottom: 1px solid rgba(170,208,177,0.20) !important;
+}
+.search-wrap{flex:1 1 440px;min-width:260px}
+.search-wrap svg{left:16px;width:16px;height:16px}
 .search-wrap input{
   min-height:40px;
-  padding-left:38px;
+  padding-left:36px;
   background:var(--surface2);
-  border-color:var(--border);
+  border-color:var(--border2);
 }
 .filter-bar select,.analytics-filter-bar select{
-  min-height:40px;
-  min-width:150px;
+  min-height:46px;
+  min-width:180px;
   background:var(--surface2);
-  border-color:var(--border);
+  border-color:var(--border2);
+  border-radius:24px;
 }
-.filter-bar .btn,.analytics-filter-bar .btn{min-height:40px}
+.filter-bar .btn,.analytics-filter-bar .btn{min-height:46px;border-radius:24px;}
 .sb-balance-row{display:block}
 .sb-balance-item{padding:3px 0}
 .sb-lb-bar{height:4px;background:rgba(255,255,255,.14);border-radius:999px;margin:0 0 7px;overflow:hidden}
@@ -640,12 +832,14 @@ html.dark .hr {
   --info-bg: #102033;
 }
 
-/* HR-only: give the header a stronger Moss & Mist tinted color */
+/* HR-only: align header bg with navigation + use shadow instead of a solid bottom border */
 .hr .header{
-  background: var(--surface2);
-  border-bottom-color: var(--border);
+  background: var(--primary-bg2); /* matches the nav/sidebar tone */
+  border-bottom: 1px solid rgba(0,0,0,0); /* effectively remove “border line” */
+  box-shadow: 0 2px 14px rgba(0,0,0,0.06); /* subtle pop */
 }
 html.dark .hr .header{
-  background: var(--primary-dark);
-  border-bottom-color: var(--border);
+  background: var(--primary-dark); /* matches nav/sidebar tone in dark */
+  border-bottom: 1px solid rgba(0,0,0,0);
+  box-shadow: 0 2px 18px rgba(0,0,0,0.28);
 }

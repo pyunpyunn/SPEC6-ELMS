@@ -24,23 +24,27 @@
     @endif
 
     <form class="filter-bar" method="GET">
-        <div class="search-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input name="search" value="{{ request('search') }}" placeholder="Search employees...">
+        <div class="filter-bar-row">
+            <div class="search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input name="search" value="{{ request('search') }}" placeholder="Search employees by name, ID, or position...">
+            </div>
         </div>
-        <select name="department_id">
-            <option value="">All Departments</option>
-            @foreach($departments as $department)
-                <option value="{{ $department->id }}" @selected((int) ($selectedDepartmentId ?? request('department_id')) === $department->id)>{{ $department->name }}</option>
-            @endforeach
-        </select>
-        <select name="employment_status">
-            <option value="">All Status</option>
-            <option value="active" @selected(request('employment_status') === 'active')>Active</option>
-            <option value="resigned" @selected(request('employment_status') === 'resigned')>Resigned</option>
-            <option value="terminated" @selected(request('employment_status') === 'terminated')>Terminated</option>
-        </select>
-        <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+        <div class="filter-bar-row">
+            <select name="department_id">
+                <option value="">All Departments</option>
+                @foreach($departments as $department)
+                    <option value="{{ $department->id }}" @selected((int) ($selectedDepartmentId ?? request('department_id')) === $department->id)>{{ $department->name }}</option>
+                @endforeach
+            </select>
+            <select name="employment_status">
+                <option value="">All Status</option>
+                <option value="active" @selected(request('employment_status') === 'active')>Active</option>
+                <option value="resigned" @selected(request('employment_status') === 'resigned')>Resigned</option>
+                <option value="terminated" @selected(request('employment_status') === 'terminated')>Terminated</option>
+            </select>
+            <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+        </div>
     </form>
 
     <div class="table-wrap">
@@ -95,7 +99,7 @@
             </tbody>
         </table>
     </div>
-    <div class="pagination">{{ $employees->links() }}</div>
+    <div class="pagination">{{ $employees->links('vendor.pagination.hr', ['anchor' => 'page-employees']) }}</div>
 </div>
 
 <div class="modal-overlay" id="employeeModal" onclick="closeEmployeeModal(event)">

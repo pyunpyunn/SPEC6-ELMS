@@ -23,6 +23,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -71,7 +72,12 @@ class HrController extends Controller
             'recentRequests' => (clone $requestQuery)->latest()->take(5)->get(),
             'departmentSummaries' => $departmentSummaries,
             'onLeaveToday' => LeaveApplication::with(['employee.user', 'employee.departmentRecord', 'leaveType'])
-                ->where('status', 'approved')->whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())->take(5)->get(),
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now())
+                ->orderBy('start_date', 'desc')
+                ->paginate(3, ['*'], 'on_leave_page')
+                ->withQueryString(),
         ]);
     }
 
@@ -95,11 +101,11 @@ class HrController extends Controller
             ->when($request->filled('department_id'), fn ($query) => $query->whereHas('employee', fn ($eq) => $eq->where('department_id', $request->integer('department_id'))))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->latest()
-            ->paginate(10, ['*'], 'users_page')
+            ->paginate(7, ['*'], 'users_page')
             ->withQueryString();
 
         return view('admin.users.pending', [
-            'pendingUsers' => User::where('status', 'pending')->latest()->paginate(10, ['*'], 'pending_page'),
+            'pendingUsers' => User::where('status', 'pending')->latest()->paginate(7, ['*'], 'pending_page'),
             'allUsers' => $allUsers,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'managers' => $this->managerEmployees(),
@@ -191,7 +197,7 @@ class HrController extends Controller
             ->when($request->filled('position'), fn ($query) => $query->where('position', $request->string('position')))
             ->when($request->filled('employment_status'), fn ($query) => $query->where('employment_status', $request->string('employment_status')))
             ->orderBy('employee_id')
-            ->paginate(10)
+            ->paginate(7)
             ->withQueryString();
 
         return view('admin.employees.index', $this->employeeFormData() + [
@@ -407,7 +413,7 @@ class HrController extends Controller
             ->when($request->date_from, fn ($q, $date) => $q->whereDate('start_date', '>=', $date))
             ->when($request->date_to, fn ($q, $date) => $q->whereDate('start_date', '<=', $date))
             ->latest()
-            ->paginate(10)
+            ->paginate(7)
             ->withQueryString();
 
         return view('admin.requests.index', [
@@ -468,7 +474,23 @@ class HrController extends Controller
 
         $balanceQuery = LeaveBalance::with(['employee.user', 'employee.departmentRecord', 'leaveType'])
             ->where('year', $year)
-            ->when($departmentId, fn ($q) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $departmentId)));
+            ->when($departmentId, fn ($q) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $departmentId)))
+            ->whereHas('leaveType', fn ($leaveType) => $leaveType->where('is_compensable', true));
+
+        $visibleBalances = $balanceQuery->get()
+            ->filter(fn (LeaveBalance $balance) => $balance->leaveType?->isVisibleForGender($balance->employee?->gender))
+            ->values();
+
+        $balances = new LengthAwarePaginator(
+            $visibleBalances->forPage(request()->integer('page') ?: 1, 7),
+            $visibleBalances->count(),
+            7,
+            request()->integer('page') ?: 1,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'query' => $request->query(),
+            ]
+        );
 
         $employeeReport = $employeeId
             ? Employee::with(['user', 'departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->with('leaveType'), 'leaveApplications.leaveType'])->find($employeeId)
@@ -479,9 +501,7 @@ class HrController extends Controller
             'employees' => Employee::with('user')->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->orderBy('last_name')->get(),
             'positions' => Employee::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->select('position')->distinct()->orderBy('position')->pluck('position'),
             'summaries' => Department::with('employees.leaveApplications')->get(),
-            'balances' => $balanceQuery->get()
-                ->filter(fn (LeaveBalance $balance) => $balance->leaveType?->isVisibleForGender($balance->employee?->gender))
-                ->values(),
+            'balances' => $balances,
             'employeeReport' => $employeeReport,
             'year' => $year,
             'selectedDepartmentId' => $departmentId,
@@ -575,6 +595,16 @@ class HrController extends Controller
             'departmentRecord',
         ]);
         $leaveBalances = $this->visibleLeaveBalances($employee);
+        $leaveApplications = $employee
+            ? LeaveApplication::with(['leaveType', 'reviewer'])
+                ->where('employee_id', $employee->id)
+                ->latest()
+                ->paginate(7)
+                ->withQueryString()
+            : new LengthAwarePaginator([], 0, 7, 1, [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'query' => $request->query(),
+            ]);
 
         return view('admin.my-leave', [
             'employee' => $employee,
@@ -582,6 +612,7 @@ class HrController extends Controller
             'selectedTypeId' => $request->integer('leave_type_id') ?: null,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
             'leaveBalances' => $leaveBalances,
+            'leaveApplications' => $leaveApplications,
             'compensationEstimate' => $leaveBalances
                 ->filter(fn ($balance) => (bool) $balance->leaveType?->is_compensable)
                 ->sum(fn ($balance) => $balance->remaining_days * (float) ($employee?->daily_rate ?? 0)),
