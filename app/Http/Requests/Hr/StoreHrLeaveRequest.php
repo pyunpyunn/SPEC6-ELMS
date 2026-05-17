@@ -18,7 +18,19 @@ class StoreHrLeaveRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'reason' => ['required', 'string', 'max:500'],
-            'proof' => ['nullable', 'file', 'max:5120'],
+            'proof' => [
+                'nullable',
+                'file',
+                'max:5120',
+                'mimes:pdf,doc,docx,xls,xlsx,png,jpeg,jpg',
+            ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'proof.mimes' => 'Invalid file type. Only allowed files to upload are: pdf, doc, docx, xls, xlsx, png, jpeg, jpg.',
         ];
     }
 }

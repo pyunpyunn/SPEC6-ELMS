@@ -100,6 +100,7 @@
                 </div>
                 <div class="form-group"><label>Start Date <span class="req">*</span></label><input type="date" id="applyStart" name="start_date" onchange="calcDays()" required></div>
                 <div class="form-group"><label>End Date <span class="req">*</span></label><input type="date" id="applyEnd" name="end_date" onchange="calcDays()" required></div>
+                <div class="flash flash-error" id="applyWeekendError" style="display:none;margin-top:10px">You can't select a weekend date.</div>
                 <div class="form-group span2"><label>Total Working Days</label><input id="applyTotalDays" readonly placeholder="Auto calculated"></div>
                 <div class="form-group span2"><label>Reason <span class="req">*</span></label><textarea id="applyReason" name="reason" placeholder="Describe your reason for leave..." required></textarea></div>
                 <div class="form-group span2 leave-proof-section" id="proofSection">
@@ -149,6 +150,73 @@ function handleLeaveTypeChange() {
     }
 }
 
+function pad2(n) {
+    return String(n).padStart(2, '0');
+}
+
+function toISODate(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function isWeekendISO(iso) {
+    if (!iso) return false;
+    const parts = iso.split('-');
+    if (parts.length !== 3) return false;
+
+    const year = Number(parts[0]);
+    const monthIndex = Number(parts[1]) - 1;
+    const day = Number(parts[2]);
+
+    const d = new Date(year, monthIndex, day);
+    const dow = d.getDay(); // 0=Sun, 6=Sat
+    return dow === 0 || dow === 6;
+}
+
+function showWeekendError(show) {
+    const el = document.getElementById('applyWeekendError');
+    if (!el) return;
+    el.style.display = show ? 'block' : 'none';
+}
+
+function clampWeekend(input) {
+    if (input.value && isWeekendISO(input.value)) {
+        input.value = '';
+        showWeekendError(true);
+        return;
+    }
+
+    // Hide error when both dates are non-weekends (or empty)
+    const startVal = document.getElementById('applyStart')?.value || '';
+    const endVal = document.getElementById('applyEnd')?.value || '';
+
+    const startOk = !startVal || !isWeekendISO(startVal);
+    const endOk = !endVal || !isWeekendISO(endVal);
+
+    showWeekendError(!(startOk && endOk));
+}
+
+function setupWeekendAndPastGuards() {
+    const startInput = document.getElementById('applyStart');
+    const endInput = document.getElementById('applyEnd');
+    if (!startInput || !endInput) return;
+
+    const minISO = toISODate(new Date());
+    startInput.min = minISO;
+    endInput.min = minISO;
+
+    // Validate on change
+    startInput.addEventListener('change', function () {
+        clampWeekend(startInput);
+    });
+    endInput.addEventListener('change', function () {
+        clampWeekend(endInput);
+    });
+
+    // Validate old values (if any)
+    clampWeekend(startInput);
+    clampWeekend(endInput);
+}
+
 function calcDays() {
     const start = document.getElementById('applyStart').value;
     const end = document.getElementById('applyEnd').value;
@@ -166,6 +234,11 @@ function calcDays() {
     }
     document.getElementById('applyTotalDays').value = count + ' working day' + (count !== 1 ? 's' : '');
 }
+
+// Initialize guards when scripts load
+document.addEventListener('DOMContentLoaded', function () {
+    setupWeekendAndPastGuards();
+});
 
 </script>
 @endpush

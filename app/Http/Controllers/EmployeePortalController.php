@@ -52,7 +52,44 @@ class EmployeePortalController extends Controller
         }
 
         abort_unless($leaveType->isVisibleForGender($employee->gender), 422, 'This leave type is not available for the employee gender on record.');
-        $totalDays = $this->inclusiveDays($validated['start_date'], $validated['end_date']);
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate = Carbon::parse($validated['end_date']);
+
+        // Past dates are not allowed (UI disables, backend enforces)
+        abort_if($startDate->lt(now()->startOfDay()), 422, 'You cannot file leave for past dates.');
+
+        // Disallow any weekend days in the selected range (Sat/Sun).
+        for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+            if ($date->isWeekend()) {
+                throw ValidationException::withMessages([
+                    'start_date' => "You can't file leave during weekends.",
+                ]);
+            }
+        }
+
+        $totalDays = $this->workingDaysBetween($startDate, $endDate);
+
+        // Duplicate prevention:
+        // If employee already has a leave that overlaps the selected week/day and is not yet finished,
+        // block re-application until they are done.
+        $weekStart = $startDate->copy()->startOfWeek();
+        $weekEnd = $startDate->copy()->endOfWeek();
+
+        $overlappingActiveLeaveExists = LeaveApplication::query()
+            ->where('employee_id', $employee->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('start_date', '<=', $weekEnd)
+            ->where('end_date', '>=', $weekStart)
+            ->whereDate('end_date', '>=', now()->startOfDay())
+            ->whereDate('start_date', '<=', $startDate)
+            ->whereDate('end_date', '>=', $startDate)
+            ->exists();
+
+        if ($overlappingActiveLeaveExists) {
+            throw ValidationException::withMessages([
+                'start_date' => 'You already have a leave scheduled for this day/week. You can apply again once you are done with your leave.',
+            ]);
+        }
 
         if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
             throw ValidationException::withMessages([
@@ -148,7 +185,7 @@ class EmployeePortalController extends Controller
             ->paginate(10)
             ->withQueryString()
             ->through(function (LeaveApplication $leave) {
-                $leave->days = (int) ($leave->total_days ?: $this->inclusiveDays($leave->start_date, $leave->end_date));
+                $leave->days = (int) ($leave->total_days ?: $this->workingDaysBetween($leave->start_date, $leave->end_date));
 
                 return $leave;
             });
@@ -162,7 +199,9 @@ class EmployeePortalController extends Controller
 
         abort_unless($employee && $leaveApplication->employee_id === $employee->id, 403);
 
-        if ($leaveApplication->status !== 'pending') {
+        $status = strtolower((string) $leaveApplication->status);
+
+        if ($status !== 'pending') {
             return back()->with('error', 'Cannot cancel a reviewed leave.');
         }
 
@@ -214,7 +253,7 @@ class EmployeePortalController extends Controller
                 ->latest()
                 ->get()
                 ->map(function ($leave) {
-                    $leave->days = (int) ($leave->total_days ?: $this->inclusiveDays($leave->start_date, $leave->end_date));
+                    $leave->days = (int) ($leave->total_days ?: $this->workingDaysBetween($leave->start_date, $leave->end_date));
 
                     return $leave;
                 })
@@ -284,6 +323,20 @@ class EmployeePortalController extends Controller
         $end = $end instanceof Carbon ? $end : Carbon::parse($end);
 
         return $start && $end ? $start->diffInDays($end) + 1 : 0;
+    }
+
+    private function workingDaysBetween(Carbon $start, Carbon $end): int
+    {
+        $days = 0;
+
+        for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+            // Disable weekends (Sat/Sun)
+            if (! $date->isWeekend()) {
+                $days++;
+            }
+        }
+
+        return max(1, $days);
     }
 
     private function defaultLeaveTypes(): array

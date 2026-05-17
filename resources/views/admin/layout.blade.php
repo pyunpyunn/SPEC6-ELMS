@@ -21,7 +21,7 @@
         @media(max-width:1100px){.two{grid-template-columns:1fr}}@media(max-width:760px){.form{grid-template-columns:1fr}.header .brand-name{display:none}}
     </style>
 </head>
-<body>
+<body class="hr">
 <div class="app">
     <aside class="sidebar" id="sidebar">
         <div class="sb-top">

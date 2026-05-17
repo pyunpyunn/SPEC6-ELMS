@@ -569,3 +569,83 @@ td{font-size:12px}
 .sb-lb-fill{height:100%;border-radius:inherit;background:var(--accent)}
 .sb-lb-fill.warn{background:var(--warning)}
 .sb-lb-fill.danger{background:var(--danger)}
+
+/* ── HR / ADMIN Moss & Mist (light + dark) ──
+   Scoped to `.hr` so Employee/Manager screens stay unchanged. */
+.hr {
+  --bg: #f8faf9;
+  --surface: #f8faf9;
+  --surface2: #eef2ef;
+  --border: #727974;
+  --border2: #c1c8c3;
+
+  --primary: #163428;
+  --primary-light: #163428;
+  --primary-dark: #163428;
+
+  --primary-bg: #2d4b3e;
+  --primary-bg2: #99baa9;
+
+  --accent: #436460;
+
+  --text: #191c1c;
+  --text2: #424844;
+  --text3: #424844;
+
+  --danger: #ba1a1a;
+  --danger-bg: #ffdad6;
+
+  --warning: #b87214;
+  --warning-bg: #fef5e8;
+
+  --success: #2d4a46;
+  --success-bg: #e8f5ee;
+
+  /* keep info as-is (wasn't specified in your excerpt) */
+  --info: #2256a0;
+  --info-bg: #e8edf9;
+}
+
+html.dark .hr {
+  --bg: #101411;
+  --surface: #101411;
+  --surface2: #203127;
+  --border: #8c938b;
+  --border2: #424842;
+
+  --primary: #aad0b1;
+  --primary-light: #aad0b1;
+  --primary-dark: #2f6f51;
+
+  --primary-bg: #2d4b3e;
+  --primary-bg2: #84a98c;
+
+  --accent: #436460;
+
+  /* Force legibility on dark HR surfaces */
+  --text: #ffffff;
+  --text2: #ffffff;
+  --text3: #ffffff;
+
+  --danger: #ffb4ab;
+  --danger-bg: #93000a;
+
+  --warning: #e0a04b;
+  --warning-bg: #2a2114;
+
+  --success: #aad0b1;
+  --success-bg: #142319;
+
+  --info: #2256a0;
+  --info-bg: #102033;
+}
+
+/* HR-only: give the header a stronger Moss & Mist tinted color */
+.hr .header{
+  background: var(--surface2);
+  border-bottom-color: var(--border);
+}
+html.dark .hr .header{
+  background: var(--primary-dark);
+  border-bottom-color: var(--border);
+}

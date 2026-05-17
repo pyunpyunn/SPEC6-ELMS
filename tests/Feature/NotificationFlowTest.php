@@ -48,11 +48,20 @@ class NotificationFlowTest extends TestCase
     {
         [$employeeUser, $managerUser, $hrUser, $leaveType] = $this->leaveFixture();
 
+        $start = now()->addWeek();
+        while ($start->isWeekend()) {
+            $start = $start->addDay();
+        }
+        $end = $start->copy()->addDay();
+        while ($end->isWeekend()) {
+            $end = $end->addDay();
+        }
+
         $this->actingAs($employeeUser)
             ->post(route('employee.leaves.store'), [
                 'leave_type_id' => $leaveType->id,
-                'start_date' => now()->addWeek()->toDateString(),
-                'end_date' => now()->addWeek()->addDay()->toDateString(),
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
                 'reason' => 'Family appointment',
             ])
             ->assertRedirect(route('employee.leaves.index'));
@@ -77,10 +86,19 @@ class NotificationFlowTest extends TestCase
     {
         [$employeeUser, $managerUser, $hrUser, $leaveType] = $this->leaveFixture();
 
+        $start = now()->addWeek();
+        while ($start->isWeekend()) {
+            $start = $start->addDay();
+        }
+        $end = $start->copy()->addDay();
+        while ($end->isWeekend()) {
+            $end = $end->addDay();
+        }
+
         $this->actingAs($employeeUser)->post(route('employee.leaves.store'), [
             'leave_type_id' => $leaveType->id,
-            'start_date' => now()->addWeek()->toDateString(),
-            'end_date' => now()->addWeek()->addDay()->toDateString(),
+            'start_date' => $start->toDateString(),
+            'end_date' => $end->toDateString(),
             'reason' => 'Family appointment',
         ]);
 

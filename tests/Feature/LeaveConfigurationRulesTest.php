@@ -39,11 +39,20 @@ class LeaveConfigurationRulesTest extends TestCase
             ->firstOrFail()
             ->allocated_days);
 
+        $start = now()->addWeek();
+        while ($start->isWeekend()) {
+            $start = $start->addDay();
+        }
+        $end = $start->copy()->addDay();
+        while ($end->isWeekend()) {
+            $end = $end->addDay();
+        }
+
         $this->actingAs($employee->user)
             ->post(route('employee.leaves.store'), [
                 'leave_type_id' => $vacation->id,
-                'start_date' => now()->addWeek()->toDateString(),
-                'end_date' => now()->addWeek()->addDay()->toDateString(),
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
                 'reason' => 'Auto approval configured by HR.',
             ])
             ->assertRedirect(route('employee.leaves.index'));
@@ -53,7 +62,16 @@ class LeaveConfigurationRulesTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame('approved', $leave->status);
-        $this->assertSame(2, (int) LeaveBalance::where('employee_id', $employee->id)
+
+        $expectedWorkingDays = 0;
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            if (! $d->isWeekend()) {
+                $expectedWorkingDays++;
+            }
+        }
+        $expectedWorkingDays = max(1, $expectedWorkingDays);
+
+        $this->assertSame($expectedWorkingDays, (int) LeaveBalance::where('employee_id', $employee->id)
             ->where('leave_type_id', $vacation->id)
             ->where('year', now()->year)
             ->firstOrFail()
@@ -92,11 +110,16 @@ class LeaveConfigurationRulesTest extends TestCase
             ]))
             ->assertSessionHas('success');
 
+        $start = now()->addWeek();
+        while ($start->isWeekend()) {
+            $start = $start->addDay();
+        }
+
         $this->actingAs($employee->user)
             ->post(route('employee.leaves.store'), [
                 'leave_type_id' => $vacation->id,
-                'start_date' => now()->addWeek()->toDateString(),
-                'end_date' => now()->addWeek()->toDateString(),
+                'start_date' => $start->toDateString(),
+                'end_date' => $start->toDateString(),
                 'reason' => 'Configured proof is required.',
             ])
             ->assertSessionHasErrors('proof');

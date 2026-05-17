@@ -7,15 +7,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('manager-portal.css') }}">
+    <link rel="stylesheet" href="{{ asset('hr-prototype.css') }}">
 </head>
 <body>
 @php
     $initials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn($part) => strtoupper(substr($part, 0, 1)))->implode('');
 @endphp
 <div class="app">
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sb-top">
+        <button class="menu-toggle" onclick="toggleSidebar()" title="Toggle navigation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+                <line x1="4" y1="6" x2="20" y2="6"/>
+                <line x1="4" y1="12" x2="20" y2="12"/>
+                <line x1="4" y1="18" x2="20" y2="18"/>
+            </svg>
+        </button>
         <div class="sb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg></div>
         <span class="sb-brand">LeaveFlow</span>
     </div>

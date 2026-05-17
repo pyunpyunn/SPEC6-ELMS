@@ -603,7 +603,32 @@ class HrController extends Controller
 
         abort_unless($leaveType->isVisibleForGender($employee->gender), 422, 'This leave type is not available for the employee gender on record.');
 
-        $totalDays = $this->workingDaysBetween(Carbon::parse($validated['start_date']), Carbon::parse($validated['end_date']));
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate = Carbon::parse($validated['end_date']);
+
+        abort_if($startDate->lt(now()->startOfDay()), 422, 'You cannot file leave for past dates.');
+
+        $totalDays = $this->workingDaysBetween($startDate, $endDate);
+
+        // Duplicate prevention:
+        // If employee already has a leave that overlaps the selected week/day and is not yet finished,
+        // block re-application until they are done.
+        $weekStart = $startDate->copy()->startOfWeek();
+        $weekEnd = $startDate->copy()->endOfWeek();
+
+        $overlappingActiveLeaveExists = LeaveApplication::query()
+            ->where('employee_id', $employee->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('start_date', '<=', $weekEnd)
+            ->where('end_date', '>=', $weekStart)
+            ->whereDate('end_date', '>=', now()->startOfDay())
+            ->exists();
+
+        if ($overlappingActiveLeaveExists) {
+            throw ValidationException::withMessages([
+                'start_date' => 'You already have a leave scheduled for this day/week. You can apply again once you are done with your leave.',
+            ]);
+        }
 
         if ($leaveType->requires_proof && ! $request->hasFile('proof')) {
             throw ValidationException::withMessages(['proof' => 'A supporting document is required for '.$leaveType->name.'.']);

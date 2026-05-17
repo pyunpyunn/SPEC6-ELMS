@@ -18,7 +18,19 @@ class StoreLeaveApplicationRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'reason' => ['required', 'string', 'max:1000'],
-            'proof' => ['nullable', 'file', 'max:10240'],
+            'proof' => [
+                'nullable',
+                'file',
+                'max:10240',
+                'mimes:pdf,doc,docx,xls,xlsx,png,jpeg,jpg',
+            ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'proof.mimes' => 'Invalid file type. Only allowed files to upload are: pdf, doc, docx, xls, xlsx, png, jpeg, jpg.',
         ];
     }
 }
