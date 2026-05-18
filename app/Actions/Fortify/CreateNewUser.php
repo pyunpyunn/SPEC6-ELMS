@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use App\Models\SystemNotification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -32,12 +33,26 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
+            'employee_id' => ['nullable', 'string', 'max:30'],
         ])->validate();
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
+            'role' => 'employee',
+            'status' => 'pending',
+            'pending_employee_id' => $input['employee_id'] ?? null,
         ]);
+
+        SystemNotification::sendToRole(
+            'hr_admin',
+            'Account validation pending',
+            $user->name.' registered and is waiting for HR account validation.',
+            route('admin.users.pending'),
+            'account_validation'
+        );
+
+        return $user;
     }
 }
