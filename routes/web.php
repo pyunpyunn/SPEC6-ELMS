@@ -73,7 +73,14 @@ Route::middleware(['auth', 'account.approved'])->get('/notifications/{notificati
         $notification->update(['read_at' => now()]);
     }
 
-    return redirect($notification->action_url ?: route('home'));
+    $user = auth()->user();
+    $fallback = match (true) {
+        $user?->hasAccessRole('manager') && $notification->type === 'leave_request' => route('manager.approvals.index'),
+        $user?->hasAccessRole('manager') && $notification->type === 'leave_status' => route('manager.my-leave'),
+        default => $notification->action_url ?: route('home'),
+    };
+
+    return redirect($fallback);
 })->name('notifications.read');
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {
@@ -136,6 +143,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/team', [ManagerController::class, 'team'])->name('team');
             Route::get('/my-leave', [ManagerController::class, 'myLeave'])->name('my-leave');
             Route::post('/my-leave', [ManagerController::class, 'storeMyLeave'])->name('my-leave.store');
+            Route::patch('/my-leave/{leaveApplication}/cancel', [ManagerController::class, 'cancelMyLeave'])->name('my-leave.cancel');
             Route::get('/notifications', [ManagerController::class, 'notifications'])->name('notifications');
             Route::get('/notifications/{notification}/read', [ManagerController::class, 'readNotification'])->name('notifications.read');
             Route::get('/profile', [ManagerController::class, 'profile'])->name('profile');

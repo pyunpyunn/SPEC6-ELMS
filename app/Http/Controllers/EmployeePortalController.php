@@ -409,7 +409,7 @@ class EmployeePortalController extends Controller
                 $manager,
                 $title,
                 $body,
-                route('manager.approvals.show', $leave),
+                route('manager.approvals.index'),
                 'leave_request'
             ));
 

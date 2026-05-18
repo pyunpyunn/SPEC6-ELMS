@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Manager Portal') | LaraLeave</title>
+    <title>@yield('title', 'Manager Portal') | NAV ELMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('hr-prototype.css') }}">
 </head>
-<body>
+<body class="hr">
 @php
     $initials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn($part) => strtoupper(substr($part, 0, 1)))->implode('');
 @endphp
@@ -23,8 +23,7 @@
                 <line x1="4" y1="18" x2="20" y2="18"/>
             </svg>
         </button>
-        <div class="sb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg></div>
-        <span class="sb-brand">LeaveFlow</span>
+        <span class="sb-brand">NAV ELMS</span>
     </div>
     <nav class="sb-nav">
         <div class="sb-section">Management</div>
@@ -73,8 +72,8 @@
     <header class="header">
         <div class="header-left">
             <div class="brand">
-                <div class="brand-logo">LF</div>
-                <div class="brand-name">Leave<span>Flow</span> Manager</div>
+                <div class="brand-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+                <div class="brand-name">NAV Employee Leave Management System</div>
             </div>
         </div>
         <div class="header-right">
@@ -98,7 +97,7 @@
             <div class="header-divider"></div>
             <div class="profile-wrap" id="profileWrap">
                 <div class="profile-area" onclick="toggleProfile()">
-                    <div class="profile-info"><div class="pname">{{ auth()->user()->name }}</div><div class="prole">{{ $manager?->position ?? 'Manager' }} · {{ $department?->name ?? $manager?->department }}</div></div>
+                    <div class="profile-info"><div class="pname">{{ auth()->user()->name }}</div><div class="prole">{{ $manager?->position ?? 'Manager' }} - {{ $department?->name ?? $manager?->department }}</div></div>
                     <div class="profile-avatar">{{ $initials }}</div>
                     <svg style="width:12px;height:12px;color:var(--text3)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
@@ -120,6 +119,7 @@
 </div>
 </div>
 <script>
+function toggleSidebar(){document.getElementById('sidebar')?.classList.toggle('collapsed')}
 function toggleNotif(){document.getElementById('notifDropdown')?.classList.toggle('open');document.getElementById('profileDropdown')?.classList.remove('open')}
 function toggleProfile(){document.getElementById('profileDropdown')?.classList.toggle('open');document.getElementById('notifDropdown')?.classList.remove('open')}
 function closeDropdowns(){document.getElementById('notifDropdown')?.classList.remove('open');document.getElementById('profileDropdown')?.classList.remove('open')}

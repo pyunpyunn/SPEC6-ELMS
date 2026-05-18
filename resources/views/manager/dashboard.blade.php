@@ -15,7 +15,7 @@
             <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('manager.approvals.index', ['status' => 'approved', 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->endOfMonth()->toDateString()]) }}"><div class="stat-value" style="color:var(--success)">{{ $stats['approved_mtd'] }}</div><div class="stat-label">Approved MTD</div></a>
         </div>
         <div class="card">
-            <div class="card-header"><span class="card-title">Action Required</span><a class="btn btn-outline btn-sm" href="{{ route('manager.approvals.index') }}">Open Inbox</a></div>
+            <div class="card-header"><span class="card-title">Action Required</span><a class="btn btn-outline btn-sm" href="{{ route('manager.approvals.index') }}">View All</a></div>
             <div class="card-body">
             <div class="table-wrap">
                 <table>
@@ -34,6 +34,9 @@
                     </tbody>
                 </table>
             </div>
+            @if(method_exists($pendingRequests, 'links'))
+                <div class="pagination" style="padding:14px 0 0">{{ $pendingRequests->links('vendor.pagination.hr') }}</div>
+            @endif
             </div>
         </div>
     </div>
