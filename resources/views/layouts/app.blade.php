@@ -2,50 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') - LeaveFlow</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('employee-prototype.css') }}">
+    <title>ELMS Dashboard</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js']) {{-- This loads your Tailwind --}}
 </head>
-<body class="app-layout-body">
-    <nav class="app-topbar">
-        <div class="brand">
-            <div class="brand-logo" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10l4 5v13H3V3h4Z"/><path d="M7 3v5h14"/><path d="m8 15 2 2 5-5"/></svg>
-            </div>
-            <a href="{{ Route::has('home') ? route('home') : url('/') }}" class="brand-name">Leave<span>Flow</span></a>
+<body class="bg-gray-100">
+    <nav class="bg-blue-600 p-4 text-white shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <span class="font-bold text-xl tracking-tight">ELMS System</span>
+            <a href="{{ route('home') }}" class="hover:text-blue-200">Dashboard</a>
         </div>
-        <div class="page-actions">
-            @auth
-                <span class="badge badge-emp">{{ auth()->user()->name }} · {{ str_replace('_', ' ', auth()->user()->role) }}</span>
 
-                @if(Route::has('dashboard.employee'))
-                    <a href="{{ route('dashboard.employee') }}" class="btn btn-outline btn-sm">Dashboard</a>
-                @endif
+        <div class="flex items-center space-x-6">
+            <span class="text-sm bg-blue-700 px-3 py-1 rounded-full">
+                {{ auth()->user()->name }} ({{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }})
+            </span>
 
-                @if(Route::has('logout'))
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-danger btn-sm">Logout</button>
-                    </form>
-                @endif
-            @else
-                @if(Route::has('login'))
-                    <a href="{{ route('login') }}" class="btn btn-outline btn-sm">Login</a>
-                @endif
-
-                @if(Route::has('register'))
-                    <a href="{{ route('register') }}" class="btn btn-primary btn-sm">Register</a>
-                @endif
-            @endauth
+            <!-- Logout Form -->
+            <form method="POST" action="{{ route('logout') }}" class="inline">
+                @csrf
+                <button type="submit" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-semibold transition">
+                    Logout
+                </button>
+            </form>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <div class="app-container">
-        @yield('content')
+    <div class="container mx-auto mt-6">
+        @yield('content') {{-- This is where the magic happens! --}}
     </div>
 </body>
 </html>
