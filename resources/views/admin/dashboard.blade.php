@@ -40,9 +40,7 @@
                     <div class="stat-label">Pending Manager Leave Approval</div>
                 </div>
             </div>
-            <div class="stat-card-bottom">
-                <span class="badge badge-pending">Needs review</span>
-            </div>
+            
         </a>
         <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('admin.users.pending', ['status' => 'pending']) }}">
             <div class="stat-top">
@@ -51,9 +49,7 @@
                     <div class="stat-label">Pending Verification for Registered Accounts</div>
                 </div>
             </div>
-            <div class="stat-card-bottom">
-                <span class="badge badge-pending">Verify users</span>
-            </div>
+            
         </a>
         <a class="stat-card" style="display:block;text-decoration:none;color:inherit" href="{{ route('admin.requests.index', array_filter(['department_id' => $selectedDepartmentId, 'date_from' => now()->startOfMonth()->toDateString(), 'date_to' => now()->endOfMonth()->toDateString()])) }}">
             <div class="stat-top">
@@ -62,16 +58,14 @@
                     <div class="stat-label">Total Leaves This Month</div>
                 </div>
             </div>
-            <div class="stat-card-bottom">
-                <span class="badge badge-approved">{{ $stats['most_used'] }} most used</span>
-            </div>
         </a>
     </div>
+
 
     <div class="dash-layout">
         <div class="grid">
             <div class="card">
-                <div class="card-header"><span class="card-title">Recent Leave Requests</span><a class="btn btn-outline btn-sm" href="{{ route('admin.requests.index', ['department_id' => $selectedDepartmentId]) }}">View all</a></div>
+                <div class="card-header" style="background-color:#99baa9"><span class="card-title">Recent Leave Requests</span><a class="btn btn-outline btn-sm" href="{{ route('admin.requests.index', ['department_id' => $selectedDepartmentId]) }}" style="background-color:white;font-weight:600"><strong>View all</strong></a></div>
                 <div class="table-wrap" style="border:none;border-radius:0">
                     <table>
                         <thead><tr><th>Employee</th><th>Dept · Position</th><th>Leave Type</th><th>Duration</th><th>Filed</th><th>Status</th></tr></thead>
@@ -94,12 +88,12 @@
             </div>
 
             <div class="card">
-                <div class="card-header"><span class="card-title">Leave Summary by Department</span><span style="font-size:15px;color:var(--text3)">Click a department to view request log</span></div>
+                <div class="card-header" style="background-color:#99baa9"><span class="card-title">Leave Summary by Department</span><span style="font-size:10px;padding:10px;background-color:var(--bg);border-radius:8px;color:var(--text3)"><strong>Click a department to view request log</strong></span></div>
                 <div class="card-body">
                     @foreach($departmentSummaries as $summary)
-                        <a class="dept-leave-row" href="{{ route('admin.requests.index', ['department_id' => $summary['department']->id]) }}" style="padding:12px 0;border-bottom:1px solid var(--border)">
+                        <a class="dept-leave-row" href="{{ route('admin.requests.index', ['department_id' => $summary['department']->id]) }}" style="padding:10px 0;margin:10px;border-bottom:1px solid var(--border)">
                             <div class="dept-leave-label"><span>{{ $summary['department']->name }}</span><span class="dept-leave-link">View logs →</span></div>
-                            <div style="display:flex;align-items:center;gap:10px">
+                            <div style="display:flex;align-items:center;gap:20px">
                                 <div class="progress" style="flex:1"><div class="progress-bar" style="width:{{ min(100, $summary['on_leave'] * 18) }}%"></div></div>
                                 <span class="dept-leave-stat">{{ $summary['on_leave'] }} currently on leave</span>
                             </div>
@@ -111,7 +105,7 @@
 
         <div class="right-panel">
             <div class="info-card">
-                <div class="info-card-header">This Month at a Glance</div>
+                <div class="info-card-header" style="background-color:#99baa9">This Month at a Glance</div>
                 <div class="info-card-body">
                     @foreach(['approved','pending','rejected'] as $status)
                         <div class="quick-stat"><span class="quick-stat-label">{{ ucfirst($status) }}</span><span class="quick-stat-val">{{ $statusBreakdown[$status] ?? 0 }}</span></div>
@@ -120,18 +114,18 @@
                 </div>
             </div>
             <div class="info-card">
-                <div class="info-card-header" style="display:flex;justify-content:space-between;align-items:center"><span>Calendar</span><a style="font-size:15px;color:var(--primary);font-weight:600" href="{{ route('admin.calendar') }}">Full view →</a></div>
+                <div class="info-card-header" style="display:flex;justify-content:space-between;align-items:center;background-color:#99baa9"><span>Calendar</span><a style="font-size:15px;color:var(--primary);font-weight:600" href="{{ route('admin.calendar') }}">Full view →</a></div>
                 <a class="info-card-body" style="display:block;cursor:pointer" href="{{ route('admin.calendar') }}">
                     <div class="mini-cal" id="miniCal"></div>
                 </a>
             </div>
             <div class="info-card" id="on-leave-today">
-                <div class="info-card-header">On Leave Today</div>
+                <div class="info-card-header" style="background-color:#99baa9">On Leave Today</div>
                 <div class="info-card-body" style="display:flex;flex-direction:column;gap:10px">
                     @forelse($onLeaveToday as $leave)
-                        <div style="display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div class="avatar avatar-sm">{{ substr($leave->employee->full_name,0,1) }}</div><div><div style="font-size:15px;font-weight:600;color:var(--text)">{{ $leave->employee->full_name }}</div><div style="font-size:15px;color:var(--text3)">{{ $leave->leaveType->name }} · returns {{ $leave->end_date->format('M d') }} · {{ $leave->employee->departmentRecord?->name }} · {{ $leave->employee->position }}</div></div></div>
+                        <div style="display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div class="avatar avatar-sm">{{ substr($leave->employee->full_name,0,1) }}</div><div><div style="font-size:10px;font-weight:600;color:var(--text)">{{ $leave->employee->full_name }}</div><div style="font-size:10px;color:var(--text3)">{{ $leave->leaveType->name }} | returns {{ $leave->end_date->format('M d') }} <br> {{ $leave->employee->departmentRecord?->name }} | {{ $leave->employee->position }}</div></div></div>
                     @empty
-                        <div style="font-size:15px;color:var(--text3)">No one is on approved leave today.</div>
+                        <div style="font-size:10px;color:var(--text3)">No one is on approved leave today.</div>
                     @endforelse
 
                     <div class="pagination">
@@ -155,7 +149,7 @@ function renderMiniCalendar(){
     const first=new Date(year,month,1);
     const last=new Date(year,month+1,0);
     const labels=['S','M','T','W','T','F','S'];
-    let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">'+labels.map(d=>`<span style="font-size:15px;color:var(--text3);text-align:center;font-weight:700">${d}</span>`).join('')+'</div>';
+    let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">'+labels.map(d=>`<span style="font-size:13px;color:var(--text3);text-align:center;font-weight:1000">${d}</span>`).join('')+'</div>';
     html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
     for(let i=0;i<first.getDay();i++){html+='<span class="cal-day other-month"></span>'}
     for(let day=1;day<=last.getDate();day++){

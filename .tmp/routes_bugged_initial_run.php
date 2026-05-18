@@ -1,11 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-<<<<<<< HEAD
+
 use App\Http\Controllers\Hr\HrController;
-=======
+
 use App\Http\Controllers\EmployeePortalController;
->>>>>>> emp-dev
+
 
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('home') : view('welcome');
@@ -18,7 +18,7 @@ Route::middleware(['auth'])->group(function () {
             : view('home');
     })->name('home');
 
-<<<<<<< HEAD
+
     Route::middleware('role:hr_admin')->prefix('hr')->name('hr.')->group(function () {
         Route::get('/dashboard', [HrController::class, 'dashboard'])->name('dashboard');
         Route::get('/users/pending', [HrController::class, 'pendingUsers'])->name('users.pending');
@@ -55,7 +55,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [HrController::class, 'profile'])->name('profile');
     Route::put('/profile', [HrController::class, 'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [HrController::class, 'updatePassword'])->name('profile.password');
-=======
+
     Route::get('/dashboard/employee', [EmployeePortalController::class, 'dashboard'])->name('dashboard.employee');
     Route::prefix('employee')->name('employee.')->group(function () {
         Route::get('/leave', [EmployeePortalController::class, 'myLeave'])->name('leave.index');
@@ -68,5 +68,5 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/notifications', [EmployeePortalController::class, 'notifications'])->name('notifications');
         Route::get('/profile', [EmployeePortalController::class, 'profile'])->name('profile');
     });
->>>>>>> emp-dev
+
 });

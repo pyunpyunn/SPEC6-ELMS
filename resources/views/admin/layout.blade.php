@@ -40,7 +40,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Company Calendar</span><span class="sb-item-tooltip">Company Calendar</span>
             </a>
 
-            <div class="sb-section">Staff Management</div>
+            <div class="sb-section">Employee Management</div>
             <a class="sb-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.pending') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg><span>User Verification</span><span class="sb-item-tooltip">User Verification</span>
             </a>
@@ -51,7 +51,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg><span>Departments</span><span class="sb-item-tooltip">Departments</span>
             </a>
 
-            <div class="sb-section">Leave Control</div>
+            <div class="sb-section">Leave Management</div>
             <a class="sb-item {{ request()->routeIs('admin.requests.*') ? 'active' : '' }}" href="{{ route('admin.requests.index') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11h6"/><path d="M9 15h6"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg><span>Master Request Log</span><span class="sb-item-tooltip">Master Request Log</span>
             </a>
