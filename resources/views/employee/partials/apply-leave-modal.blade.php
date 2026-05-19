@@ -28,7 +28,6 @@
 
             <div class="modal-body">
                 <div class="flash flash-warning" style="margin-bottom:14px">
-                    Your leave request will be reviewed by HR for approval.
                 </div>
 
                 <div class="form-grid" style="gap:14px">
@@ -40,7 +39,6 @@
                                 <option
                                     value="{{ $type->id }}"
                                     data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}"
-                                    data-max-document-days="{{ $type->max_document_days ?? '' }}"
                                     data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}"
                                     data-proof-rules="{{ $type->proof_rules }}"
                                     @selected(old('leave_type_id') == $type->id)
@@ -84,7 +82,6 @@
 
                     <div class="flash flash-error" id="applyConflictError" style="display:none;margin-top:10px;grid-column:1/-1">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-                            <div id="applyConflictErrorText">You already have an approved leave scheduled on one or more selected dates. Please adjust your range.</div>
                             <button type="button" class="btn btn-outline btn-sm" onclick="dismissConflictError()" style="white-space:nowrap">✕</button>
                         </div>
                     </div>
@@ -142,78 +139,71 @@ function closeModal(id) {
     document.getElementById(id)?.classList.remove('open');
 }
 
-function getSelectedLeaveTypeData() {
-    const select = document.getElementById('applyLeaveType');
-    const option = select?.options?.[select.selectedIndex];
-    if (!option) return null;
-
-    return {
-        requiresProof: option.dataset.requiresProof === '1',
-        maxDocumentDays: option.dataset.maxDocumentDays ? parseInt(option.dataset.maxDocumentDays, 10) : null,
-        requiresApproval: option.dataset.requiresApproval === '1',
-        proofRules: option.dataset.proofRules || '',
-    };
-}
-
-function updateProofVisibility() {
+function applySickLeaveProofVisibilityRule_old() {
+    const leaveTypeSelect = document.getElementById('applyLeaveType');
     const proofSection = document.getElementById('proofSection');
-    const proofReq = document.getElementById('proofRequired');
-    const proofHint = document.getElementById('proofHint');
     const proofFile = document.getElementById('proofFile');
+
+    if (!leaveTypeSelect || !proofSection || !proofFile) return;
+
+    const selectedOptionText = leaveTypeSelect?.options?.[leaveTypeSelect.selectedIndex]?.textContent?.toLowerCase?.() || '';
+    const isSick = selectedOptionText.includes('sick');
+
     const totalText = document.getElementById('applyTotalDays')?.value || '';
     const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
     const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
-    const selected = getSelectedLeaveTypeData();
 
-    if (!proofSection || !proofReq || !proofHint || !proofFile || !selected) return;
-
-    const { requiresProof, maxDocumentDays, requiresApproval, proofRules } = selected;
-    let shouldShow = false;
-    let message = '';
-
-    if (requiresProof) {
-        if (maxDocumentDays === null || maxDocumentDays <= 0) {
-            shouldShow = workingDays > 0;
-            message = proofRules || 'Proof document required for this leave type.';
-        } else {
-            shouldShow = workingDays >= maxDocumentDays;
-            message = proofRules || `Proof document required for ${maxDocumentDays} or more working days.`;
-        }
-    }
+    const shouldShow = isSick && workingDays >= 3;
 
     proofSection.style.display = shouldShow ? 'block' : 'none';
     proofFile.required = shouldShow;
+}
 
-    if (!shouldShow) {
-        proofFile.value = '';
-    }
+function applySickLeaveProofVisibilityRule() {
+    const leaveTypeSelect = document.getElementById('applyLeaveType');
+    const proofSection = document.getElementById('proofSection');
+    const proofFile = document.getElementById('proofFile');
 
-    if (shouldShow) {
-        proofReq.textContent = '*';
-        proofHint.textContent = message;
-    } else {
-        proofReq.textContent = '';
-        proofHint.textContent = requiresProof && maxDocumentDays > 0
-            ? `Document upload becomes required once the request reaches ${maxDocumentDays} working days.`
-            : requiresApproval
-                ? 'This leave type is auto-approved by configuration.'
-                : '';
-    }
+    if (!leaveTypeSelect || !proofSection || !proofFile) return;
+
+    const selectedOptionText = leaveTypeSelect?.options?.[leaveTypeSelect.selectedIndex]?.textContent?.toLowerCase?.() || '';
+    const isSick = selectedOptionText.includes('sick');
+
+    const totalText = document.getElementById('applyTotalDays')?.value || '';
+    const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
+    const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
+
+    const shouldShow = isSick && workingDays >= 3;
+
+    proofSection.style.display = shouldShow ? 'block' : 'none';
+    proofFile.required = shouldShow;
 }
 
 function handleLeaveTypeChange() {
-    const selected = getSelectedLeaveTypeData();
+    const select = document.getElementById('applyLeaveType');
+    const option = select?.options?.[select.selectedIndex];
+    const proofSec = document.getElementById('proofSection');
     const proofReq = document.getElementById('proofRequired');
     const proofHint = document.getElementById('proofHint');
 
-    if (!selected || !proofReq || !proofHint) return;
+    if (!option || !proofSec || !proofReq || !proofHint) return;
 
-    updateProofVisibility();
+    const requiresProof = option.dataset.requiresProof === '1';
+    const requiresApproval = option.dataset.requiresApproval === '0';
+    const proofRules = option.dataset.proofRules || '';
 
-    if (!selected.requiresProof) {
+    if (requiresProof) {
+        proofSec.style.display = 'block';
+        proofReq.textContent = '*';
+        proofHint.textContent = proofRules || 'Proof document required for this leave type.';
+    } else {
+        proofSec.style.display = 'none';
         proofReq.textContent = '';
-        proofHint.textContent = selected.requiresApproval ? 'This leave type is auto-approved by configuration.' : '';
+        proofHint.textContent = requiresApproval ? 'This leave type is auto-approved by configuration.' : '';
     }
+
+    // Override for sick leave: only show proof section when 3+ working days
+    applySickLeaveProofVisibilityRule();
 }
 
 function pad2(n) {
@@ -289,7 +279,8 @@ function calcDays() {
 
     totalEl.value = count + ' working day' + (count !== 1 ? 's' : '');
 
-    updateProofVisibility();
+    // Sick leave proof depends on computed working days
+    applySickLeaveProofVisibilityRule();
 }
 
 function dismissWeekendError() {
@@ -405,11 +396,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (startInput) clampWeekend(startInput);
     if (endInput) clampWeekend(endInput);
 
+    // Conditional proof
+    handleLeaveTypeChange();
+
     // Working days if old input exists
     calcDays();
-
-    // Conditional proof visibility after working days calculation
-    handleLeaveTypeChange();
 
     // If old leave_type_id exists but onchange didn't fire
     document.getElementById('applyLeaveType')?.addEventListener('change', function () {
