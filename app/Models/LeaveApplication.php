@@ -12,9 +12,20 @@ class LeaveApplication extends Model
         'leave_type_id', 
         'start_date', 
         'end_date', 
+        'total_days',
         'reason', 
         'status', 
-        'remarks'
+        'remarks',
+        'reviewed_by',
+        'reviewed_at',
+        'proof_path',
+    ];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'reviewed_at' => 'datetime',
+        'total_days' => 'integer',
     ];
 
     public function employee(): BelongsTo
@@ -25,5 +36,10 @@ class LeaveApplication extends Model
     public function leaveType(): BelongsTo
     {
         return $this->belongsTo(LeaveType::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 }
