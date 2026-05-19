@@ -78,44 +78,44 @@ Use this file during technical defense when you need to explain where a feature 
 
 ## Validation Classes
 
-| Validation Purpose | Form Request |
-| --- | --- |
-| HR employee create/update | `app/Http/Requests/Hr/EmployeeRequest.php` |
-| HR user activation | `app/Http/Requests/Hr/ActivateUserRequest.php` |
-| HR employee deactivation | `app/Http/Requests/Hr/DeactivateEmployeeRequest.php` |
-| HR department create/update | `app/Http/Requests/Hr/DepartmentRequest.php` |
-| HR leave type create/update | `app/Http/Requests/Hr/LeaveTypeRequest.php` |
-| HR leave decision | `app/Http/Requests/Hr/LeaveDecisionRequest.php` |
-| HR own leave filing | `app/Http/Requests/Hr/StoreHrLeaveRequest.php` |
-| HR profile update | `app/Http/Requests/Hr/ProfileRequest.php` |
-| Employee leave filing | `app/Http/Requests/StoreLeaveApplicationRequest.php` |
-| Manager leave decision | `app/Http/Requests/Manager/LeaveDecisionRequest.php` |
-| Manager own leave filing | `app/Http/Requests/Manager/StoreManagerLeaveRequest.php` |
-| Manager profile update | `app/Http/Requests/Manager/ProfileRequest.php` |
-| Password update | `app/Http/Requests/UpdatePasswordRequest.php` |
+| Validation Purpose             | Form Request                                                 |
+| ------------------------------ | ------------------------------------------------------------ |
+| HR employee create/update      | `app/Http/Requests/Hr/EmployeeRequest.php`                   |
+| HR user activation             | `app/Http/Requests/Hr/ActivateUserRequest.php`               |
+| HR employee deactivation       | `app/Http/Requests/Hr/DeactivateEmployeeRequest.php`         |
+| HR department create/update    | `app/Http/Requests/Hr/DepartmentRequest.php`                 |
+| HR leave type create/update    | `app/Http/Requests/Hr/LeaveTypeRequest.php`                  |
+| HR leave decision              | `app/Http/Requests/Hr/LeaveDecisionRequest.php`              |
+| HR own leave filing            | `app/Http/Requests/Hr/StoreHrLeaveRequest.php`               |
+| HR profile update              | `app/Http/Requests/Hr/ProfileRequest.php`                    |
+| Employee leave filing          | `app/Http/Requests/StoreLeaveApplicationRequest.php`         |
+| Manager leave decision         | `app/Http/Requests/Manager/LeaveDecisionRequest.php`         |
+| Manager own leave filing       | `app/Http/Requests/Manager/StoreManagerLeaveRequest.php`     |
+| Manager profile update         | `app/Http/Requests/Manager/ProfileRequest.php`               |
+| Password update                | `app/Http/Requests/UpdatePasswordRequest.php`                |
 
 ## Model Relationships
 
-| Model | Key Relationships |
-| --- | --- |
-| `User` | `employee`, `department`, `position`, `notifications` |
-| `Employee` | `user`, `departmentRecord`, `positionRecord`, `manager`, `leaveApplications`, `leaveBalances` |
-| `Department` | `managerUser`, `manager`, `employees`, `positions`, `users` |
-| `Position` | `department`, `users`, `employees` |
-| `LeaveType` | `applications`, `balances` |
-| `LeaveApplication` | `employee`, `leaveType`, `reviewer` |
-| `LeaveBalance` | `employee`, `leaveType` |
-| `SystemNotification` | `user` |
+| Model                    | Key Relationships                                                                             |
+| -------------------------| ----------------------------------------------------------------------------------------------|
+| `User`                   | `employee`, `department`, `position`, `notifications`                                         |
+| `Employee`               | `user`, `departmentRecord`, `positionRecord`, `manager`, `leaveApplications`, `leaveBalances` |
+| `Department`             | `managerUser`, `manager`, `employees`, `positions`, `users`                                   |
+| `Position`               | `department`, `users`, `employees`                                                            |
+| `LeaveType`              | `applications`, `balances`                                                                    |
+| `LeaveApplication`       | `employee`, `leaveType`, `reviewer`                                                           |
+| `LeaveBalance`           | `employee`, `leaveType`                                                                       |
+| `SystemNotification`     | `user`                                                                                        |
 
 ## Seeders
 
-| Seeder | Purpose |
-| --- | --- |
-| `DatabaseSeeder.php` | Runs all seeders in order |
-| `UserSeeder.php` | Creates the single HR account |
-| `DepartmentSeeder.php` | Creates HR, IT, FIN, and OPS departments |
-| `PositionSeeder.php` | Creates department-specific positions |
-| `EmployeeSeeder.php` | Creates Kathleen Barro's linked HR employee profile |
-| `LeaveTypeSeeder.php` | Creates default leave types |
-| `LeaveBalanceSeeder.php` | Seeds current-year leave balances |
-| `LeaveApplicationSeeder.php` | Left empty so leave requests start clean |
+| Seeder                       | Purpose                                              |
+| -----------------------------| -----------------------------------------------------|
+| `DatabaseSeeder.php`         | Runs all seeders in order                            |
+| `UserSeeder.php`             | Creates the single HR account                        |
+| `DepartmentSeeder.php`       | Creates HR, IT, FIN, and OPS departments             |
+| `PositionSeeder.php`         | Creates department-specific positions                |
+| `EmployeeSeeder.php`         | Creates Kathleen Barro's linked HR employee profile  |
+| `LeaveTypeSeeder.php`        | Creates default leave types                          |
+| `LeaveBalanceSeeder.php`     | Seeds current-year leave balances                    |
+| `LeaveApplicationSeeder.php` | Left empty so leave requests start clean             |

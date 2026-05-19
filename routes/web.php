@@ -105,9 +105,13 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/requests', [AdminLeaveRequestController::class, 'index'])->name('requests.index');
             Route::patch('/requests/{leaveApplication}/review', [AdminLeaveRequestController::class, 'review'])->name('requests.review');
 
-            Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+            Route::get('/reports/yearly-compensation', [AdminReportController::class, 'yearlyCompensation'])->name('reports.yearly-compensation');
+            Route::get('/reports/individual-balance', [AdminReportController::class, 'individualBalance'])->name('reports.individual-balance');
+            Route::get('/reports/yearly-compensation/export', [AdminReportController::class, 'exportYearlyCompensation'])->name('reports.yearly-compensation.export');
+            Route::get('/reports/individual-balance/export', [AdminReportController::class, 'exportIndividualBalance'])->name('reports.individual-balance.export');
             Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
             Route::get('/reports/calendar', [AdminReportController::class, 'calendar'])->name('reports.calendar');
+            Route::get('/reports/{section?}', [AdminReportController::class, 'index'])->name('reports.index');
             Route::get('/calendar', [AdminReportController::class, 'calendar'])->name('calendar');
 
             Route::get('/my-leave', [AdminProfileController::class, 'myLeave'])->name('my-leave');
@@ -118,6 +122,16 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
             Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
             Route::put('/profile/password', [AdminProfileController::class, 'password'])->name('profile.password');
+        });
+
+    Route::middleware(['account.approved', 'role:hr'])
+        ->prefix('reports')
+        ->name('reports.')
+        ->group(function () {
+            Route::get('/yearly-compensation', [AdminReportController::class, 'yearlyCompensation'])->name('yearly-compensation');
+            Route::get('/individual-balance', [AdminReportController::class, 'individualBalance'])->name('individual-balance');
+            Route::get('/yearly-compensation/export', [AdminReportController::class, 'exportYearlyCompensation'])->name('yearly-compensation.export');
+            Route::get('/individual-balance/export', [AdminReportController::class, 'exportIndividualBalance'])->name('individual-balance.export');
         });
 
     Route::middleware(['account.approved', 'role:manager'])

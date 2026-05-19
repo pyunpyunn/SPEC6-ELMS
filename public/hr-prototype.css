@@ -576,6 +576,33 @@ td{font-size:12px}
   white-space:nowrap;
 }
 
+/* ── ANALYTICS SEARCH BAR ── */
+.analytics-search-bar{
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.analytics-search-bar input{
+  flex:1;
+  min-width:240px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:var(--surface);
+  color:var(--text);
+  font-size:14px;
+}
+.analytics-search-bar input::placeholder{
+  color:var(--text3);
+}
+.analytics-search-bar input:focus{
+  outline:none;
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-bg);
+}
+
 /* HR-only: soften borders + add subtle shadow so separators don't look like gridlines */
 .hr .card,
 .hr .info-card,
