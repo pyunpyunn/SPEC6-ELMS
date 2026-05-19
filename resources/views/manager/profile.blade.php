@@ -46,12 +46,12 @@
                     <form class="form-grid" method="POST" action="{{ route('manager.profile.update') }}">
                         @csrf
                         @method('PUT')
-                        <div><label>First Name</label><input name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
-                        <div><label>Last Name</label><input name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
-                        <div><label>Email</label><input type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required></div>
-                        <div><label>Phone</label><input name="phone" value="{{ old('phone', $employee?->phone) }}"></div>
-                        <div class="full"><label>Address</label><input name="address" value="{{ old('address', $employee?->address) }}"></div>
-                        <div class="full"><button class="btn btn-primary btn-sm" type="submit">Save Changes</button></div>
+                        <div class="form-group"><label class="form-label" for="managerFirstName">First Name</label><input id="managerFirstName" class="form-control" name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
+                        <div class="form-group"><label class="form-label" for="managerLastName">Last Name</label><input id="managerLastName" class="form-control" name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
+                        <div class="form-group"><label class="form-label" for="managerEmail">Email</label><input id="managerEmail" class="form-control" type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required></div>
+                        <div class="form-group"><label class="form-label" for="managerPhone">Phone</label><input id="managerPhone" class="form-control" name="phone" value="{{ old('phone', $employee?->phone) }}"></div>
+                        <div class="form-group span2"><label class="form-label" for="managerAddress">Address</label><input id="managerAddress" class="form-control" name="address" value="{{ old('address', $employee?->address) }}"></div>
+                        <div class="form-group span2 profile-form-actions"><button class="btn btn-primary btn-sm" type="submit">Save Changes</button></div>
                     </form>
                 </div>
             </div>
@@ -108,15 +108,17 @@
 <div class="modal-overlay" id="passwordModal" onclick="closePasswordModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3>Change Password</h3>
+            <h3 class="modal-title">Change Password</h3>
             <button class="modal-close" type="button" onclick="closePasswordModal(event)">x</button>
         </div>
-        <form class="modal-body form-grid" method="POST" action="{{ route('manager.profile.password') }}">
+        <form class="modal-body" method="POST" action="{{ route('manager.profile.password') }}">
             @csrf
             @method('PUT')
-            <div><label>Current Password</label><input type="password" name="current_password" required></div>
-            <div><label>New Password</label><input type="password" name="password" required></div>
-            <div class="full"><label>Confirm New Password</label><input type="password" name="password_confirmation" required></div>
+            <div class="form-grid">
+                <div class="form-group"><label class="form-label" for="managerCurrentPassword">Current Password <span class="required-mark">*</span></label><input id="managerCurrentPassword" class="form-control" type="password" name="current_password" required></div>
+                <div class="form-group"><label class="form-label" for="managerNewPassword">New Password <span class="required-mark">*</span></label><input id="managerNewPassword" class="form-control" type="password" name="password" required></div>
+                <div class="form-group span2"><label class="form-label" for="managerConfirmPassword">Confirm New Password <span class="required-mark">*</span></label><input id="managerConfirmPassword" class="form-control" type="password" name="password_confirmation" required></div>
+            </div>
         </form>
         <div class="modal-footer">
             <button class="btn btn-outline" type="button" onclick="closePasswordModal(event)">Cancel</button>

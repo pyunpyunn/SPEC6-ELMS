@@ -12,7 +12,7 @@
             @endif
         </div>
         <div class="page-actions">
-            <button class="btn btn-primary btn-sm" type="button" onclick="openEmployeeModal('create')">Add Employee</button>
+            <button class="btn btn-primary btn-sm" type="button" data-action="employee-create">Add Employee</button>
         </div>
     </div>
 
@@ -27,7 +27,7 @@
         <div class="filter-bar-row">
             <div class="search-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input name="search" value="{{ request('search') }}" placeholder="Search employees by name, ID, or position...">
+                <input id="employeeSearch" type="search" name="search" value="{{ request('search') }}" placeholder="Search employees by name, ID, or position..." aria-label="Search employees by name, ID, or position">
             </div>
         </div>
         <div class="filter-bar-row">
@@ -72,25 +72,32 @@
                     <td class="td-pos">{{ $employee->position }}</td>
                     <td>{{ $employee->date_hired?->format('M d, Y') }}</td>
                     <td><span class="badge badge-{{ $employee->employment_status === 'active' ? 'active' : 'inactive' }}">{{ ucfirst($employee->employment_status) }}</span></td>
+                    @php
+                        $employeeData = array_merge(
+                            $employee->only([
+                                'id',
+                                'first_name',
+                                'last_name',
+                                'employee_id',
+                                'gender',
+                                'department_id',
+                                'position_id',
+                                'position',
+                                'manager_id',
+                                'phone',
+                                'address',
+                                'daily_rate',
+                                'employment_status',
+                            ]),
+                            [
+                                'email' => $employee->user?->email,
+                                'date_hired' => optional($employee->date_hired)->format('Y-m-d'),
+                            ]
+                        );
+                    @endphp
                     <td class="actions">
                         <a class="btn btn-outline btn-sm" href="{{ route('admin.employees.show', $employee) }}">View</a>
-                        <button class="btn btn-primary btn-sm" type="button" onclick="openEmployeeModal('edit', @js([
-                            'id' => $employee->id,
-                            'first_name' => $employee->first_name,
-                            'last_name' => $employee->last_name,
-                            'email' => $employee->user?->email,
-                            'employee_id' => $employee->employee_id,
-                            'gender' => $employee->gender,
-                            'department_id' => $employee->department_id,
-                            'position_id' => $employee->position_id,
-                            'position' => $employee->position,
-                            'manager_id' => $employee->manager_id,
-                            'date_hired' => optional($employee->date_hired)->format('Y-m-d'),
-                            'phone' => $employee->phone,
-                            'address' => $employee->address,
-                            'daily_rate' => $employee->daily_rate,
-                            'employment_status' => $employee->employment_status,
-                        ]))">Edit</button>
+                        <button class="btn btn-primary btn-sm" type="button" data-action="employee-edit" data-employee='@json($employeeData)'>Edit</button>
                     </td>
                 </tr>
             @empty
@@ -102,35 +109,27 @@
     <div class="pagination">{{ $employees->links('vendor.pagination.hr', ['anchor' => 'page-employees']) }}</div>
 </div>
 
-<div class="modal-overlay" id="employeeModal" onclick="closeEmployeeModal(event)">
-    <div class="modal modal-lg" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="employeeModal">
+    <div class="modal modal-lg">
         <div class="modal-header">
-            <h3 id="employeeModalTitle">Add Employee</h3>
-            <button class="modal-close" type="button" onclick="closeEmployeeModal(event)">✕</button>
+            <h3 class="modal-title" id="employeeModalTitle">Add Employee</h3>
+            <button class="modal-close" type="button" data-action="employee-close">✕</button>
         </div>
-        <form class="modal-body form" id="employeeForm" method="POST" action="{{ route('admin.employees.store') }}">
+        <form class="modal-body" id="employeeForm" method="POST" action="{{ route('admin.employees.store') }}" data-positions-by-department-url="{{ url('/positions-by-department') }}" data-employee-base-url="{{ url('/admin/employees') }}" data-employee-store-url="{{ route('admin.employees.store') }}">
             @csrf
-            <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
-                <div class="form-group"><label>First Name <span class="req">*</span></label><input name="first_name" id="employeeFirstName" required></div>
-                <div class="form-group"><label>Last Name <span class="req">*</span></label><input name="last_name" id="employeeLastName" required></div>
-                <div class="form-group"><label>Gender</label>
-                    <select name="gender" id="employeeGender">
+            <div class="form-grid">
+                <div class="form-group"><label class="form-label" for="employeeFirstName">First Name <span class="required-mark">*</span></label><input class="form-control" name="first_name" id="employeeFirstName" autocomplete="given-name" required></div>
+                <div class="form-group"><label class="form-label" for="employeeLastName">Last Name <span class="required-mark">*</span></label><input class="form-control" name="last_name" id="employeeLastName" autocomplete="family-name" required></div>
+                <div class="form-group"><label class="form-label" for="employeeEmail">Email <span class="required-mark">*</span></label><input class="form-control" type="email" name="email" id="employeeEmail" autocomplete="email" required></div>
+                <div class="form-group"><label class="form-label" for="employeeGender">Gender</label>
+                    <select name="gender" id="employeeGender" autocomplete="sex">
                         <option value="">Select gender</option>
                         <option value="female">Female</option>
                         <option value="male">Male</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" name="email" id="employeeEmail" required></div>
-                <div class="form-group"><label>Access Role</label>
-                    <input id="employeeAccessRole" value="Auto-derived from department and position" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed">
-                </div>
-                <div class="form-group">
-                    <label>Employee ID</label>
-                    <input type="text" id="employeeId" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed;font-family:var(--mono)">
-                    <small id="employeeIdHint" style="display:block;margin-top:4px;color:#666"></small>
-                </div>
-                <div class="form-group"><label>Department <span class="req">*</span></label>
+                <div class="form-group"><label class="form-label" for="employeeDepartment">Department <span class="required-mark">*</span></label>
                     <select name="department_id" id="employeeDepartment" required>
                         <option value="">Select department...</option>
                         @foreach($departments as $department)
@@ -138,12 +137,20 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group"><label>Position <span class="req">*</span></label>
+                <div class="form-group"><label class="form-label" for="employeePosition">Position <span class="required-mark">*</span></label>
                     <select name="position_id" id="employeePosition" required>
                         <option value="">Select department first...</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Manager</label>
+                <div class="form-group"><label class="form-label" for="employeeAccessRole">Access Role</label>
+                    <input id="employeeAccessRole" class="field-readonly" value="Auto-derived from department and position" readonly disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="employeeId">Employee ID</label>
+                    <input type="text" id="employeeId" class="field-readonly" readonly disabled style="font-family:var(--mono)">
+                    <small id="employeeIdHint" style="display:block;margin-top:4px;color:var(--text3);font-size:10px"></small>
+                </div>
+                <div class="form-group"><label class="form-label" for="employeeManager">Manager</label>
                     <select name="manager_id" id="employeeManager">
                         <option value="">No manager</option>
                         @foreach($managers as $manager)
@@ -151,130 +158,115 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group"><label>Date Hired <span class="req">*</span></label><input type="date" name="date_hired" id="employeeDateHired" required></div>
-                <div class="form-group"><label>Phone</label><input name="phone" id="employeePhone"></div>
-                <div class="form-group"><label>Employment Status <span class="req">*</span></label>
+                <div class="form-group"><label class="form-label" for="employeeDateHired">Date Hired <span class="required-mark">*</span></label><input class="form-control" type="date" name="date_hired" id="employeeDateHired" required></div>
+                <div class="form-group"><label class="form-label" for="employeeDailyRate">Daily Rate <span class="required-mark">*</span></label><input class="form-control" type="number" step="0.01" name="daily_rate" id="employeeDailyRate" value="1000" required></div>
+                <div class="form-group"><label class="form-label" for="employeeStatus">Employment Status <span class="required-mark">*</span></label>
                     <select name="employment_status" id="employeeStatus" required>
                         <option value="active">Active</option>
                         <option value="resigned">Resigned</option>
                         <option value="terminated">Terminated</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Daily Rate <span class="req">*</span></label><input type="number" step="0.01" name="daily_rate" id="employeeDailyRate" value="1000" required></div>
-                <div class="form-group" style="grid-column:1/-1"><label>Address</label><input name="address" id="employeeAddress"></div>
+                <div class="form-group"><label class="form-label" for="employeePhone">Phone</label><input class="form-control" name="phone" id="employeePhone" autocomplete="tel"></div>
+                <div class="form-group span2"><label class="form-label" for="employeeAddress">Address</label><input class="form-control" name="address" id="employeeAddress" autocomplete="street-address"></div>
                 <input type="hidden" name="contact_info" id="employeeContactInfo">
             </div>
         </form>
         <div class="modal-footer">
-            <button class="btn btn-outline" type="button" onclick="closeEmployeeModal(event)">Cancel</button>
-            <button class="btn btn-primary" type="button" onclick="submitEmployee()">Save Employee</button>
+            <button class="btn btn-outline" type="button" data-action="employee-cancel">Cancel</button>
+            <button class="btn btn-primary" type="button" data-action="employee-submit">Save Employee</button>
         </div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
-<script>
-const positionsByDepartmentUrl = '{{ url('/positions-by-department') }}';
-
-function updatePositionOptions(departmentId, selectedPositionId = '', selectedPositionName = '') {
-    const positionSelect = document.getElementById('employeePosition');
-
-    positionSelect.innerHTML = '<option value="">Loading...</option>';
-
-    if (!departmentId) {
-        positionSelect.innerHTML = '<option value="">Select department first...</option>';
-        return;
-    }
-
-    fetch(`${positionsByDepartmentUrl}/${departmentId}`)
-        .then(response => response.json())
-        .then(positions => {
-            positionSelect.innerHTML = '<option value="">Select position...</option>';
-
-            if (!positions.length) {
-                positionSelect.innerHTML = '<option value="">No positions found</option>';
-                return;
+    <script src="{{ asset('js/employee-directory.js') }}" defer></script>
+    <script>
+        function openEmployeeModal(mode = 'create', employee = null) {
+            const form = document.getElementById('employeeForm');
+            const title = document.getElementById('employeeModalTitle');
+            
+            if (mode === 'edit' && employee) {
+                title.textContent = 'Edit Employee';
+                form.method = 'POST';
+                form.action = `{{ url('/admin/employees') }}/${employee.id}`;
+                
+                // Add method field for PUT
+                let methodField = form.querySelector('input[name="_method"]');
+                if (!methodField) {
+                    methodField = document.createElement('input');
+                    methodField.type = 'hidden';
+                    methodField.name = '_method';
+                    form.appendChild(methodField);
+                }
+                methodField.value = 'PUT';
+                
+                document.getElementById('employeeFirstName').value = employee?.first_name || '';
+                document.getElementById('employeeLastName').value = employee?.last_name || '';
+                document.getElementById('employeeEmail').value = employee?.email || '';
+                document.getElementById('employeeGender').value = employee?.gender || '';
+                document.getElementById('employeeDepartment').value = employee?.department_id || '';
+                
+                updatePositionOptions(
+                    employee?.department_id || '{{ $departments->first()->id ?? '' }}',
+                    employee?.position_id || '',
+                    employee?.position || ''
+                );
+                
+                document.getElementById('employeeManager').value = employee?.manager_id || '';
+                document.getElementById('employeeDateHired').value = employee?.date_hired || '{{ now()->toDateString() }}';
+                document.getElementById('employeePhone').value = employee?.phone || '';
+                document.getElementById('employeeStatus').value = employee?.employment_status || 'active';
+                document.getElementById('employeeDailyRate').value = employee?.daily_rate || 1000;
+                document.getElementById('employeeAddress').value = employee?.address || '';
+                document.getElementById('employeeContactInfo').value = employee?.email || '';
+            } else {
+                title.textContent = 'Add Employee';
+                form.reset();
+                form.method = 'POST';
+                form.action = '{{ route("admin.employees.store") }}';
+                
+                let methodField = form.querySelector('input[name="_method"]');
+                if (methodField) methodField.remove();
+                
+                updatePositionOptions(
+                    employee?.department_id || '{{ $departments->first()->id ?? '' }}',
+                    employee?.position_id || '',
+                    employee?.position || ''
+                );
+                
+                document.getElementById('employeeManager').value = employee?.manager_id || '';
+                document.getElementById('employeeDateHired').value = employee?.date_hired || '{{ now()->toDateString() }}';
+                document.getElementById('employeePhone').value = employee?.phone || '';
+                document.getElementById('employeeStatus').value = employee?.employment_status || 'active';
+                document.getElementById('employeeDailyRate').value = employee?.daily_rate || 1000;
+                document.getElementById('employeeAddress').value = employee?.address || '';
+                document.getElementById('employeeContactInfo').value = employee?.email || '';
+                document.getElementById('employeeModal').classList.add('open');
             }
 
-            positions.forEach(position => {
-                const option = document.createElement('option');
-                option.value = position.id;
-                option.textContent = position.name;
-                option.selected = String(position.id) === String(selectedPositionId)
-                    || (!selectedPositionId && position.name === selectedPositionName);
-                positionSelect.appendChild(option);
+            function closeEmployeeModal(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                document.getElementById('employeeModal').classList.remove('open');
+            }
+
+            function openEmployeeModalFromElement(button) {
+                const payload = button?.dataset?.employee || '{}';
+                openEmployeeModal('edit', JSON.parse(payload));
+            }
+
+            function submitEmployee() {
+                document.getElementById('employeeContactInfo').value = document.getElementById('employeeEmail').value;
+                document.getElementById('employeeForm').submit();
+            }
+
+            document.getElementById('employeeDepartment').addEventListener('change', function () {
+                updatePositionOptions(this.value);
             });
-        })
-        .catch(() => {
-            positionSelect.innerHTML = '<option value="">Error loading positions</option>';
-        });
-}
-
-function openEmployeeModal(mode, employee) {
-    const form = document.getElementById('employeeForm');
-    form.reset();
-    form.action = mode === 'edit' ? '{{ url('/admin/employees') }}/' + employee.id : '{{ route('admin.employees.store') }}';
-    const methodField = form.querySelector('input[name="_method"]') || document.createElement('input');
-    if (mode === 'edit') {
-        methodField.type = 'hidden';
-        methodField.name = '_method';
-        methodField.value = 'PUT';
-        if (!methodField.parentNode) form.appendChild(methodField);
-    } else if (methodField.parentNode) {
-        methodField.parentNode.removeChild(methodField);
-    }
-
-    document.getElementById('employeeModalTitle').textContent = mode === 'edit' ? 'Edit Employee' : 'Add Employee';
-    document.getElementById('employeeFirstName').value = employee?.first_name || '';
-    document.getElementById('employeeLastName').value = employee?.last_name || '';
-    document.getElementById('employeeEmail').value = employee?.email || '';
-    
-    // Set employee ID display
-    const idField = document.getElementById('employeeId');
-    const idHint = document.getElementById('employeeIdHint');
-    if (mode === 'edit' && employee?.employee_id) {
-        idField.value = employee.employee_id;
-        idHint.textContent = 'Cannot be changed for existing employees';
-    } else {
-        idField.value = '(Auto-generated)';
-        idHint.textContent = 'Format: DEPT-POSID-COUNT (will be generated when department & position are selected)';
-    }
-    
-    document.getElementById('employeeGender').value = employee?.gender || '';
-    document.getElementById('employeeDepartment').value = employee?.department_id || '{{ $departments->first()->id ?? '' }}';
-    
-    updatePositionOptions(
-        employee?.department_id || '{{ $departments->first()->id ?? '' }}',
-        employee?.position_id || '',
-        employee?.position || ''
-    );
-    
-    document.getElementById('employeeManager').value = employee?.manager_id || '';
-    document.getElementById('employeeDateHired').value = employee?.date_hired || '{{ now()->toDateString() }}';
-    document.getElementById('employeePhone').value = employee?.phone || '';
-    document.getElementById('employeeStatus').value = employee?.employment_status || 'active';
-    document.getElementById('employeeDailyRate').value = employee?.daily_rate || 1000;
-    document.getElementById('employeeAddress').value = employee?.address || '';
-    document.getElementById('employeeContactInfo').value = employee?.email || '';
-    document.getElementById('employeeModal').classList.add('open');
-}
-
-function closeEmployeeModal(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    document.getElementById('employeeModal').classList.remove('open');
-}
-
-function submitEmployee() {
-    document.getElementById('employeeContactInfo').value = document.getElementById('employeeEmail').value;
-    document.getElementById('employeeForm').submit();
-}
-
-document.getElementById('employeeDepartment').addEventListener('change', function () {
-    updatePositionOptions(this.value);
-});
-</script>
+        }
+    </script>
 @endpush

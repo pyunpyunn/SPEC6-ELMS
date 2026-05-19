@@ -13,7 +13,7 @@
         <div class="filter-bar-row">
             <div class="search-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input name="search" value="{{ request('search') }}" placeholder="Search leave requests by name, ID, or type...">
+                <input id="managerApprovalSearch" type="search" name="search" value="{{ request('search') }}" placeholder="Search leave requests by name, ID, or type..." aria-label="Search leave requests by employee name, ID, or type">
             </div>
         </div>
         <div class="filter-bar-row">
@@ -74,7 +74,7 @@
                     <td>{{ $leave->created_at->format('M d, g:i A') }}</td>
                     <td><span class="badge badge-{{ $leave->status }}">{{ ucfirst($leave->status) }}</span></td>
                     <td>{{ $leave->reviewer?->name ?? 'Not yet reviewed' }}</td>
-                    <td><button class="btn btn-outline btn-sm" type="button" onclick="openReviewModal(@js($reviewData))">Review</button></td>
+                    <td><button class="btn btn-outline btn-sm" type="button" data-review='@json($reviewData)' onclick="openReviewModalFromElement(this)">Review</button></td>
                 </tr>
             @empty
                 <tr><td colspan="10" class="muted">No team leave requests found.</td></tr>
@@ -89,7 +89,7 @@
 <div class="modal-overlay" id="reviewModal" onclick="closeReviewModal(event)">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3>Leave Request - <span id="reviewEmpName"></span></h3>
+            <h3 class="modal-title">Leave Request - <span id="reviewEmpName"></span></h3>
             <button class="modal-close" type="button" onclick="closeReviewModal(event)">x</button>
         </div>
         <form class="modal-body" method="POST" id="reviewForm" data-action="">
@@ -115,9 +115,9 @@
                     <div class="detail-row"><span class="dl">Reviewed Remarks</span><span class="dv" id="reviewExistingRemarks">-</span></div>
                 </div>
             </div>
-            <div class="form-group" style="margin-bottom:15px"><label>Reason</label><textarea readonly id="reviewReason" style="background:var(--surface2)"></textarea></div>
+            <div class="form-group" style="margin-bottom:15px"><label class="form-label" for="reviewReason">Reason</label><textarea class="form-control field-readonly" readonly id="reviewReason" name="review_reason"></textarea></div>
             <div id="reviewProofSection" style="display:none;margin-bottom:15px">
-                <label style="display:block;margin-bottom:7px">Attached Document</label>
+                <div style="display:block;margin-bottom:7px;font-weight:600">Attached Document</div>
                 <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
                     <span id="reviewProofName" style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">document.pdf</span>
                     <a id="reviewProofLink" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer" style="margin-left:auto" href="#">View Document</a>
@@ -125,8 +125,8 @@
                 <img id="reviewProofPreview" src="" alt="Proof document" style="max-width:100%;margin-top:12px;border-radius:8px;border:1px solid var(--border);display:none">
             </div>
             <div class="form-group" id="reviewRemarksWrap">
-                <label>Remarks <span class="req">*</span></label>
-                <textarea id="reviewRemarks" name="remarks" placeholder="Enter your decision remarks here..." required></textarea>
+                <label class="form-label" for="reviewRemarks">Remarks <span class="required-mark">*</span></label>
+                <textarea class="form-control" id="reviewRemarks" name="remarks" placeholder="Enter your decision remarks here..." required></textarea>
             </div>
             <input type="hidden" name="status" id="reviewDecisionStatus" value="approved">
             <input type="hidden" name="is_pending" id="reviewIsPending" value="0">
@@ -210,6 +210,11 @@ function openReviewModal(data) {
         previewImg.style.display = 'none';
     }
     document.getElementById('reviewModal').classList.add('open');
+}
+
+function openReviewModalFromElement(button) {
+    const payload = button?.dataset?.review || '{}';
+    openReviewModal(JSON.parse(payload));
 }
 </script>
 @endpush

@@ -21,7 +21,7 @@
         @media(max-width:1100px){.two{grid-template-columns:1fr}}@media(max-width:760px){.form{grid-template-columns:1fr}.header .brand-name{display:none}}
     </style>
 </head>
-<body class="hr">
+<body class="hr" data-notifications-feed-url="{{ route('notifications.feed') }}">
 <div class="app">
     <aside class="sidebar" id="sidebar">
         <div class="sb-top">
@@ -90,7 +90,7 @@
             <div class="sb-leave-balance">
                 <div class="sb-balance-title">
                     <span>My Leave Balance</span>
-                    <select class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
+                    <select id="sbBalanceFilter" class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
                         <option value="all">All Types</option>
                         @foreach($sidebarBalances ?? [] as $balance)
                             <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
@@ -175,9 +175,10 @@ function escapeHtml(value){
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char];
     })
 }
+const notificationsFeedUrl = document.body.getAttribute('data-notifications-feed-url');
 async function refreshNotifications(){
     try{
-        const response=await fetch(@json(route('notifications.feed')),{headers:{'Accept':'application/json'},credentials:'same-origin'});
+        const response = await fetch(notificationsFeedUrl,{headers:{'Accept':'application/json'},credentials:'same-origin'});
         if(!response.ok)return;
         const data=await response.json();
         const count=Number(data.unread_count||0);

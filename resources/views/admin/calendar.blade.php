@@ -41,30 +41,34 @@
         </div>
     </div>
 
-    <div class="cal-page-header">
-        <div class="cal-nav">
-            <a class="btn btn-icon" href="{{ route('admin.calendar', ['department_id' => $selectedDepartmentId, 'month' => $month->copy()->subMonth()->format('Y-m'), 'date' => $focus->copy()->subWeek()->toDateString(), 'view' => $view, 'leave_type_ids' => $selectedTypes]) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></a>
-            <span class="cal-nav-month">{{ $view === 'week' ? $start->format('M d').' - '.$end->format('M d, Y') : $month->format('F Y') }}</span>
-            <a class="btn btn-icon" href="{{ route('admin.calendar', ['department_id' => $selectedDepartmentId, 'month' => $month->copy()->addMonth()->format('Y-m'), 'date' => $focus->copy()->addWeek()->toDateString(), 'view' => $view, 'leave_type_ids' => $selectedTypes]) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
-        </div>
-        <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <input type="hidden" name="department_id" value="{{ $selectedDepartmentId }}">
-            <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
-            <input type="hidden" name="date" value="{{ $focus->toDateString() }}">
-            <select name="view" onchange="this.form.submit()" style="padding:6px 10px;font-size:15px"><option value="month" @selected($view==='month')>Monthly</option><option value="week" @selected($view==='week')>Weekly</option></select>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                @foreach($leaveTypes as $type)
-                    @php($slug = str($type->name)->slug())
-                    <label style="font-size:15px;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface)">
-                        <input type="checkbox" name="leave_type_ids[]" value="{{ $type->id }}" onchange="this.form.submit()" @checked(empty($selectedTypes) || in_array($type->id, $selectedTypes))>
-                        <span class="badge badge-{{ $slug === 'sick-leave' ? 'pending' : ($slug === 'vacation-leave' ? 'approved' : ($slug === 'emergency-leave' ? 'rejected' : 'info')) }}">{{ $type->name }}</span>
-                    </label>
-                @endforeach
+    <div class="calendar-card">
+        <div class="calendar-card-header">
+            <div class="calendar-card-navigation">
+                <div class="cal-nav">
+                    <a class="btn btn-icon cal-nav-button" href="{{ route('admin.calendar', ['department_id' => $selectedDepartmentId, 'month' => $month->copy()->subMonth()->format('Y-m'), 'date' => $focus->copy()->subWeek()->toDateString(), 'view' => $view, 'leave_type_ids' => $selectedTypes]) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></a>
+                    <span class="cal-nav-month">{{ $view === 'week' ? $start->format('M d').' - '.$end->format('M d, Y') : $month->format('F Y') }}</span>
+                    <a class="btn btn-icon cal-nav-button" href="{{ route('admin.calendar', ['department_id' => $selectedDepartmentId, 'month' => $month->copy()->addMonth()->format('Y-m'), 'date' => $focus->copy()->addWeek()->toDateString(), 'view' => $view, 'leave_type_ids' => $selectedTypes]) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+                </div>
             </div>
-        </form>
-    </div>
+            <form class="calendar-filter-bar" method="GET">
+                <input type="hidden" name="department_id" value="{{ $selectedDepartmentId }}">
+                <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
+                <input type="hidden" name="date" value="{{ $focus->toDateString() }}">
+                
+                <div class="leave-filter-chips">
+                    @foreach($leaveTypes as $type)
+                        @php($slug = str($type->name)->slug())
+                        <label class="leave-filter-chip leave-filter-{{ $slug }}">
+                            <input type="checkbox" name="leave_type_ids[]" value="{{ $type->id }}" onchange="this.form.submit()" @checked(empty($selectedTypes) || in_array($type->id, $selectedTypes))>
+                            <span class="leave-filter-chip-label">{{ $type->name }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                
+            </form>
+        </div>
 
-    <div class="full-cal-grid">
+        <div class="full-cal-grid">
         <div class="full-cal-dow">
             @foreach(['SUN','MON','TUE','WED','THU','FRI','SAT'] as $dow)
                 <span>{{ $dow }}</span>
@@ -77,10 +81,10 @@
                     <div class="cal-cell-num">{{ $day->day }}</div>
                     @foreach($items->take(3) as $leave)
                         @php($slug = str($leave->leaveType->name)->lower()->contains('sick') ? 'sick' : (str($leave->leaveType->name)->lower()->contains('emergency') ? 'emergency' : (str($leave->leaveType->name)->lower()->contains('maternity') ? 'maternity' : (str($leave->leaveType->name)->lower()->contains('bereavement') ? 'bereavement' : 'vacation'))))
-                        <div class="cal-event {{ $slug }}" title="{{ $leave->employee->full_name }} - {{ $leave->leaveType->name }}">{{ $leave->employee->full_name }}</div>
+                        <div class="cal-event {{ $slug }}" title="{{ $leave->employee->full_name }} - {{ $leave->leaveType->name }}">{{ \Illuminate\Support\Str::before($leave->employee->full_name, ' ') }} {{ \Illuminate\Support\Str::substr(\Illuminate\Support\Str::afterLast($leave->employee->full_name, ' '), 0, 1) }}.</div>
                     @endforeach
                     @if($items->count() > 3)
-                        <div class="cal-event">+{{ $items->count() - 3 }} more</div>
+                        <div class="cal-event more">+{{ $items->count() - 3 }} more</div>
                     @endif
                 </div>
             @endforeach

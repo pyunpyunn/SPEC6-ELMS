@@ -19,23 +19,23 @@
     <form method="POST" action="{{ route('register') }}">
         @csrf
         <div>
-            <label>Full Name</label>
-            <input type="text" name="name" value="{{ old('name') }}" required autofocus>
+            <label for="registerName">Full Name</label>
+            <input id="registerName" type="text" name="name" value="{{ old('name') }}" required autofocus>
         </div>
 
         <div>
-            <label>Email Address</label>
-            <input type="email" name="email" value="{{ old('email') }}" required>
+            <label for="registerEmail">Email Address</label>
+            <input id="registerEmail" type="email" name="email" value="{{ old('email') }}" required>
         </div>
 
         <div>
-            <label>Password</label>
-            <input type="password" name="password" required autocomplete="new-password">
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" type="password" name="password" required autocomplete="new-password">
         </div>
 
         <div>
-            <label>Confirm Password</label>
-            <input type="password" name="password_confirmation" required>
+            <label for="registerPasswordConfirmation">Confirm Password</label>
+            <input id="registerPasswordConfirmation" type="password" name="password_confirmation" required>
         </div>
 
         <button type="submit">Register</button>

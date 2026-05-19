@@ -1,4 +1,7 @@
-<div class="modal-overlay" id="applyLeaveModal">
+<div class="modal-overlay" id="applyLeaveModal" data-active-leave-ranges='@json(($activeLeaveRanges ?? collect())->values()->map(fn ($r) => [
+        'start' => $r['start'],
+        'end' => $r['end'],
+    ])->all())'>
     <div class="modal">
         <div class="modal-header">
             <h3>Apply for Leave</h3>
@@ -33,7 +36,7 @@
 
                 <div class="form-grid" style="gap:14px">
                     <div class="form-group span2">
-                        <label>Leave Type <span class="req">*</span></label>
+                        <label for="applyLeaveType">Leave Type <span class="req">*</span></label>
                         <select id="applyLeaveType" name="leave_type_id" onchange="handleLeaveTypeChange()" required>
                             <option value="">Select leave type...</option>
                             @foreach($leaveTypes as $type)
@@ -52,7 +55,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Start Date <span class="req">*</span></label>
+                        <label for="applyStart">Start Date <span class="req">*</span></label>
                         <input
                             type="date"
                             id="applyStart"
@@ -64,7 +67,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>End Date <span class="req">*</span></label>
+                        <label for="applyEnd">End Date <span class="req">*</span></label>
                         <input
                             type="date"
                             id="applyEnd"
@@ -90,12 +93,12 @@
                     </div>
 
                     <div class="form-group span2">
-                        <label>Total Working Days</label>
+                        <label for="applyTotalDays">Total Working Days</label>
                         <input id="applyTotalDays" readonly placeholder="Auto calculated" value="{{ old('total_days') }}">
                     </div>
 
                     <div class="form-group span2 leave-reason">
-                        <label>Reason <span class="req">*</span></label>
+                        <label for="applyReason">Reason <span class="req">*</span></label>
                         <textarea
                             id="applyReason"
                             name="reason"
@@ -105,7 +108,7 @@
                     </div>
 
                     <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none;">
-                        <label>
+                        <label for="proofFile">
                             Supporting Document <span id="proofRequired" class="req"></span>
                         </label>
 
@@ -321,12 +324,7 @@ function dismissConflictError() {
 
 // Expose approved-only active ranges to JS for overlap detection (UI only).
 // $activeLeaveRanges is built server-side from $leaveApplications.
-window.ACTIVE_LEAVE_RANGES = @json(
-    ($activeLeaveRanges ?? collect())->values()->map(fn ($r) => [
-        'start' => $r['start'],
-        'end' => $r['end'],
-    ])->all()
-);
+window.ACTIVE_LEAVE_RANGES = JSON.parse(document.getElementById('applyLeaveModal').dataset.activeLeaveRanges || '[]');
 
 function parseISODate(iso) {
     if (!iso) return null;

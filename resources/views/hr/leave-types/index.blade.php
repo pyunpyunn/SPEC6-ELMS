@@ -175,23 +175,24 @@
             <button class="modal-close" type="button" data-close-modal>✕</button>
         </div>
 
-        <form class="modal-body form" method="POST" id="leaveTypeForm" action="{{ route('admin.leave-types.store') }}">
+        <form class="modal-body form" method="POST" id="leaveTypeForm" action="{{ route('admin.leave-types.store') }}" data-store-url="{{ route('admin.leave-types.store') }}" autocomplete="off">
             @csrf
+            <input type="hidden" id="leaveTypeCsrfToken" value="{{ csrf_token() }}">
             <input type="hidden" name="_method" id="leaveTypeMethod" value="POST">
 
             <div class="full">
-                <label>Name</label>
-                <input type="text" name="name" id="leaveTypeName" placeholder="Bereavement Leave" required>
+                <label for="leaveTypeName">Name</label>
+                <input type="text" name="name" id="leaveTypeName" autocomplete="off" placeholder="Bereavement Leave" required>
             </div>
 
             <div>
-                <label>Annual Allocation</label>
-                <input type="number" name="annual_allocation" id="leaveTypeAllocation" min="1" max="365" value="15" required>
+                <label for="leaveTypeAllocation">Annual Allocation</label>
+                <input type="number" name="annual_allocation" id="leaveTypeAllocation" autocomplete="off" min="1" max="365" value="15" required>
             </div>
 
             <div>
-                <label>Gender</label>
-                <select name="gender" id="leaveTypeGender">
+                <label for="leaveTypeGender">Gender</label>
+                <select name="gender" id="leaveTypeGender" autocomplete="off">
                     <option value="">All Genders</option>
                     <option value="male">Male Only</option>
                     <option value="female">Female Only</option>
@@ -203,48 +204,49 @@
             </div>
 
             <div>
-                <label>Status</label>
-                <select name="is_active" id="leaveTypeStatus">
+                <label for="leaveTypeStatus">Status</label>
+                <select name="is_active" id="leaveTypeStatus" autocomplete="off">
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                 </select>
             </div>
 
             <div>
-                <label>Requires Approval</label>
-                <select name="requires_approval" id="leaveTypeApproval">
+                <label for="leaveTypeApproval">Requires Approval</label>
+                <select name="requires_approval" id="leaveTypeApproval" autocomplete="off">
                     <option value="1">Yes</option>
                     <option value="0">No</option>
                 </select>
             </div>
 
             <div>
-                <label>Compensable</label>
-                <select name="is_compensable" id="leaveTypeCompensable">
+                <label for="leaveTypeCompensable">Compensable</label>
+                <select name="is_compensable" id="leaveTypeCompensable" autocomplete="off">
                     <option value="0">No</option>
                     <option value="1">Yes</option>
                 </select>
             </div>
 
             <div>
-                <label>Requires Proof</label>
-                <select name="requires_proof" id="leaveTypeProof">
+                <label for="leaveTypeProof">Requires Proof</label>
+                <select name="requires_proof" id="leaveTypeProof" autocomplete="off">
                     <option value="0">No / Conditional</option>
                     <option value="1">Yes</option>
                 </select>
             </div>
 
             <div class="full">
-                <label>Proof Rules</label>
+                <label for="leaveTypeRules">Proof Rules</label>
                 <textarea name="proof_rules" id="leaveTypeRules" placeholder="Sick leave needs medical certificate for 3+ days" rows="3"></textarea>
             </div>
 
             <div id="maxDocumentDaysField" style="display:none;">
-                <label>Max Document Days <span class="req">*</span></label>
+                <label for="leaveTypeMaxDocumentDays">Max Document Days <span class="req">*</span></label>
                 <input
                     type="number"
                     name="max_document_days"
                     id="leaveTypeMaxDocumentDays"
+                    autocomplete="off"
                     min="0"
                     max="365"
                     value="0"
@@ -302,11 +304,7 @@ function openLeaveTypeModal(data = null) {
         document.getElementById('leaveTypeModalTitle').textContent = enableMode ? 'Enable Leave Type' : 'Add Leave Type';
         document.getElementById('leaveTypeSubmit').textContent = enableMode ? 'Enable' : 'Add Leave Type';
 
-        form.action = enableMode ? data.action : @json(route('admin.leave-types.store'));
-        method.value = enableMode ? 'PUT' : 'POST';
-
-        if (enableMode) {
-            document.getElementById('leaveTypeName').value = data.name || '';
+            form.action = enableMode ? data.action : form.dataset.storeUrl;
             document.getElementById('leaveTypeAllocation').value = data.annual_allocation ?? 15;
             document.getElementById('leaveTypeGender').value = data.gender || '';
             document.getElementById('leaveTypeStatus').value = '1';
@@ -382,13 +380,23 @@ function deleteLeaveType() {
         return;
     }
 
+    const csrfToken = document.getElementById('leaveTypeCsrfToken')?.value || '';
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = currentLeaveTypeData.delete_action;
-    form.innerHTML = `
-        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="_method" value="DELETE">
-    `;
+
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = '_token';
+    tokenInput.value = csrfToken;
+    form.appendChild(tokenInput);
+
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'DELETE';
+    form.appendChild(methodInput);
+
     document.body.appendChild(form);
     form.submit();
 }

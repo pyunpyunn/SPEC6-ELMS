@@ -60,11 +60,25 @@
                         <td>{{ $leave->reason }}</td>
                         <td><span class="badge badge-{{ $leave->status }}">{{ ucfirst($leave->status) }}</span></td>
                         <td>{{ $leave->reviewer?->name ?? '—' }}</td>
+                        @php
+                            $leavePayload = [
+                                'type' => $leave->leaveType->name,
+                                'start' => $leave->start_date->format('M d, Y'),
+                                'end' => $leave->end_date->format('M d, Y'),
+                                'days' => (int) $leave->total_days.' days',
+                                'status' => ucfirst($leave->status),
+                                'reviewer' => $leave->reviewer?->name ?? '—',
+                                'filed_at' => $leave->created_at->format('M d, Y g:i A'),
+                                'reason' => $leave->reason,
+                                'remarks' => $leave->remarks ?? '—',
+                                'proof' => $leave->proof_path,
+                            ];
+                        @endphp
                         <td>
                             @if($leave->status === 'pending')
-                                <button class="btn btn-danger btn-sm" type="button">Cancel</button>
+                                <span class="muted">Pending</span>
                             @else
-                                <button class="btn btn-outline btn-sm" type="button">View</button>
+                                <button class="btn btn-outline btn-sm" type="button" data-leave='@json($leavePayload)' onclick="openLeaveDetailsFromElement(this)">View</button>
                             @endif
                         </td>
                     </tr>
@@ -81,7 +95,7 @@
 <div class="modal-overlay" id="applyLeaveModal" onclick="closeApplyModal(event)">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3>Apply for Leave</h3>
+            <h3 class="modal-title">Apply for Leave</h3>
             <button class="modal-close" type="button" onclick="closeApplyModal(event)">✕</button>
         </div>
         <form class="modal-body" id="applyLeaveForm" method="POST" action="{{ route('admin.my-leave.store') }}" enctype="multipart/form-data">
@@ -89,9 +103,9 @@
             <div class="flash flash-warning">
                 Your leave request will be routed to another designated HR Admin for approval.
             </div>
-            <div class="form-grid" style="gap:14px">
+            <div class="form-grid">
                 <div class="form-group span2">
-                    <label>Leave Type <span class="req">*</span></label>
+                    <label class="form-label" for="applyLeaveType">Leave Type <span class="required-mark">*</span></label>
                     <select id="applyLeaveType" name="leave_type_id" onchange="handleLeaveTypeChange()" required>
                         <option value="">Select leave type...</option>
                         @foreach($leaveTypes as $type)
@@ -99,13 +113,13 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group"><label>Start Date <span class="req">*</span></label><input type="date" id="applyStart" name="start_date" onchange="calcDays()" required></div>
-                <div class="form-group"><label>End Date <span class="req">*</span></label><input type="date" id="applyEnd" name="end_date" onchange="calcDays()" required></div>
+                <div class="form-group"><label class="form-label" for="applyStart">Start Date <span class="required-mark">*</span></label><input class="form-control" type="date" id="applyStart" name="start_date" onchange="calcDays()" required></div>
+                <div class="form-group"><label class="form-label" for="applyEnd">End Date <span class="required-mark">*</span></label><input class="form-control" type="date" id="applyEnd" name="end_date" onchange="calcDays()" required></div>
                 <div class="flash flash-error" id="applyWeekendError" style="display:none;margin-top:10px">You can't select a weekend date.</div>
-                <div class="form-group span2"><label>Total Working Days</label><input id="applyTotalDays" readonly placeholder="Auto calculated"></div>
-                <div class="form-group span2"><label>Reason <span class="req">*</span></label><textarea id="applyReason" name="reason" placeholder="Describe your reason for leave..." required></textarea></div>
+                <div class="form-group span2"><label class="form-label" for="applyTotalDays">Total Working Days</label><input class="form-control field-readonly" id="applyTotalDays" readonly placeholder="Auto calculated"></div>
+                <div class="form-group span2"><label class="form-label" for="applyReason">Reason <span class="required-mark">*</span></label><textarea class="form-control" id="applyReason" name="reason" placeholder="Describe your reason for leave..." required></textarea></div>
                 <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none;">
-                    <label>Supporting Document <span id="proofRequired" class="req"></span></label>
+                    <label class="form-label" for="proofFile">Supporting Document <span id="proofRequired" class="required-mark"></span></label>
                     <div class="file-upload" onclick="document.getElementById('proofFile').click()">
                         <p>Drag & drop or click to upload</p>
                         <span>PDF, JPG, PNG up to 5MB</span>
@@ -118,6 +132,34 @@
         <div class="modal-footer">
             <button class="btn btn-outline" type="button" onclick="closeApplyModal(event)">Cancel</button>
             <button class="btn btn-primary" type="submit" form="applyLeaveForm">Submit Request</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="leaveDetailsModal" onclick="closeLeaveDetails(event)">
+    <div class="modal modal-lg" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">Leave Request Details</h3>
+            <button class="modal-close" type="button" onclick="closeLeaveDetails(event)">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="detail-row"><span class="dl">Leave Type</span><span class="dv" id="detailsLeaveType"></span></div>
+                <div class="detail-row"><span class="dl">Duration</span><span class="dv" id="detailsLeaveDates"></span></div>
+                <div class="detail-row"><span class="dl">Total Days</span><span class="dv" id="detailsLeaveDays"></span></div>
+                <div class="detail-row"><span class="dl">Status</span><span class="dv" id="detailsLeaveStatus"></span></div>
+                <div class="detail-row"><span class="dl">Reviewed By</span><span class="dv" id="detailsLeaveReviewer"></span></div>
+                <div class="detail-row"><span class="dl">Filed At</span><span class="dv" id="detailsLeaveFiledAt"></span></div>
+            </div>
+            <div class="form-group"><label class="form-label" for="detailsLeaveReason">Reason</label><textarea class="form-control field-readonly" readonly id="detailsLeaveReason"></textarea></div>
+            <div class="form-group"><label class="form-label">Remarks</label><div class="form-control field-readonly" id="detailsLeaveRemarks" style="min-height:80px;padding:12px;white-space:pre-wrap"></div></div>
+            <div class="form-group" id="detailsProofSection" style="display:none;margin-top:14px">
+                <label class="form-label">Supporting Document</label>
+                <a id="detailsProofLink" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer" href="#">Download</a>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" type="button" onclick="closeLeaveDetails(event)">Close</button>
         </div>
     </div>
 </div>
@@ -285,6 +327,45 @@ function calcDays() {
     }
     document.getElementById('applyTotalDays').value = count + ' working day' + (count !== 1 ? 's' : '');
     updateProofVisibility();
+}
+
+function openLeaveDetails(data) {
+    document.getElementById('detailsLeaveType').textContent = data.type || '';
+    document.getElementById('detailsLeaveDates').textContent = (data.start && data.end) ? `${data.start} – ${data.end}` : '';
+    document.getElementById('detailsLeaveDays').textContent = data.days || '';
+    document.getElementById('detailsLeaveStatus').innerHTML = '<span class="badge badge-' + (data.status || 'pending').toLowerCase() + '">' + (data.status || 'Pending') + '</span>';
+    document.getElementById('detailsLeaveReviewer').textContent = data.reviewer || '—';
+    document.getElementById('detailsLeaveFiledAt').textContent = data.filed_at || '';
+    document.getElementById('detailsLeaveReason').value = data.reason || '';
+    document.getElementById('detailsLeaveRemarks').textContent = data.remarks || '-';
+
+    const proofSection = document.getElementById('detailsProofSection');
+    const proofLink = document.getElementById('detailsProofLink');
+    const storageBase = '{{ asset("storage") }}';
+    if (data.proof) {
+        proofSection.style.display = 'block';
+        proofLink.href = storageBase + '/' + data.proof;
+        proofLink.textContent = data.proof.split('/').pop();
+    } else {
+        proofSection.style.display = 'none';
+        proofLink.href = '#';
+        proofLink.textContent = 'No document';
+    }
+
+    document.getElementById('leaveDetailsModal').classList.add('open');
+}
+
+function openLeaveDetailsFromElement(button) {
+    const payload = button?.dataset?.leave || '{}';
+    openLeaveDetails(JSON.parse(payload));
+}
+
+function closeLeaveDetails(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    document.getElementById('leaveDetailsModal').classList.remove('open');
 }
 
 // Initialize guards when scripts load

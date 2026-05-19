@@ -41,24 +41,24 @@
                 </div>
                 <div class="card-body">
                     @if(! $isViewingEmployee)
-                        <form class="form" method="POST" action="{{ route('admin.profile.update') }}">
+                        <form class="form-grid" method="POST" action="{{ route('admin.profile.update') }}">
                             @csrf
                             @method('PUT')
-                            <div><label>First Name</label><input name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
-                            <div><label>Last Name</label><input name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
-                            <div><label>Gender</label>
-                                <select name="gender">
+                            <div class="form-group"><label class="form-label" for="first_name">First Name</label><input class="form-control" id="first_name" name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
+                            <div class="form-group"><label class="form-label" for="last_name">Last Name</label><input class="form-control" id="last_name" name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
+                            <div class="form-group"><label class="form-label" for="gender">Gender</label>
+                                <select class="form-control" id="gender" name="gender">
                                     <option value="">Select gender</option>
                                     <option value="female" @selected(old('gender', $employee?->gender) === 'female')>Female</option>
                                     <option value="male" @selected(old('gender', $employee?->gender) === 'male')>Male</option>
                                     <option value="other" @selected(old('gender', $employee?->gender) === 'other')>Other</option>
                                 </select>
                             </div>
-                            <div><label>Email</label><input type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required></div>
-                            <div><label>Phone</label><input name="phone" value="{{ old('phone', $employee?->phone) }}"></div>
-                            <div class="full"><label>Address</label><input name="address" value="{{ old('address', $employee?->address) }}"></div>
+                            <div class="form-group"><label class="form-label" for="email">Email</label><input class="form-control" id="email" type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required></div>
+                            <div class="form-group"><label class="form-label" for="phone">Phone</label><input class="form-control" id="phone" name="phone" value="{{ old('phone', $employee?->phone) }}"></div>
+                            <div class="form-group span2"><label class="form-label" for="address">Address</label><input class="form-control" id="address" name="address" value="{{ old('address', $employee?->address) }}"></div>
                             <input type="hidden" name="contact_info" value="{{ $employee?->contact_info }}">
-                            <div class="full"><button class="btn btn-primary btn-sm" type="submit">Save Changes</button></div>
+                            <div class="form-group span2"><button class="btn btn-primary btn-sm" type="submit">Save Changes</button></div>
                         </form>
                     @else
                         <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
@@ -77,13 +77,13 @@
                         <span class="card-title">Change Password</span>
                     </div>
                     <div class="card-body">
-                        <form class="form" method="POST" action="{{ route('admin.profile.password') }}">
+                        <form class="form-grid" method="POST" action="{{ route('admin.profile.password') }}">
                             @csrf
                             @method('PUT')
-                            <div><label>Current Password</label><input type="password" name="current_password" required></div>
-                            <div><label>New Password</label><input type="password" name="password" required></div>
-                            <div class="full"><label>Confirm New Password</label><input type="password" name="password_confirmation" required></div>
-                            <div class="full"><button class="btn btn-outline btn-sm" type="submit">Update Password</button></div>
+                            <div class="form-group"><label class="form-label" for="current_password">Current Password</label><input class="form-control" id="current_password" type="password" name="current_password" required></div>
+                            <div class="form-group"><label class="form-label" for="password">New Password</label><input class="form-control" id="password" type="password" name="password" required></div>
+                            <div class="form-group span2"><label class="form-label" for="password_confirmation">Confirm New Password</label><input class="form-control" id="password_confirmation" type="password" name="password_confirmation" required></div>
+                            <div class="form-group span2"><button class="btn btn-outline btn-sm" type="submit">Update Password</button></div>
                         </form>
                     </div>
                 </div>

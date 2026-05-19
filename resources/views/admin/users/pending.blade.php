@@ -43,13 +43,16 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->created_at->format('M d, Y g:i A') }}</td>
                         <td><span class="badge badge-pending">Pending</span></td>
-                        <td>
-                            <button class="btn btn-primary btn-sm" type="button" onclick="openActivateModal(@js([
+                        @php
+                            $activateUserData = [
                                 'id' => $user->id,
                                 'name' => $user->name,
                                 'email' => $user->email,
                                 'employee_id' => $user->pending_employee_id,
-                            ]))">Activate</button>
+                            ];
+                        @endphp
+                        <td>
+                            <button class="btn btn-primary btn-sm" type="button" data-activate-user='@json($activateUserData)' onclick="openActivateModalFromElement(this)">Activate</button>
                         </td>
                     </tr>
                 @empty
@@ -64,11 +67,10 @@
     <!-- ALL USERS TAB (approved / registered accounts only) -->
     <div class="tab-pane" id="all-tab" style="display:none">
         <div class="card" style="box-shadow:none;border:none">
-            <p class="muted" style="margin:0 0 14px">Only HR-approved accounts appear here. Pending registrations stay in the Pending tab until activated.</p>
             <form class="filter-bar" method="GET" action="{{ route('admin.users.index') }}">
                 <div class="search-wrap">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input name="search" value="{{ $userFilters['search'] ?? request('search') }}" placeholder="Search by name or employee ID">
+                    <input id="adminUserSearch" type="search" name="search" value="{{ $userFilters['search'] ?? request('search') }}" placeholder="Search by name or employee ID" aria-label="Search users by name or employee ID">
                 </div>
                 <select name="department_id">
                     <option value="">All Departments</option>
@@ -110,25 +112,35 @@
                         </td>
                     <td><span class="badge badge-{{ $user->status }}">{{ ucfirst($user->status) }}</span></td>
                     <td class="actions">
-                            @if($user->status === 'active')
-                                <form method="POST" action="{{ route('admin.users.deactivate', $user) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this account?')">Deactivate</button>
-                                </form>
-                            @else
-                                <button class="btn btn-outline btn-sm" type="button" onclick="openActivateModal(@js([
-                                    'id' => $user->id,
-                                    'name' => $user->name,
-                                    'email' => $user->email,
-                                    'employee_id' => $user->pending_employee_id,
-                                    'role' => $user->role,
-                                    'department_id' => $user->employee?->department_id ?? $user->department_id,
-                                    'position_id' => $user->employee?->position_id ?? $user->position_id,
-                                    'manager_id' => $user->employee?->manager_id,
-                                ]))">Activate</button>
-                            @endif
-                        </td>
+                        @php
+                            $activateUserData = [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'email' => $user->email,
+                                'employee_id' => $user->pending_employee_id,
+                                'role' => $user->role,
+                                'department_id' => $user->employee?->department_id ?? $user->department_id,
+                                'position_id' => $user->employee?->position_id ?? $user->position_id,
+                                'manager_id' => $user->employee?->manager_id,
+                            ];
+                            $deleteUserData = [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'email' => $user->email,
+                            ];
+                        @endphp
+                        <div class="user-actions-menu" style="position:relative;display:inline-block">
+                            <button class="btn btn-outline btn-sm" type="button" onclick="toggleUserActionsMenu(this)" aria-expanded="false" aria-label="Open user actions">⋮</button>
+                            <div class="user-actions-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:180px;background:#ffffff;border:1px solid rgba(0,0,0,0.12);box-shadow:0 10px 24px rgba(0,0,0,0.08);z-index:40">
+                                @if($user->status === 'active')
+                                    <button type="button" class="dropdown-item" data-deactivate-url="{{ route('admin.users.deactivate', $user) }}" onclick="submitDeactivateFromElement(this)" style="width:100%;padding:12px 14px;text-align:left;border:none;background:transparent;cursor:pointer">Deactivate Account</button>
+                                @else
+                                    <button type="button" class="dropdown-item" data-activate-user='@json($activateUserData)' onclick="openActivateModalFromElement(this)" style="width:100%;padding:12px 14px;text-align:left;border:none;background:transparent;cursor:pointer">Activate Account</button>
+                                @endif
+                                <button type="button" class="dropdown-item" data-delete-user='@json($deleteUserData)' onclick="openDeleteModalFromElement(this)" style="width:100%;padding:12px 14px;text-align:left;border:none;background:transparent;cursor:pointer;color:#b91c1c">Delete Account Forever</button>
+                            </div>
+                        </div>
+                    </td>
                     </tr>
                 @empty
                     <tr><td colspan="7">No registered users found. Approved accounts will appear here after activation.</td></tr>
@@ -143,45 +155,43 @@
 <div class="modal-overlay" id="activateModal" onclick="closeActivateModal(event)">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3>Activate Account - <span id="activateTitle">User</span></h3>
+            <h3 class="modal-title">Activate Account - <span id="activateTitle">User</span></h3>
             <button class="modal-close" type="button" onclick="closeActivateModal(event)">✕</button>
         </div>
-        <form class="modal-body form" method="POST" id="activateForm">
+        <form class="modal-body" method="POST" id="activateForm" data-positions-by-department-url="{{ url('/positions-by-department') }}" data-activate-base-url="{{ url('/admin/users') }}">
             @csrf
             <div class="flash flash-warning">
                 Choose the department and position. The Employee ID and access role are derived automatically from that selection.
             </div>
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="activateName" readonly>
-            </div>
-            <div class="form-group">
-                <label>Gender</label>
-                <select name="gender" id="activateGender">
-                    <option value="">Select gender</option>
-                    <option value="female">Female</option>
-                    <option value="male">Male</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
+            <div class="form-grid">
                 <div class="form-group">
-                    <label>Employee ID</label>
-                    <input type="text" id="activateEmployeeId" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed;font-family:var(--mono)" value="Auto-generated">
+                    <label class="form-label" for="activateName">Full Name</label>
+                    <input class="form-control field-readonly" type="text" id="activateName" readonly>
                 </div>
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="activateEmail" readonly>
+                    <label class="form-label" for="activateGender">Gender</label>
+                    <select class="form-control" name="gender" id="activateGender">
+                        <option value="">Select gender</option>
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="other">Other</option>
+                    </select>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Access Role</label>
-                <input id="activateAccessRole" value="Auto-derived from department and position" readonly disabled style="background-color:#f0f0f0;cursor:not-allowed">
-            </div>
-            <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
                 <div class="form-group">
-                    <label>Department <span class="req">*</span></label>
-                    <select name="department_id" id="activateDepartment" required>
+                    <label class="form-label" for="activateEmployeeId">Employee ID</label>
+                    <input class="form-control field-readonly" type="text" id="activateEmployeeId" readonly disabled style="font-family:var(--mono)" value="Auto-generated">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="activateEmail">Email</label>
+                    <input class="form-control field-readonly" type="email" id="activateEmail" readonly>
+                </div>
+                <div class="form-group span2">
+                    <label class="form-label" for="activateAccessRole">Access Role</label>
+                    <input class="form-control field-readonly" id="activateAccessRole" value="Auto-derived from department and position" readonly disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="activateDepartment">Department <span class="required-mark">*</span></label>
+                    <select class="form-control" name="department_id" id="activateDepartment" required>
                         <option value="">Select department...</option>
                         @foreach($departments as $department)
                             <option value="{{ $department->id }}">{{ $department->name }}</option>
@@ -189,20 +199,18 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Position <span class="req">*</span></label>
-                    <select name="position_id" id="activatePosition" required>
+                    <label class="form-label" for="activatePosition">Position <span class="required-mark">*</span></label>
+                    <select class="form-control" name="position_id" id="activatePosition" required>
                         <option value="">Select department first...</option>
                     </select>
                 </div>
-            </div>
-            <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
                 <div class="form-group">
-                    <label>Date Hired</label>
-                    <input type="date" name="date_hired" id="activateDateHired" value="{{ now()->toDateString() }}">
+                    <label class="form-label" for="activateDateHired">Date Hired</label>
+                    <input class="form-control" type="date" name="date_hired" id="activateDateHired" value="{{ now()->toDateString() }}">
                 </div>
                 <div class="form-group">
-                    <label>Direct Manager</label>
-                    <select name="manager_id" id="activateManager">
+                    <label class="form-label" for="activateManager">Direct Manager</label>
+                    <select class="form-control" name="manager_id" id="activateManager">
                         <option value="">Select manager...</option>
                         @foreach($managers as $manager)
                             <option value="{{ $manager->id }}">{{ $manager->full_name }} · {{ $manager->position }}</option>
@@ -217,12 +225,53 @@
         </div>
     </div>
 </div>
+
+<div class="modal-overlay" id="deleteUserModal" onclick="closeDeleteModal(event)">
+    <div class="modal modal-md" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Delete User Account</h3>
+            <button class="modal-close" type="button" onclick="closeDeleteModal(event)">✕</button>
+        </div>
+
+        <br><p style="padding-left:22px">Name: <strong id="deleteUserName"></strong></p>
+        
+        <form class="modal-body form" method="POST" id="deleteUserForm" data-delete-base-url="{{ url('/admin/users') }}">
+            @csrf
+            @method('DELETE')
+
+            
+            <div class="form-group">
+
+                <div class="flash flash-error" id="deleteUserError"></div>
+                <p>This action permanently deletes the account and all related data. It cannot be undone.</p>
+            
+                <br>
+                <label for="deleteUserConfirmation">Type <strong>DELETE ACCOUNT FOREVER</strong> to confirm</label>
+                <input id="deleteUserConfirmation" name="confirm_delete_phrase" type="text" class="form-control" placeholder="DELETE ACCOUNT FOREVER" required>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button class="btn btn-outline" type="button" onclick="closeDeleteModal(event)">Cancel</button>
+            <button class="btn btn-danger" type="button" onclick="submitDeleteUser()">Delete Account</button>
+        </div>
+    </div>
+</div>
+<form id="deactivateUserForm" method="POST" style="display:none">
+    @csrf
+    @method('PATCH')
+</form>
 @endsection
 
 @push('scripts')
 <script>
 const activateState = { action: '', id: null };
-const positionsByDepartmentUrl = '{{ url('/positions-by-department') }}';
+const deleteState = { action: '', id: null };
+const activateForm = document.getElementById('activateForm');
+const deleteForm = document.getElementById('deleteUserForm');
+const deactivateForm = document.getElementById('deactivateUserForm');
+const positionsByDepartmentUrl = activateForm?.dataset?.positionsByDepartmentUrl || '';
+const activateBaseUrl = activateForm?.dataset?.activateBaseUrl || '';
+const deleteBaseUrl = deleteForm?.dataset?.deleteBaseUrl || '{{ url('/admin/users') }}';
 
 function switchVerificationTab(tab) {
     const pendingTab = document.getElementById('pending-tab');
@@ -260,7 +309,7 @@ window.addEventListener('hashchange', handleVerificationHash);
 
 function openActivateModal(data) {
     activateState.id = data.id;
-    activateState.action = data.action || '{{ url("/admin/users") }}/' + data.id + '/activate';
+    activateState.action = data.action || activateBaseUrl + '/' + data.id + '/activate';
     document.getElementById('activateTitle').textContent = data.name || 'User';
     document.getElementById('activateName').value = data.name || '';
     document.getElementById('activateEmail').value = data.email || '';
@@ -316,6 +365,96 @@ function closeActivateModal(event) {
         event.stopPropagation();
     }
     document.getElementById('activateModal').classList.remove('open');
+}
+
+function openActivateModalFromElement(button) {
+    const payload = button?.dataset?.activateUser || '{}';
+    openActivateModal(JSON.parse(payload));
+}
+
+function openDeleteModal(data) {
+    deleteState.id = data.id;
+    deleteState.action = deleteBaseUrl + '/' + data.id;
+    document.getElementById('deleteUserName').textContent = data.name || 'User';
+    document.getElementById('deleteUserConfirmation').value = '';
+    document.getElementById('deleteUserError').style.display = 'none';
+    document.getElementById('deleteUserForm').action = deleteState.action;
+    document.getElementById('deleteUserModal').classList.add('open');
+}
+
+function openDeleteModalFromElement(button) {
+    const payload = button?.dataset?.deleteUser || '{}';
+    openDeleteModal(JSON.parse(payload));
+}
+
+function closeDeleteModal(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    document.getElementById('deleteUserModal').classList.remove('open');
+}
+
+function submitDeleteUser() {
+    const confirmationInput = document.getElementById('deleteUserConfirmation');
+    const errorElement = document.getElementById('deleteUserError');
+
+    if (!confirmationInput) {
+        return;
+    }
+
+    if (confirmationInput.value.trim() !== 'DELETE ACCOUNT FOREVER') {
+        errorElement.textContent = 'Please type DELETE ACCOUNT FOREVER exactly to confirm deletion.';
+        errorElement.style.display = 'block';
+        return;
+    }
+
+    document.getElementById('deleteUserForm').submit();
+}
+
+function toggleUserActionsMenu(button) {
+    const menuContainer = button.closest('.user-actions-menu');
+    if (!menuContainer) {
+        return;
+    }
+
+    const dropdown = menuContainer.querySelector('.user-actions-dropdown');
+    const isOpen = dropdown && dropdown.style.display === 'block';
+    closeAllUserActionsMenus();
+
+    if (!isOpen && dropdown) {
+        dropdown.style.display = 'block';
+        button.setAttribute('aria-expanded', 'true');
+    }
+}
+
+function closeAllUserActionsMenus() {
+    document.querySelectorAll('.user-actions-dropdown').forEach(dropdown => {
+        dropdown.style.display = 'none';
+    });
+    document.querySelectorAll('.user-actions-menu button[aria-expanded="true"]').forEach(button => {
+        button.setAttribute('aria-expanded', 'false');
+    });
+}
+
+window.addEventListener('click', function (event) {
+    if (!event.target.closest('.user-actions-menu')) {
+        closeAllUserActionsMenus();
+    }
+});
+
+function submitDeactivateFromElement(button) {
+    const url = button?.dataset?.deactivateUrl;
+    if (!url) {
+        return;
+    }
+
+    if (!deactivateForm) {
+        return;
+    }
+
+    deactivateForm.action = url;
+    deactivateForm.submit();
 }
 
 function submitActivate() {

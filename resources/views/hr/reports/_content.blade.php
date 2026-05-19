@@ -27,7 +27,9 @@
     data-individual-url="{{ route('reports.individual-balance') }}"
     data-yearly-export-url="{{ route('reports.yearly-compensation.export') }}"
     data-individual-export-url="{{ route('reports.individual-balance.export') }}"
-    data-current-year="{{ $year }}">
+    data-current-year="{{ $year }}"
+    data-employee-options='@json($employeeOptions)'
+    data-position-options='@json($positionOptions)'>
     <section class="card report-section">
         <div class="card-h">
             <span>Yearly Compensation Review</span>
@@ -35,13 +37,13 @@
         </div>
         <div class="card-b">
             <div class="report-filters">
-                <select data-yearly-department>
+                <select data-yearly-department name="yearly_department" id="yearly-department">
                     <option value="">All Departments</option>
                     @foreach($departments as $department)
                         <option value="{{ $department->id }}">{{ $department->name }}</option>
                     @endforeach
                 </select>
-                <select data-yearly-year>
+                <select data-yearly-year name="yearly_year" id="yearly-year">
                     @foreach($yearOptions as $yearOption)
                         <option value="{{ $yearOption }}" @selected($yearOption == $year)>{{ $yearOption }}</option>
                     @endforeach
@@ -91,24 +93,24 @@
         </div>
         <div class="card-b">
             <div class="employee-search">
-                <input type="search" data-employee-search placeholder="Search by employee name or ID" autocomplete="off">
+                <input type="search" data-employee-search name="employee_search" id="employee-search" placeholder="Search by employee name or ID" autocomplete="off">
                 <div class="employee-results" data-employee-results hidden></div>
             </div>
 
             <div class="report-filters report-filters-individual">
-                <select data-individual-department>
+                <select data-individual-department name="individual_department" id="individual-department">
                     <option value="">Department</option>
                     @foreach($departments as $department)
                         <option value="{{ $department->id }}">{{ $department->name }}</option>
                     @endforeach
                 </select>
-                <select data-individual-position>
+                <select data-individual-position name="individual_position" id="individual-position">
                     <option value="">Position</option>
                 </select>
-                <select data-individual-employee>
+                <select data-individual-employee name="individual_employee" id="individual-employee">
                     <option value="">Employee Name</option>
                 </select>
-                <select data-individual-year>
+                <select data-individual-year name="individual_year" id="individual-year">
                     @foreach($yearOptions as $yearOption)
                         <option value="{{ $yearOption }}" @selected($yearOption == $year)>{{ $yearOption }}</option>
                     @endforeach
@@ -162,8 +164,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.querySelector('.report-page');
-    const employees = @json($employeeOptions);
-    const positions = @json($positionOptions);
+    const employees = JSON.parse(root.dataset.employeeOptions || '[]');
+    const positions = JSON.parse(root.dataset.positionOptions || '[]');
     const currentYear = root.dataset.currentYear;
     let resolvedEmployee = null;
     let searchEmployee = null;

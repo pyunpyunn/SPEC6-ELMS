@@ -67,3 +67,5 @@ Thumbs.db
 .ai.*
 **/.ai-*
 **/*-ai-*
+.tmp/
+*.tmp

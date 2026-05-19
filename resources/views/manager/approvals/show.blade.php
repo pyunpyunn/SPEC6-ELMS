@@ -12,11 +12,11 @@
         <span class="status-pill status-{{ $leave->status }}">{{ $leave->status }}</span>
     </div>
     <div class="form-grid">
-        <div><label>Leave Type</label><div>{{ $leave->leaveType->name }}</div></div>
-        <div><label>Duration</label><div>{{ $leave->start_date->format('M d, Y') }} to {{ $leave->end_date->format('M d, Y') }} ({{ (int) $leave->total_days }} days)</div></div>
-        <div class="form-full"><label>Reason</label><div class="cal-item">{{ $leave->reason }}</div></div>
+        <div><span class="form-label">Leave Type</span><div>{{ $leave->leaveType->name }}</div></div>
+        <div><span class="form-label">Duration</span><div>{{ $leave->start_date->format('M d, Y') }} to {{ $leave->end_date->format('M d, Y') }} ({{ (int) $leave->total_days }} days)</div></div>
+        <div class="form-full"><span class="form-label">Reason</span><div class="cal-item">{{ $leave->reason }}</div></div>
         <div class="form-full">
-            <label>Current Balance</label>
+            <span class="form-label">Current Balance</span>
             @foreach($leave->employee->leaveBalances as $balance)
                 @if($balance->leave_type_id === $leave->leave_type_id)
                     <div>{{ (int) $balance->remaining_days }} remaining of {{ (int) $balance->allocated_days }} {{ $balance->leaveType->name }} days</div>
@@ -25,7 +25,7 @@
         </div>
         @if($leave->proof_path)
             <div class="form-full">
-                <label>Attached Document</label>
+                <span class="form-label">Attached Document</span>
                 <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
                     <span style="font-size:15px;color:var(--text)">{{ basename($leave->proof_path) }}</span>
                     <a href="{{ asset('storage/' . $leave->proof_path) }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer" style="margin-left:auto">View Proof</a>

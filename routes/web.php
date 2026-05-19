@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('home') : redirect()->route('login');
+    return auth()->check() ? redirect()->route('home') : view('auth.login');
 });
 
 Route::middleware('auth')->get('/home', function () {
@@ -73,14 +73,7 @@ Route::middleware(['auth', 'account.approved'])->get('/notifications/{notificati
         $notification->update(['read_at' => now()]);
     }
 
-    $user = auth()->user();
-    $fallback = match (true) {
-        $user?->hasAccessRole('manager') && $notification->type === 'leave_request' => route('manager.approvals.index'),
-        $user?->hasAccessRole('manager') && $notification->type === 'leave_status' => route('manager.my-leave'),
-        default => $notification->action_url ?: route('home'),
-    };
-
-    return redirect($fallback);
+    return redirect($notification->action_url ?: route('home'));
 })->name('notifications.read');
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {
@@ -112,13 +105,9 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/requests', [AdminLeaveRequestController::class, 'index'])->name('requests.index');
             Route::patch('/requests/{leaveApplication}/review', [AdminLeaveRequestController::class, 'review'])->name('requests.review');
 
-            Route::get('/reports/yearly-compensation', [AdminReportController::class, 'yearlyCompensation'])->name('reports.yearly-compensation');
-            Route::get('/reports/individual-balance', [AdminReportController::class, 'individualBalance'])->name('reports.individual-balance');
-            Route::get('/reports/yearly-compensation/export', [AdminReportController::class, 'exportYearlyCompensation'])->name('reports.yearly-compensation.export');
-            Route::get('/reports/individual-balance/export', [AdminReportController::class, 'exportIndividualBalance'])->name('reports.individual-balance.export');
+            Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
             Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
             Route::get('/reports/calendar', [AdminReportController::class, 'calendar'])->name('reports.calendar');
-            Route::get('/reports/{section?}', [AdminReportController::class, 'index'])->name('reports.index');
             Route::get('/calendar', [AdminReportController::class, 'calendar'])->name('calendar');
 
             Route::get('/my-leave', [AdminProfileController::class, 'myLeave'])->name('my-leave');
@@ -129,16 +118,6 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
             Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
             Route::put('/profile/password', [AdminProfileController::class, 'password'])->name('profile.password');
-        });
-
-    Route::middleware(['account.approved', 'role:hr'])
-        ->prefix('reports')
-        ->name('reports.')
-        ->group(function () {
-            Route::get('/yearly-compensation', [AdminReportController::class, 'yearlyCompensation'])->name('yearly-compensation');
-            Route::get('/individual-balance', [AdminReportController::class, 'individualBalance'])->name('individual-balance');
-            Route::get('/yearly-compensation/export', [AdminReportController::class, 'exportYearlyCompensation'])->name('yearly-compensation.export');
-            Route::get('/individual-balance/export', [AdminReportController::class, 'exportIndividualBalance'])->name('individual-balance.export');
         });
 
     Route::middleware(['account.approved', 'role:manager'])
@@ -157,7 +136,6 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/team', [ManagerController::class, 'team'])->name('team');
             Route::get('/my-leave', [ManagerController::class, 'myLeave'])->name('my-leave');
             Route::post('/my-leave', [ManagerController::class, 'storeMyLeave'])->name('my-leave.store');
-            Route::patch('/my-leave/{leaveApplication}/cancel', [ManagerController::class, 'cancelMyLeave'])->name('my-leave.cancel');
             Route::get('/notifications', [ManagerController::class, 'notifications'])->name('notifications');
             Route::get('/notifications/{notification}/read', [ManagerController::class, 'readNotification'])->name('notifications.read');
             Route::get('/profile', [ManagerController::class, 'profile'])->name('profile');

@@ -90,7 +90,7 @@
             <div class="sb-leave-balance">
                 <div class="sb-balance-title">
                     <span>My Leave Balance</span>
-                    <select class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
+                    <select id="sbBalanceFilter" class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
                         <option value="all">All Types</option>
                         @foreach($sidebarBalances ?? [] as $balance)
                             <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
@@ -118,7 +118,7 @@
             </div>
             <div class="header-right">
                 <div class="notif-wrap">
-                    <button class="notif-btn" type="button" onclick="toggleNotifications()" title="Notifications">
+                    <button class="notif-btn" type="button" id="notifBtn" data-url="{{ route('notifications.feed') }}" onclick="toggleNotifications()" title="Notifications">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                         @php($unread = auth()->user()->notifications()->whereNull('read_at')->count())
                         <span class="notif-badge" data-notification-count style="{{ $unread ? '' : 'display:none' }}">{{ $unread }}</span>
@@ -176,8 +176,10 @@ function escapeHtml(value){
     })
 }
 async function refreshNotifications(){
+    const notificationsFeedUrl = document.getElementById('notifBtn')?.getAttribute('data-url');
+    if (!notificationsFeedUrl) return;
     try{
-        const response=await fetch(@json(route('notifications.feed')),{headers:{'Accept':'application/json'},credentials:'same-origin'});
+        const response = await fetch(notificationsFeedUrl,{headers:{'Accept':'application/json'},credentials:'same-origin'});
         if(!response.ok)return;
         const data=await response.json();
         const count=Number(data.unread_count||0);

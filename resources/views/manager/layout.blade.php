@@ -51,7 +51,7 @@
         <div class="sb-leave-balance">
             <div class="sb-balance-title">
                 <span>My Leave Balance</span>
-                <select class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
+                <select id="sbBalanceFilter" class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
                     <option value="all">All Types</option>
                     @foreach($sidebarBalances ?? [] as $balance)
                         <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
@@ -78,7 +78,7 @@
         </div>
         <div class="header-right">
             <div class="notif-wrap" id="notifWrap">
-                <button class="notif-btn" type="button" onclick="toggleNotif()" title="Notifications">
+                <button class="notif-btn" type="button" id="notifBtn" data-url="{{ route('notifications.feed') }}" onclick="toggleNotif()" title="Notifications">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     <span class="notif-badge" data-notification-count style="{{ ($unreadCount ?? 0) ? '' : 'display:none' }}">{{ $unreadCount ?? 0 }}</span>
                 </button>
@@ -129,8 +129,10 @@ if(localStorage.getItem('manager-dark')==='1'){document.documentElement.classLis
 function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(!type||type==='all'||item.dataset.type===type)?'flex':'none'})}
 function escapeHtml(value){return String(value ?? '').replace(/[&<>"']/g,function(char){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]})}
 async function refreshNotifications(){
+    const notificationsFeedUrl = document.getElementById('notifBtn')?.getAttribute('data-url');
+    if (!notificationsFeedUrl) return;
     try{
-        const response=await fetch(@json(route('notifications.feed')),{headers:{'Accept':'application/json'},credentials:'same-origin'});
+        const response = await fetch(notificationsFeedUrl,{headers:{'Accept':'application/json'},credentials:'same-origin'});
         if(!response.ok)return;
         const data=await response.json();
         const count=Number(data.unread_count||0);

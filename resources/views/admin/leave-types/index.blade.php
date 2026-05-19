@@ -27,7 +27,7 @@
     <div class="modal-overlay" id="leaveCompPolicyModal" style="display:none">
         <div class="modal modal-lg">
             <div class="modal-header">
-                <h3>Yearly Leave Compensation Policy</h3>
+                <h3 class="modal-title">Yearly Leave Compensation Policy</h3>
                 <button class="modal-close" type="button" id="leaveCompPolicyClose" aria-label="Close">✕</button>
             </div>
 
@@ -171,87 +171,92 @@
 <div class="modal-overlay" id="leaveTypeModal" style="display:none">
     <div class="modal modal-lg">
         <div class="modal-header">
-            <h3 id="leaveTypeModalTitle">Add Leave Type</h3>
+            <h3 class="modal-title" id="leaveTypeModalTitle">Add Leave Type</h3>
             <button class="modal-close" type="button" data-close-modal>✕</button>
         </div>
 
-        <form class="modal-body form" method="POST" id="leaveTypeForm" action="{{ route('admin.leave-types.store') }}">
+        <form class="modal-body" method="POST" id="leaveTypeForm" action="{{ route('admin.leave-types.store') }}" data-store-url="{{ route('admin.leave-types.store') }}" autocomplete="off">
             @csrf
+            <input type="hidden" id="leaveTypeCsrfToken" value="{{ csrf_token() }}">
             <input type="hidden" name="_method" id="leaveTypeMethod" value="POST">
 
-            <div class="full">
-                <label>Name</label>
-                <input type="text" name="name" id="leaveTypeName" placeholder="Bereavement Leave" required>
-            </div>
-
-            <div>
-                <label>Annual Allocation</label>
-                <input type="number" name="annual_allocation" id="leaveTypeAllocation" min="1" max="365" value="15" required>
-            </div>
-
-            <div>
-                <label>Gender</label>
-                <select name="gender" id="leaveTypeGender">
-                    <option value="">All Genders</option>
-                    <option value="male">Male Only</option>
-                    <option value="female">Female Only</option>
-                    <option value="other">Other</option>
-                </select>
-                <div class="form-hint" style="margin-top:6px">
-                    Leave this empty to make available to all genders.
+            <div class="form-grid">
+                <div class="form-group span2">
+                    <label class="form-label" for="leaveTypeName">Name <span class="required-mark">*</span></label>
+                    <input class="form-control" type="text" name="name" id="leaveTypeName" autocomplete="off" placeholder="Bereavement Leave" required>
                 </div>
-            </div>
 
-            <div>
-                <label>Status</label>
-                <select name="is_active" id="leaveTypeStatus">
-                    <option value="1">Active</option>
-                    <option value="0">Inactive</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="leaveTypeAllocation">Annual Allocation <span class="required-mark">*</span></label>
+                    <input class="form-control" type="number" name="annual_allocation" id="leaveTypeAllocation" autocomplete="off" min="1" max="365" value="15" required>
+                </div>
 
-            <div>
-                <label>Requires Approval</label>
-                <select name="requires_approval" id="leaveTypeApproval">
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="leaveTypeGender">Gender</label>
+                    <select class="form-control" name="gender" id="leaveTypeGender" autocomplete="off">
+                        <option value="">All Genders</option>
+                        <option value="male">Male Only</option>
+                        <option value="female">Female Only</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <div class="form-hint">
+                        Leave this empty to make available to all genders.
+                    </div>
+                </div>
 
-            <div>
-                <label>Compensable</label>
-                <select name="is_compensable" id="leaveTypeCompensable">
-                    <option value="0">No</option>
-                    <option value="1">Yes</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="leaveTypeStatus">Status</label>
+                    <select class="form-control" name="is_active" id="leaveTypeStatus" autocomplete="off">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
 
-            <div>
-                <label>Requires Proof</label>
-                <select name="requires_proof" id="leaveTypeProof">
-                    <option value="0">No / Conditional</option>
-                    <option value="1">Yes</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="leaveTypeApproval">Requires Approval</label>
+                    <select class="form-control" name="requires_approval" id="leaveTypeApproval" autocomplete="off">
+                        <option value="1">Yes</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
 
-            <div class="full">
-                <label>Proof Rules</label>
-                <textarea name="proof_rules" id="leaveTypeRules" placeholder="Sick leave needs medical certificate for 3+ days" rows="3"></textarea>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="leaveTypeCompensable">Compensable</label>
+                    <select class="form-control" name="is_compensable" id="leaveTypeCompensable" autocomplete="off">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
 
-            <div id="maxDocumentDaysField" style="display:none;">
-                <label>Max Document Days <span class="req">*</span></label>
-                <input
-                    type="number"
-                    name="max_document_days"
-                    id="leaveTypeMaxDocumentDays"
-                    min="0"
-                    max="365"
-                    value="0"
-                    placeholder="0 = no max / immediate"
-                >
-                <div class="form-hint" style="margin-top:6px">
-                    Maximum days before a user must upload a document (optional).
+                <div class="form-group">
+                    <label class="form-label" for="leaveTypeProof">Requires Proof</label>
+                    <select class="form-control" name="requires_proof" id="leaveTypeProof" autocomplete="off">
+                        <option value="0">No / Conditional</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="form-group span2">
+                    <label class="form-label" for="leaveTypeRules">Proof Rules</label>
+                    <textarea class="form-control" name="proof_rules" id="leaveTypeRules" placeholder="Sick leave needs medical certificate for 3+ days" rows="3"></textarea>
+                </div>
+
+                <div class="form-group span2" id="maxDocumentDaysField" style="display:none;">
+                    <label class="form-label" for="leaveTypeMaxDocumentDays">Max Document Days <span class="required-mark">*</span></label>
+                    <input
+                        class="form-control"
+                        type="number"
+                        name="max_document_days"
+                        id="leaveTypeMaxDocumentDays"
+                        autocomplete="off"
+                        min="0"
+                        max="365"
+                        value="0"
+                        placeholder="0 = no max / immediate"
+                    >
+                    <div class="form-hint">
+                        Maximum days before a user must upload a document (optional).
+                    </div>
                 </div>
             </div>
         </form>
@@ -302,11 +307,7 @@ function openLeaveTypeModal(data = null) {
         document.getElementById('leaveTypeModalTitle').textContent = enableMode ? 'Enable Leave Type' : 'Add Leave Type';
         document.getElementById('leaveTypeSubmit').textContent = enableMode ? 'Enable' : 'Add Leave Type';
 
-        form.action = enableMode ? data.action : @json(route('admin.leave-types.store'));
-        method.value = enableMode ? 'PUT' : 'POST';
-
-        if (enableMode) {
-            document.getElementById('leaveTypeName').value = data.name || '';
+            form.action = enableMode ? data.action : form.dataset.storeUrl;
             document.getElementById('leaveTypeAllocation').value = data.annual_allocation ?? 15;
             document.getElementById('leaveTypeGender').value = data.gender || '';
             document.getElementById('leaveTypeStatus').value = '1';
@@ -382,13 +383,23 @@ function deleteLeaveType() {
         return;
     }
 
+    const csrfToken = document.getElementById('leaveTypeCsrfToken')?.value || '';
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = currentLeaveTypeData.delete_action;
-    form.innerHTML = `
-        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="_method" value="DELETE">
-    `;
+
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = '_token';
+    tokenInput.value = csrfToken;
+    form.appendChild(tokenInput);
+
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'DELETE';
+    form.appendChild(methodInput);
+
     document.body.appendChild(form);
     form.submit();
 }

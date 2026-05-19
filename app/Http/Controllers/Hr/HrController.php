@@ -468,26 +468,13 @@ class HrController extends Controller
 
     public function reports(Request $request): View
     {
-        $section = $request->route('section') ?: $request->string('section', 'compensation');
-        $section = Str::lower($section ?: 'compensation');
-        if (! in_array($section, ['compensation', 'individual'], true)) {
-            $section = 'compensation';
-        }
-
         $year = $request->integer('year') ?: now()->year;
         $departmentId = $request->integer('department_id') ?: null;
-        $position = $request->string('position') ?: null;
         $employeeId = $request->integer('employee_id') ?: null;
-        $search = $request->string('search') ?: null;
 
         $balanceQuery = LeaveBalance::with(['employee.user', 'employee.departmentRecord', 'leaveType'])
             ->where('year', $year)
             ->when($departmentId, fn ($q) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $departmentId)))
-            ->when($search, fn ($q) => $q->whereHas('employee', fn ($eq) => 
-                $eq->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('employee_id', 'like', "%{$search}%")
-            ))
             ->whereHas('leaveType', fn ($leaveType) => $leaveType->where('is_compensable', true));
 
         $visibleBalances = $balanceQuery->get()
@@ -505,76 +492,36 @@ class HrController extends Controller
             ]
         );
 
-        $employeeQuery = Employee::with('user')
-            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
-            ->when($position, fn ($q) => $q->where('position', $position));
-        
-        $employees = $employeeQuery->orderBy('last_name')->get();
-        
-        $positions = Employee::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
-            ->select('position')
-            ->distinct()
-            ->orderBy('position')
-            ->pluck('position');
-
         $employeeReport = $employeeId
             ? Employee::with(['user', 'departmentRecord', 'leaveBalances' => fn ($q) => $q->where('year', $year)->with('leaveType'), 'leaveApplications.leaveType'])->find($employeeId)
             : null;
 
-        $yearOptions = array_map(fn ($y) => $y, range(now()->year - 5, now()->year + 1));
-
         return view('admin.reports.index', [
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
-            'employees' => $employees,
-            'positions' => $positions,
+            'employees' => Employee::with('user')->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->orderBy('last_name')->get(),
+            'positions' => Employee::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->select('position')->distinct()->orderBy('position')->pluck('position'),
             'summaries' => Department::with('employees.leaveApplications')->get(),
             'balances' => $balances,
             'employeeReport' => $employeeReport,
             'year' => $year,
-            'yearOptions' => $yearOptions,
-            'section' => $section,
             'selectedDepartmentId' => $departmentId,
-            'selectedPosition' => $position,
-            'selectedEmployeeId' => $employeeId,
-            'search' => $search,
-            'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
     public function export(Request $request)
     {
         $type = $request->query('type', 'leaves');
-        $section = $request->query('section', 'compensation');
-        $employeeId = $request->integer('employee_id') ?: null;
         $department = $request->department_id ? Department::find($request->department_id) : null;
-        $key = 'all-departments';
-
-        if ($section === 'individual' && $employeeId) {
-            $employee = Employee::find($employeeId);
-            $key = $employee ? Str::slug($employee->employee_id.'-'.$employee->full_name) : 'employee-'.$employeeId;
-        } elseif ($department) {
-            $key = Str::slug($department->code);
-        }
-
+        $key = $department ? Str::slug($department->code) : 'all-departments';
         $filename = 'elms-'.$type.'-'.$key.'-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($request, $type, $section, $employeeId) {
+        return response()->streamDownload(function () use ($request, $type) {
             $out = fopen('php://output', 'w');
-
             if ($type === 'balances') {
                 fputcsv($out, ['Employee ID', 'Name', 'Department', 'Position', 'Leave Type', 'Compensable', 'Year', 'Allocated', 'Used', 'Remaining', 'Daily Rate', 'Compensation']);
-
                 LeaveBalance::with(['employee.user', 'employee.departmentRecord', 'leaveType'])
                     ->when($request->year, fn ($q, $year) => $q->where('year', $year))
-                    ->when($section === 'individual' && $employeeId, fn ($q) => $q->where('employee_id', $employeeId))
-                    ->when($section === 'individual' && ! $employeeId, fn ($q) => $q->whereRaw('0=1'))
-                    ->when($section !== 'individual' && $request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $id)))
-                    ->when($section !== 'individual' && $request->position, fn ($q, $position) => $q->whereHas('employee', fn ($eq) => $eq->where('position', $position)))
-                    ->when($request->search, fn ($q, $search) => $q->whereHas('employee', fn ($eq) => 
-                        $eq->where('first_name', 'like', "%{$search}%")
-                          ->orWhere('last_name', 'like', "%{$search}%")
-                          ->orWhere('employee_id', 'like', "%{$search}%")
-                    ))
+                    ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $id)))
                     ->chunk(100, function ($balances) use ($out) {
                         foreach ($balances as $balance) {
                             if (! $balance->leaveType?->isVisibleForGender($balance->employee?->gender)) {
@@ -602,13 +549,8 @@ class HrController extends Controller
             }
 
             fputcsv($out, ['Employee ID', 'Name', 'Department', 'Position', 'Leave Type', 'Start', 'End', 'Days', 'Status', 'Reviewed By', 'Remarks']);
-
             LeaveApplication::with(['employee.user', 'employee.departmentRecord', 'leaveType', 'reviewer'])
-                ->when($section === 'individual' && $employeeId, fn ($q) => $q->where('employee_id', $employeeId))
-                ->when($section === 'individual' && ! $employeeId, fn ($q) => $q->whereRaw('0=1'))
                 ->when($request->department_id, fn ($q, $id) => $q->whereHas('employee', fn ($eq) => $eq->where('department_id', $id)))
-                ->when($request->position, fn ($q, $position) => $q->whereHas('employee', fn ($eq) => $eq->where('position', $position)))
-                ->when($request->year, fn ($q, $year) => $q->whereYear('start_date', $year))
                 ->chunk(100, function ($leaves) use ($out) {
                     foreach ($leaves as $leave) {
                         fputcsv($out, [

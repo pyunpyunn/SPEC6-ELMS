@@ -13,9 +13,9 @@
     </div>
 
     <div class="dash-dept-filter">
-        <label>Dashboard Department Filter</label>
+        <label for="dashboardDepartmentFilter">Dashboard Department Filter</label>
         <form method="GET" style="margin-left:auto;">
-            <select name="department_id" onchange="this.form.submit()">
+            <select id="dashboardDepartmentFilter" name="department_id" onchange="this.form.submit()">
                 <option value="">All Departments</option>
                 @foreach($departments as $department)
                     <option value="{{ $department->id }}" @selected($selectedDepartmentId === $department->id)>{{ $department->name }}</option>

@@ -8,7 +8,7 @@
             <p>Click a department to open the employee directory filtered to that team</p>
         </div>
         <div class="page-actions">
-            <button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('deptModal').classList.add('open')">New Department</button>
+            <button class="btn btn-primary btn-sm" type="button" id="newDeptBtn">New Department</button>
         </div>
     </div>
 
@@ -49,18 +49,18 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="deptModal" onclick="closeDeptModal(event)">
-    <div class="modal modal-lg" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="deptModal">
+    <div class="modal modal-lg">
         <div class="modal-header">
             <h3>New Department</h3>
-            <button class="modal-close" type="button" onclick="closeDeptModal(event)">✕</button>
+            <button class="modal-close" type="button" id="closeDeptBtn">✕</button>
         </div>
-        <form class="modal-body form" method="POST" action="{{ route('admin.departments.store') }}">
+        <form class="modal-body form" method="POST" id="deptForm" action="{{ route('admin.departments.store') }}">
             @csrf
             @include('hr.departments.partials.form', ['department' => null, 'button' => 'Create Department'])
         </form>
         <div class="modal-footer">
-            <button class="btn btn-outline" type="button" onclick="closeDeptModal(event)">Cancel</button>
+            <button class="btn btn-outline" type="button" id="cancelDeptBtn">Cancel</button>
         </div>
     </div>
 </div>
@@ -75,6 +75,31 @@ function closeDeptModal(event) {
     }
     document.getElementById('deptModal').classList.remove('open');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const deptModal = document.getElementById('deptModal');
+    const newDeptBtn = document.getElementById('newDeptBtn');
+    const closeDeptBtn = document.getElementById('closeDeptBtn');
+    const cancelDeptBtn = document.getElementById('cancelDeptBtn');
+    
+    newDeptBtn?.addEventListener('click', function() {
+        deptModal.classList.add('open');
+    });
+    
+    closeDeptBtn?.addEventListener('click', function(event) {
+        closeDeptModal(event);
+    });
+    
+    cancelDeptBtn?.addEventListener('click', function(event) {
+        closeDeptModal(event);
+    });
+    
+    deptModal?.addEventListener('click', function(event) {
+        if (event.target === deptModal) {
+            closeDeptModal(event);
+        }
+    });
+});
 </script>
 @endpush
 

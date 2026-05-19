@@ -44,19 +44,19 @@
                         <form class="form" method="POST" action="{{ route('admin.profile.update') }}">
                             @csrf
                             @method('PUT')
-                            <div><label>First Name</label><input name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
-                            <div><label>Last Name</label><input name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
-                            <div><label>Gender</label>
-                                <select name="gender">
+                            <div><label for="first_name">First Name</label><input id="first_name" name="first_name" value="{{ old('first_name', $employee?->first_name) }}" required></div>
+                            <div><label for="last_name">Last Name</label><input id="last_name" name="last_name" value="{{ old('last_name', $employee?->last_name) }}" required></div>
+                            <div><label for="gender">Gender</label>
+                                <select id="gender" name="gender">
                                     <option value="">Select gender</option>
                                     <option value="female" @selected(old('gender', $employee?->gender) === 'female')>Female</option>
                                     <option value="male" @selected(old('gender', $employee?->gender) === 'male')>Male</option>
                                     <option value="other" @selected(old('gender', $employee?->gender) === 'other')>Other</option>
                                 </select>
                             </div>
-                            <div><label>Email</label><input type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required></div>
-                            <div><label>Phone</label><input name="phone" value="{{ old('phone', $employee?->phone) }}"></div>
-                            <div class="full"><label>Address</label><input name="address" value="{{ old('address', $employee?->address) }}"></div>
+                            <div><label for="email">Email</label><input id="email" type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required></div>
+                            <div><label for="phone">Phone</label><input id="phone" name="phone" value="{{ old('phone', $employee?->phone) }}"></div>
+                            <div class="full"><label for="address">Address</label><input id="address" name="address" value="{{ old('address', $employee?->address) }}"></div>
                             <input type="hidden" name="contact_info" value="{{ $employee?->contact_info }}">
                             <div class="full"><button class="btn btn-primary btn-sm" type="submit">Save Changes</button></div>
                         </form>
@@ -80,9 +80,9 @@
                         <form class="form" method="POST" action="{{ route('admin.profile.password') }}">
                             @csrf
                             @method('PUT')
-                            <div><label>Current Password</label><input type="password" name="current_password" required></div>
-                            <div><label>New Password</label><input type="password" name="password" required></div>
-                            <div class="full"><label>Confirm New Password</label><input type="password" name="password_confirmation" required></div>
+                            <div><label for="current_password">Current Password</label><input id="current_password" type="password" name="current_password" required></div>
+                            <div><label for="password">New Password</label><input id="password" type="password" name="password" required></div>
+                            <div class="full"><label for="password_confirmation">Confirm New Password</label><input id="password_confirmation" type="password" name="password_confirmation" required></div>
                             <div class="full"><button class="btn btn-outline btn-sm" type="submit">Update Password</button></div>
                         </form>
                     </div>

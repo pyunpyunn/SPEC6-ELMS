@@ -17,7 +17,7 @@
                 @csrf
                 <div class="form-grid single">
                     <div>
-                        <label>Leave Type</label>
+                        <label for="managerLeaveType">Leave Type</label>
                         <select name="leave_type_id" id="managerLeaveType" onchange="updateManagerProofHint()" required>
                             @foreach($leaveTypes as $type)
                                 @php($balance = $employee?->leaveBalances->firstWhere('leave_type_id', $type->id))
@@ -25,13 +25,13 @@
                             @endforeach
                         </select>
                     </div>
-                    <div><label>Start Date</label><input type="date" id="managerApplyStartDate" name="start_date" value="{{ old('start_date') }}" required></div>
-                    <div><label>End Date</label><input type="date" id="managerApplyEndDate" name="end_date" value="{{ old('end_date') }}" required></div>
+                    <div><label for="managerApplyStartDate">Start Date</label><input type="date" id="managerApplyStartDate" name="start_date" value="{{ old('start_date') }}" required></div>
+                    <div><label for="managerApplyEndDate">End Date</label><input type="date" id="managerApplyEndDate" name="end_date" value="{{ old('end_date') }}" required></div>
                     <div class="flash flash-warning" id="managerWeekendError" style="display:none">You can't select a weekend date.</div>
-                    <div><label>Reason</label><textarea name="reason" rows="4" required>{{ old('reason') }}</textarea></div>
+                    <div><label for="managerLeaveReason">Reason</label><textarea id="managerLeaveReason" name="reason" rows="4" required>{{ old('reason') }}</textarea></div>
                     <div>
-                        <label>Attach Document</label>
-                        <input class="file-input-fit" type="file" name="proof">
+                        <label for="managerProofFile">Attach Document</label>
+                        <input id="managerProofFile" class="file-input-fit" type="file" name="proof">
                         <div class="muted" id="managerProofHint">Upload proof when required by the selected leave type.</div>
                     </div>
                 </div>
@@ -77,7 +77,7 @@
                                 <span class="muted">-</span>
                             @endif
                         </td>
-                        <td><button class="btn btn-outline btn-sm" type="button" onclick="openLeaveDetails(@js($reviewData))">View</button></td>
+                        <td><button class="btn btn-outline btn-sm" type="button" data-review='@json($reviewData)' onclick="openLeaveDetailsFromElement(this)">View</button></td>
                     </tr>
                 @empty
                     <tr><td colspan="7" class="muted">No personal leave requests yet.</td></tr>
@@ -92,7 +92,7 @@
 <div class="modal-overlay" id="leaveDetailsModal" onclick="closeLeaveDetails(event)">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3>Leave Request - <span id="detailsEmpName"></span></h3>
+            <h3 class="modal-title">Leave Request - <span id="detailsEmpName"></span></h3>
             <button class="modal-close" type="button" onclick="closeLeaveDetails(event)">x</button>
         </div>
         <div class="modal-body">
@@ -113,7 +113,7 @@
                 </div>
                 <div><div class="detail-row"><span class="dl">Proof</span><span class="dv" id="detailsProofText">-</span></div></div>
             </div>
-            <div class="form-group"><label>Reason</label><textarea readonly id="detailsReason" style="background:var(--surface2)"></textarea></div>
+            <div class="form-group"><label class="form-label" for="detailsReason">Reason</label><textarea class="form-control field-readonly" readonly id="detailsReason"></textarea></div>
             <div id="detailsProofSection" style="display:none;margin-top:15px">
                 <a id="detailsProofLink" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer" href="#">View Document</a>
             </div>
@@ -163,6 +163,11 @@ function openLeaveDetails(data) {
     }
 
     document.getElementById('leaveDetailsModal').classList.add('open');
+}
+
+function openLeaveDetailsFromElement(button) {
+    const payload = button?.dataset?.review || '{}';
+    openLeaveDetails(JSON.parse(payload));
 }
 
 function closeLeaveDetails(event) {

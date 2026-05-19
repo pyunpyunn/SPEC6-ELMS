@@ -12,8 +12,9 @@
     <form class="filter-bar" method="GET">
         <div class="filter-bar-row">
             <div class="search-wrap">
+                <label for="teamSearch" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;border:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">Search employees</label>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input name="search" value="{{ request('search') }}" placeholder="Search employees by employee ID...">
+                <input id="teamSearch" type="search" name="search" value="{{ request('search') }}" placeholder="Search employees by employee ID..." aria-label="Search employees by employee ID">
             </div>
         </div>
         <div class="filter-bar-row">
@@ -53,7 +54,7 @@
                     <td><span style="font-family:var(--mono);font-size:12px">{{ $member->employee_id }}</span></td>
                     <td>{{ $member->position }}</td>
                     <td><span class="badge badge-{{ $todayLeave ? 'pending' : 'active' }}">{{ $todayLeave ? 'On Leave Today' : 'Active' }}</span></td>
-                    <td><button class="btn btn-outline btn-sm" type="button" onclick="openEmployeeProfile(@js($profileData))">View</button></td>
+                    <td><button class="btn btn-outline btn-sm" type="button" data-profile='@json($profileData)' onclick="openEmployeeProfileFromElement(this)">View</button></td>
                 </tr>
             @empty
                 <tr><td colspan="5" class="muted">No active team members assigned.</td></tr>
@@ -67,7 +68,7 @@
 <div class="modal-overlay" id="teamProfileModal" onclick="closeEmployeeProfile(event)">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3 id="teamProfileName">Employee Profile</h3>
+            <h3 class="modal-title" id="teamProfileName">Employee Profile</h3>
             <button class="modal-close" type="button" onclick="closeEmployeeProfile(event)">x</button>
         </div>
         <div class="modal-body">
@@ -113,6 +114,11 @@ function openEmployeeProfile(data) {
         : '<tr><td colspan="4" class="muted">No leave balances available.</td></tr>';
     document.getElementById('teamProfileBalances').innerHTML = rows;
     document.getElementById('teamProfileModal').classList.add('open');
+}
+
+function openEmployeeProfileFromElement(button) {
+    const payload = button?.dataset?.profile || '{}';
+    openEmployeeProfile(JSON.parse(payload));
 }
 
 function closeEmployeeProfile(event) {
