@@ -782,6 +782,7 @@ html.dark .hr thead tr {
   border-radius:24px;
 }
 .filter-bar .btn,.analytics-filter-bar .btn{min-height:46px;border-radius:24px;}
+.file-input-fit{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sb-balance-row{display:block}
 .sb-balance-item{padding:3px 0}
 .sb-lb-bar{height:4px;background:rgba(255,255,255,.14);border-radius:999px;margin:0 0 7px;overflow:hidden}

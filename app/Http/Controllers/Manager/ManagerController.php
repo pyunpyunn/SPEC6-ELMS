@@ -26,7 +26,11 @@ class ManagerController extends Controller
     public function dashboard(Request $request): View
     {
         $manager = $this->managerEmployee($request);
-        $requests = $this->teamLeaveQuery($manager)->latest()->take(5)->get();
+        $requests = $this->teamLeaveQuery($manager)
+            ->where('status', 'pending')
+            ->latest()
+            ->paginate(4, ['*'], 'pending_page')
+            ->withQueryString();
 
         return view('manager.dashboard', $this->baseData($request) + [
             'pendingRequests' => $requests,
@@ -47,11 +51,27 @@ class ManagerController extends Controller
         return view('manager.approvals.index', $this->baseData($request) + [
             'requests' => $this->teamLeaveQuery($manager)
                 ->when($request->filled('search'), function ($query) use ($request) {
-                    $search = trim($request->string('search'));
-                    $query->whereHas('employee', function ($employee) use ($search) {
-                        $employee->where('first_name', 'like', "%{$search}%")
-                            ->orWhere('last_name', 'like', "%{$search}%")
-                            ->orWhere('employee_id', 'like', "%{$search}%");
+                    $search = trim($request->string('search')->toString());
+                    $tokens = collect(preg_split('/\s+/', $search) ?: [])->filter()->values();
+                    $query->where(function ($searchQuery) use ($search, $tokens): void {
+                        $searchQuery->whereHas('employee', function ($employee) use ($search) {
+                            $employee->where('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('employee_id', 'like', "%{$search}%");
+                        });
+
+                        $searchQuery->orWhereHas('leaveType', fn ($leaveType) => $leaveType->where('name', 'like', "%{$search}%"));
+
+                        if ($tokens->count() > 1) {
+                            $searchQuery->orWhereHas('employee', function ($employee) use ($tokens) {
+                                $tokens->each(function (string $token) use ($employee): void {
+                                    $employee->where(function ($name) use ($token): void {
+                                        $name->where('first_name', 'like', "%{$token}%")
+                                            ->orWhere('last_name', 'like', "%{$token}%");
+                                    });
+                                });
+                            });
+                        }
                     });
                 })
                 ->when($request->filled('leave_type_id'), fn ($query) => $query->where('leave_type_id', $request->integer('leave_type_id')))
@@ -59,7 +79,7 @@ class ManagerController extends Controller
                 ->when($request->filled('date_from'), fn ($query) => $query->whereDate('start_date', '>=', $request->input('date_from')))
                 ->when($request->filled('date_to'), fn ($query) => $query->whereDate('start_date', '<=', $request->input('date_to')))
                 ->latest()
-                ->paginate(10)
+                ->paginate(7)
                 ->withQueryString(),
             'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
         ]);
@@ -107,7 +127,9 @@ class ManagerController extends Controller
                 $leaveApplication->employee->user,
                 'Leave request '.$validated['status'],
                 'Your '.$leaveApplication->leaveType->name.' request was '.$validated['status'].' by your manager.',
-                route('home'),
+                $leaveApplication->employee->user?->hasAccessRole('manager')
+                    ? route('manager.my-leave')
+                    : route('home'),
                 'leave_status'
             );
 
@@ -154,8 +176,19 @@ class ManagerController extends Controller
         return view('manager.team', $this->baseData($request) + [
             'teamMembers' => $this->teamEmployeesQuery($manager)
                 ->with(['user', 'departmentRecord', 'leaveBalances.leaveType', 'leaveApplications.leaveType'])
+                ->when($request->filled('search'), function ($query) use ($request) {
+                    $search = trim($request->string('search')->toString());
+                    $query->where(function ($sub) use ($search): void {
+                        $sub->where('employee_id', 'like', "%{$search}%")
+                            ->orWhere('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%");
+                    });
+                })
+                ->when($request->filled('leave_type_id'), fn ($query) => $query->whereHas('leaveBalances', fn ($balance) => $balance->where('leave_type_id', $request->integer('leave_type_id'))))
                 ->orderBy('last_name')
-                ->paginate(10),
+                ->paginate(7)
+                ->withQueryString(),
+            'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -166,8 +199,23 @@ class ManagerController extends Controller
         return view('manager.my-leave', $this->baseData($request) + [
             'employee' => $employee,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
-            'myLeaves' => $employee?->leaveApplications()->with('leaveType')->latest()->paginate(10) ?? collect(),
+            'myLeaves' => $employee?->leaveApplications()->with(['leaveType', 'reviewer'])->latest()->paginate(7)->withQueryString() ?? collect(),
         ]);
+    }
+
+    public function cancelMyLeave(Request $request, LeaveApplication $leaveApplication): RedirectResponse
+    {
+        $employee = $this->managerEmployee($request);
+
+        abort_unless($employee && $leaveApplication->employee_id === $employee->id, 403);
+
+        if ($leaveApplication->status !== 'pending') {
+            return back()->with('warning', 'Only pending leave requests can be cancelled.');
+        }
+
+        $leaveApplication->delete();
+
+        return back()->with('success', 'Pending leave request cancelled.');
     }
 
     public function storeMyLeave(StoreManagerLeaveRequest $request): RedirectResponse
@@ -290,13 +338,16 @@ class ManagerController extends Controller
         abort_unless($notification->user_id === auth()->id(), 403);
         $notification->update(['read_at' => $notification->read_at ?: now()]);
 
-        return redirect($notification->action_url ?: route('manager.notifications'));
+        return redirect($this->managerNotificationUrl($notification));
     }
 
     public function profile(Request $request): View
     {
         return view('manager.profile', $this->baseData($request) + [
-            'employee' => $this->managerEmployee($request)?->load('departmentRecord'),
+            'employee' => $this->managerEmployee($request)?->load(['departmentRecord', 'leaveBalances.leaveType', 'leaveApplications.leaveType', 'leaveApplications.reviewer']),
+            'leaveTypes' => $this->visibleLeaveTypes($this->managerEmployee($request)),
+            'leaveBalances' => $this->managerEmployee($request)?->leaveBalances ?? collect(),
+            'leaveApplications' => $this->managerEmployee($request)?->leaveApplications()->with(['leaveType', 'reviewer'])->latest()->paginate(7, ['*'], 'history_page')->withQueryString() ?? collect(),
         ]);
     }
 
@@ -415,6 +466,19 @@ class ManagerController extends Controller
     private function notify(User $user, string $title, string $body, ?string $url = null, string $type = 'info'): void
     {
         SystemNotification::sendTo($user, $title, $body, $url, $type);
+    }
+
+    private function managerNotificationUrl(SystemNotification $notification): string
+    {
+        if ($notification->type === 'leave_request') {
+            return route('manager.approvals.index');
+        }
+
+        if ($notification->type === 'leave_status') {
+            return route('manager.my-leave');
+        }
+
+        return $notification->action_url ?: route('manager.notifications');
     }
 
     private function calendarGridData($leaves, int $year, int $month): array
