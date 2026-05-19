@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('home') : view('welcome');
+    return auth()->check() ? redirect()->route('home') : redirect()->route('login');
 });
 
 Route::middleware('auth')->get('/home', function () {
