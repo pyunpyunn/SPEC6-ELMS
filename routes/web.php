@@ -120,6 +120,19 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::put('/profile/password', [AdminProfileController::class, 'password'])->name('profile.password');
         });
 
+    Route::middleware(['auth', 'profile.complete', 'account.approved', 'role:hr'])
+        ->prefix('admin')
+        ->group(function () {
+            Route::get('/reports/yearly-compensation', [AdminReportController::class, 'yearlyCompensation'])
+                ->name('reports.yearly-compensation');
+            Route::get('/reports/individual-balance', [AdminReportController::class, 'individualBalance'])
+                ->name('reports.individual-balance');
+            Route::get('/reports/yearly-compensation/export', [AdminReportController::class, 'exportYearlyCompensation'])
+                ->name('reports.yearly-compensation.export');
+            Route::get('/reports/individual-balance/export', [AdminReportController::class, 'exportIndividualBalance'])
+                ->name('reports.individual-balance.export');
+        });
+
     Route::middleware(['account.approved', 'role:manager'])
         ->prefix('manager')
         ->name('manager.')

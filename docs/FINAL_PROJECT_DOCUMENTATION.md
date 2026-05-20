@@ -40,25 +40,25 @@ erDiagram
 
 ## Important Tables
 
-| Table | Purpose |
-| --- | --- |
-| `users` | Login credentials, role, status, pending employee ID, department, and position |
-| `employees` | Employee profile, company employee ID, department, position, manager, gender, contact info, hire date, and status |
-| `departments` | Department code, name, description, manager, and active flag |
-| `positions` | Department-specific positions |
-| `leave_types` | Leave type name, allocation, approval flag, proof rules, compensable flag, and active flag |
-| `leave_balances` | Employee yearly allocation, used days, and computed remaining days |
-| `leave_applications` | Filed leave requests, dates, total days, status, remarks, reviewer, and proof path |
+| Table                  | Purpose |
+| ---                    | --- |
+| `users`                | Login credentials, role, status, pending employee ID, department, and position |
+| `employees`            | Employee profile, company employee ID, department, position, manager, gender, contact info, hire date, and status |
+| `departments`          | Department code, name, description, manager, and active flag |
+| `positions`            | Department-specific positions |
+| `leave_types`          | Leave type name, allocation, approval flag, proof rules, compensable flag, and active flag |
+| `leave_balances`       | Employee yearly allocation, used days, and computed remaining days |
+| `leave_applications`   | Filed leave requests, dates, total days, status, remarks, reviewer, and proof path |
 | `system_notifications` | In-app notifications and read status |
 
 ## Routes and Controllers
 
-| Area | Route Prefix | Main Controller Files |
-| --- | --- | --- |
-| HR Admin | `/admin` | `app/Http/Controllers/Admin/*`, delegated business logic in `app/Http/Controllers/Hr/HrController.php` |
-| Manager | `/manager` | `app/Http/Controllers/Manager/ManagerController.php`, `LeaveApprovalController.php` |
-| Employee | `/employee` | `app/Http/Controllers/Employee/*`, shared logic in `EmployeePortalController.php` |
-| Auth | `/login`, `/register`, `/forgot-password` | Fortify setup in `app/Providers/FortifyServiceProvider.php` |
+| Area          | Route Prefix          | Main Controller Files |
+| ---           | ---                   | --- |
+| HR Admin      | `/admin`             | `app/Http/Controllers/Admin/*`, delegated business logic in `app/Http/Controllers/Hr/HrController.php` |
+| Manager       | `/manager`           | `app/Http/Controllers/Manager/ManagerController.php`, `LeaveApprovalController.php` |
+| Employee      | `/employee`          | `app/Http/Controllers/Employee/*`, shared logic in `EmployeePortalController.php` |
+| Auth          | `/login`, `/register`, `/forgot-password` | Fortify setup in `app/Providers/FortifyServiceProvider.php` |
 | Notifications | `/notifications/feed` | Closure route in `routes/web.php` using `SystemNotification` |
 
 ## Screenshots to Capture for Submission

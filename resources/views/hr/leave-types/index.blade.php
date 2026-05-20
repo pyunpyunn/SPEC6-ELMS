@@ -295,41 +295,54 @@ function openLeaveTypeModal(data = null) {
     const form = document.getElementById('leaveTypeForm');
     const method = document.getElementById('leaveTypeMethod');
     const deleteButton = document.getElementById('deleteButton');
-
     document.getElementById('leaveTypeModal').style.display = 'flex';
-    currentLeaveTypeData = data;
+    currentLeaveTypeData = data || null;
     enableMode = data?.enable_mode === true;
 
-    if (!data || enableMode) {
-        document.getElementById('leaveTypeModalTitle').textContent = enableMode ? 'Enable Leave Type' : 'Add Leave Type';
-        document.getElementById('leaveTypeSubmit').textContent = enableMode ? 'Enable' : 'Add Leave Type';
+    // Add new leave type
+    if (!data) {
+        document.getElementById('leaveTypeModalTitle').textContent = 'Add Leave Type';
+        document.getElementById('leaveTypeSubmit').textContent = 'Add Leave Type';
+        method.value = 'POST';
+        form.action = form.dataset.storeUrl;
 
-            form.action = enableMode ? data.action : form.dataset.storeUrl;
-            document.getElementById('leaveTypeAllocation').value = data.annual_allocation ?? 15;
-            document.getElementById('leaveTypeGender').value = data.gender || '';
-            document.getElementById('leaveTypeStatus').value = '1';
-            document.getElementById('leaveTypeApproval').value = String(data.requires_approval ?? 1);
-            document.getElementById('leaveTypeCompensable').value = String(data.is_compensable ?? 0);
-            document.getElementById('leaveTypeProof').value = String(data.requires_proof ?? 0);
-            document.getElementById('leaveTypeRules').value = data.proof_rules || '';
-            document.getElementById('leaveTypeMaxDocumentDays').value = data.max_document_days ?? '';
-        } else {
-            document.getElementById('leaveTypeName').value = '';
-            document.getElementById('leaveTypeAllocation').value = 15;
-            document.getElementById('leaveTypeGender').value = '';
-            document.getElementById('leaveTypeStatus').value = '1';
-            document.getElementById('leaveTypeApproval').value = '1';
-            document.getElementById('leaveTypeCompensable').value = '0';
-            document.getElementById('leaveTypeProof').value = '0';
-            document.getElementById('leaveTypeRules').value = '';
-            document.getElementById('leaveTypeMaxDocumentDays').value = '';
-        }
+        document.getElementById('leaveTypeName').value = '';
+        document.getElementById('leaveTypeAllocation').value = 15;
+        document.getElementById('leaveTypeGender').value = '';
+        document.getElementById('leaveTypeStatus').value = '1';
+        document.getElementById('leaveTypeApproval').value = '1';
+        document.getElementById('leaveTypeCompensable').value = '0';
+        document.getElementById('leaveTypeProof').value = '0';
+        document.getElementById('leaveTypeRules').value = '';
+        document.getElementById('leaveTypeMaxDocumentDays').value = '';
+
         deleteButton.style.display = 'none';
         toggleLeaveTypeDocumentDays();
-
         return;
     }
 
+    // Enable previously inactive leave type
+    if (enableMode) {
+        document.getElementById('leaveTypeModalTitle').textContent = 'Enable Leave Type';
+        document.getElementById('leaveTypeSubmit').textContent = 'Enable';
+        method.value = 'POST';
+        form.action = data.action;
+
+        document.getElementById('leaveTypeAllocation').value = data.annual_allocation ?? 15;
+        document.getElementById('leaveTypeGender').value = data.gender || '';
+        document.getElementById('leaveTypeStatus').value = '1';
+        document.getElementById('leaveTypeApproval').value = String(data.requires_approval ?? 1);
+        document.getElementById('leaveTypeCompensable').value = String(data.is_compensable ?? 0);
+        document.getElementById('leaveTypeProof').value = String(data.requires_proof ?? 0);
+        document.getElementById('leaveTypeRules').value = data.proof_rules || '';
+        document.getElementById('leaveTypeMaxDocumentDays').value = data.max_document_days ?? '';
+
+        deleteButton.style.display = 'none';
+        toggleLeaveTypeDocumentDays();
+        return;
+    }
+
+    // Edit existing leave type
     document.getElementById('leaveTypeModalTitle').textContent = 'Edit Configuration';
     document.getElementById('leaveTypeSubmit').textContent = 'Save Changes';
 

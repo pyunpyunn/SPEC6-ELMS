@@ -6,40 +6,318 @@
     <title>Login - NAV Employee Leave Management System</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root{--bg:#0f1712;--panel:#17241d;--panel2:#1f2d25;--line:#30453a;--text:#edf5ef;--muted:#a7b9ae;--accent:#5ab88b;--accent2:#86d2af;--danger:#ef7b7b}
-        *{box-sizing:border-box} html,body{margin:0;min-height:100%} body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);background:
-            radial-gradient(circle at top left, rgba(90,184,139,.18), transparent 32%),
-            radial-gradient(circle at top right, rgba(134,210,175,.16), transparent 28%),
-            linear-gradient(180deg, #0d1410 0%, #111a14 100%);min-height:100vh;display:grid;place-items:center;padding:24px}
-        .shell{width:min(1080px,100%);display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:stretch}
-        .hero,.card{border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg, rgba(23,36,29,.96), rgba(17,25,20,.96));box-shadow:0 20px 60px rgba(0,0,0,.28);border-radius:24px}
-        .hero{padding:34px;display:flex;flex-direction:column;justify-content:space-between;min-height:620px;position:relative;overflow:hidden}
-        .hero::after{content:'';position:absolute;inset:auto -120px -120px auto;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle, rgba(90,184,139,.18), transparent 70%);filter:blur(10px)}
-        .brand{display:flex;align-items:center;gap:12px}
-        .mark{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#32744f);display:grid;place-items:center;color:#fff;font-weight:900}
-        .brand h1{margin:0;font-size:18px;letter-spacing:-.03em}
-        .hero h2{margin:28px 0 10px;font-size:42px;line-height:1.02;letter-spacing:-.05em;max-width:10ch}
-        .hero p{margin:0;color:var(--muted);font-size:16px;line-height:1.7;max-width:54ch}
-        .feature{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:28px;position:relative;z-index:1}
-        .feature div{padding:14px 15px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
-        .feature strong{display:block;font-size:15px;margin-bottom:4px}
-        .feature span{font-size:15px;color:var(--muted)}
-        .card{padding:30px}
-        .tabs{display:flex;gap:10px;margin-bottom:24px}
-        .tabs a{flex:1;text-align:center;padding:12px 16px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.02)}
-        .tabs a.active{background:var(--accent);border-color:var(--accent);color:#0f1712}
-        .card h3{margin:0 0 6px;font-size:28px;letter-spacing:-.04em}
-        .card p{margin:0 0 22px;color:var(--muted);font-size:15px;line-height:1.6}
-        label{display:block;font-size:15px;font-weight:700;margin:14px 0 8px}
-        input{width:100%;min-height:48px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:15px;outline:none}
-        input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(90,184,139,.14)}
-        .actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}
-        .btn{min-height:48px;padding:12px 18px;border:0;border-radius:14px;background:var(--accent);color:#0f1712;font-weight:800;font-size:15px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
-        .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
-        .hint{margin-top:18px;padding:14px 16px;border-radius:14px;background:rgba(90,184,139,.09);border:1px solid rgba(90,184,139,.18);color:#cbe8d7;font-size:15px;line-height:1.5}
-        .err{margin-top:10px;padding:12px 14px;border-radius:12px;background:rgba(239,123,123,.12);border:1px solid rgba(239,123,123,.18);color:#ffd3d3;font-size:15px}
-        .foot{margin-top:16px;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:15px}
-        @media (max-width: 920px){.shell{grid-template-columns:1fr}.hero{min-height:unset}.hero h2{font-size:34px}.feature{grid-template-columns:1fr}}
+        :root {
+            --bg: #e9f3ea;
+            --panel: #0f2d1f;
+            --panel2: #163d2a;
+            --panel3: #1f593d;
+            --line: rgba(255,255,255,.08);
+            --text: #f6fbf7;
+            --muted: #c3d8c8;
+            --accent: #2d7a45;
+            --accent2: #76c18c;
+            --danger: #f06c6c;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; min-height: 100%; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top left, rgba(45,122,69,.18), transparent 28%),
+                        radial-gradient(circle at bottom right, rgba(118,193,140,.14), transparent 30%),
+                        linear-gradient(180deg, #eef5ef 0%, #d8e5d5 100%);
+            color: #0f2d1f;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .shell {
+            width: min(1080px, 100%);
+            display: grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .hero, .card {
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 28px 80px rgba(18, 38, 22, 0.18);
+        }
+
+        .hero {
+            background: linear-gradient(180deg, #143c28 0%, #0e2e1f 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 44px;
+            min-height: 620px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(118,193,140,.24), transparent 26%),
+                        radial-gradient(circle at bottom right, rgba(45,122,69,.16), transparent 24%);
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .hero > * { position: relative; z-index: 1; }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 26px;
+        }
+
+        .mark {
+            width: 52px;
+            height: 52px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #3fa274, #1f593d);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-weight: 900;
+            font-size: 18px;
+            letter-spacing: -0.06em;
+        }
+
+        .brand-text h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-text span {
+            display: block;
+            color: rgba(255,255,255,.75);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .hero-title {
+            margin: 0;
+            font-size: clamp(40px, 4vw, 52px);
+            line-height: 1.02;
+            letter-spacing: -0.05em;
+            max-width: 11ch;
+        }
+
+        .hero-copy {
+            margin: 22px 0 0;
+            color: rgba(255,255,255,.8);
+            font-size: 16px;
+            line-height: 1.8;
+            max-width: 46ch;
+        }
+
+        .hero-features {
+            margin-top: 32px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .hero-card {
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: rgba(255,255,255,.08);
+            padding: 18px 20px;
+        }
+
+        .hero-card strong {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .hero-card span {
+            color: rgba(255,255,255,.75);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .card {
+            background: white;
+            padding: 38px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tabs a {
+            flex: 1;
+            text-align: center;
+            padding: 12px 16px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            border: 1px solid #e4ece2;
+            color: #4f6a5a;
+            background: #f6faf5;
+        }
+
+        .tabs a.active {
+            background: var(--accent);
+            color: #f7fbf7;
+            border-color: transparent;
+        }
+
+        .card h3 {
+            margin: 0 0 6px;
+            font-size: 32px;
+            letter-spacing: -0.04em;
+            color: #163d2a;
+        }
+
+        .card p {
+            margin: 0 0 24px;
+            color: #6d8f76;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #375a42;
+        }
+
+        input {
+            width: 100%;
+            min-height: 48px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid #d6e4d6;
+            background: #f8fcf6;
+            color: #0f2d1f;
+            font-size: 15px;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        input:focus {
+            border-color: rgba(45,122,69,.8);
+            box-shadow: 0 0 0 4px rgba(118,193,140,.18);
+        }
+
+        .field-row {
+            position: relative;
+        }
+
+        .field-row button {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #7b9f82;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .actions label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            font-size: 14px;
+            color: #5b7f65;
+            font-weight: 600;
+        }
+
+        .actions input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn {
+            min-height: 50px;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 16px;
+            background: var(--accent);
+            color: #f7fbf7;
+            font-weight: 800;
+            font-size: 15px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform .15s ease, opacity .15s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+
+        .err {
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: #fceded;
+            border: 1px solid #f6c5c5;
+            color: #8d3737;
+            font-size: 14px;
+        }
+
+        .foot {
+            margin-top: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            color: #5b7f65;
+            font-size: 15px;
+        }
+
+        .foot a {
+            color: var(--accent2);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        @media (max-width: 920px) {
+            .shell { grid-template-columns: 1fr; }
+            .hero { min-height: 400px; }
+        }
+
+        @media (max-width: 680px) {
+            .shell { gap: 16px; }
+            .card, .hero { padding: 28px; }
+            .hero-title { font-size: 32px; }
+        }
     </style>
 </head>
 <body>
@@ -48,19 +326,17 @@
             <div>
                 <div class="brand">
                     <div class="mark">EL</div>
-                    <div>
-                        <h1>NAV Employee Leave Management System</h1>
-                        <div style="font-size:15px;color:var(--muted)">HR operations, leave control, and verification</div>
+                    <div class="brand-text">
+                        <h1>NAV Employee Leave</h1>
+                        <span>Employee portal for leave requests, balance tracking, and team approvals.</span>
                     </div>
                 </div>
-                <h2>One workspace for leave management.</h2>
-                <p>Access dashboard summaries, approve requests, manage employee records, and track leave balances in a cleaner HR-focused interface.</p>
+                <h1 class="hero-title">Employee Portal for leave, approvals, and team support.</h1>
+                <p class="hero-copy">Sign in to manage your leave, check your balance, and keep your time off workflow moving in one secure employee portal.</p>
             </div>
-            <div class="feature">
-                <div><strong>HR review</strong><span>Leave requests and verification in one control surface.</span></div>
-                <div><strong>Balance tracking</strong><span>Fast access to sick, vacation, and approved leave data.</span></div>
-                <div><strong>Unified UI</strong><span>Light and dark modes stay consistent with the prototype.</span></div>
-                <div><strong>Secure access</strong><span>Registration stays pending until HR activates the account.</span></div>
+            <div class="hero-features">
+                <div class="hero-card"><strong>Fast access</strong><span>Submit leave requests and review approvals from one dashboard.</span></div>
+                <div class="hero-card"><strong>Clear visibility</strong><span>See remaining balances and approved time off right away.</span></div>
             </div>
         </section>
 
@@ -69,8 +345,8 @@
                 <a class="active" href="{{ route('login') }}">Log in</a>
                 <a href="{{ route('register') }}">Register</a>
             </div>
-            <h3>Welcome back</h3>
-            <p>Sign in with your employee ID or email address.</p>
+            <h3>Employee Portal</h3>
+            <p>Use your employee ID or email to sign in and access your leave dashboard.</p>
 
             @if ($errors->any())
                 <div class="err">{{ $errors->first() }}</div>
@@ -78,18 +354,18 @@
 
             <form method="POST" action="{{ route('login') }}">
                 @csrf
-                <label>Employee ID or Email</label>
-                <input type="text" name="email" value="{{ old('email', 'HR-2000-001') }}" required autofocus>
+                <label for="email">Employee ID or Email</label>
+                <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus>
 
-                <label>Password</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="password" name="password" value="password" required style="padding-right: 40px;">
-                    <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center;">
-                        <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                <label for="password">Password</label>
+                <div class="field-row">
+                    <input id="password" type="password" name="password" required>
+                    <button type="button" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+                        <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
                         </svg>
-                        <svg id="eyeOffIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: none;">
+                        <svg id="eyeOffIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:none;">
                             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                             <line x1="1" y1="1" x2="23" y2="23"></line>
                         </svg>
@@ -97,17 +373,17 @@
                 </div>
 
                 <div class="actions">
-                    <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:15px;font-weight:600;color:var(--muted)">
-                        <input type="checkbox" name="remember" style="width:16px;min-height:auto"> Remember me
+                    <label>
+                        <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}>
+                        Remember me
                     </label>
                     <button type="submit" class="btn">Log in</button>
                 </div>
             </form>
 
-            <div class="hint">Default HR account: <strong>HR-2000-001</strong> or <strong>hr@company.com</strong> / <strong>password</strong>.</div>
             <div class="foot">
-                <span>Need an account?</span>
-                <a href="{{ route('register') }}" style="color:var(--accent2);font-weight:700;text-decoration:none">Register here</a>
+                <span>No account?</span>
+                <a href="{{ route('register') }}">Register Here</a>
             </div>
         </section>
     </div>
