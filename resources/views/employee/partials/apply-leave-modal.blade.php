@@ -40,6 +40,7 @@
                                     value="{{ $type->id }}"
                                     data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}"
                                     data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}"
+                                    data-max-document-days="{{ $type->max_document_days ?? '' }}"
                                     data-proof-rules="{{ $type->proof_rules }}"
                                     @selected(old('leave_type_id') == $type->id)
                                 >
@@ -106,20 +107,22 @@
                             Supporting Document <span id="proofRequired" class="req"></span>
                         </label>
 
-                        <div class="file-upload" onclick="document.getElementById('proofFile').click()">
+
+                        <div class="file-upload" onclick="document.getElementById('proofFile').click()" style="cursor:pointer; border: 2px solid #2d7a45; border-radius: 10px; padding: 18px 14px;">
                             <p>Drag & drop or click to upload</p>
                             <span>PDF, JPG, PNG up to 5MB</span>
-
-                                <input
-                                    type="file"
-                                    name="proof"
-                                    id="proofFile"
-                                    class="upload-hidden"
-                                    accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx"
-                                    style="display:none"
-                                >
+                            <input
+                                type="file"
+                                name="proof"
+                                id="proofFile"
+                                class="upload-hidden"
+                                accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx"
+                                style="display:none"
+                            >
+                            <button type="button" class="btn btn-outline" style="margin-top:10px;" onclick="event.stopPropagation(); document.getElementById('proofFile').click();">Choose Supporting Document</button>
                         </div>
 
+                        <span class="form-hint" id="proofFileName"></span>
                         <span class="form-hint" id="proofHint"></span>
                     </div>
                 </div>
@@ -139,71 +142,43 @@ function closeModal(id) {
     document.getElementById(id)?.classList.remove('open');
 }
 
-function applySickLeaveProofVisibilityRule_old() {
+function syncProofSection() {
     const leaveTypeSelect = document.getElementById('applyLeaveType');
     const proofSection = document.getElementById('proofSection');
     const proofFile = document.getElementById('proofFile');
+    const proofReq = document.getElementById('proofRequired');
+    const proofHint = document.getElementById('proofHint');
+    const proofFileName = document.getElementById('proofFileName');
 
-    if (!leaveTypeSelect || !proofSection || !proofFile) return;
+    if (!leaveTypeSelect || !proofSection || !proofFile || !proofReq || !proofHint) return;
 
-    const selectedOptionText = leaveTypeSelect?.options?.[leaveTypeSelect.selectedIndex]?.textContent?.toLowerCase?.() || '';
-    const isSick = selectedOptionText.includes('sick');
+    const option = leaveTypeSelect.options?.[leaveTypeSelect.selectedIndex];
+    const requiresProof = option?.dataset.requiresProof === '1';
+    const proofRules = option?.dataset.proofRules || '';
+    const maxDocumentDays = parseInt(option?.dataset.maxDocumentDays || '0', 10);
 
     const totalText = document.getElementById('applyTotalDays')?.value || '';
     const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
     const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
 
-    const shouldShow = isSick && workingDays >= 3;
+    const meetsDayRule = !maxDocumentDays || workingDays >= maxDocumentDays;
+    const shouldShow = requiresProof && meetsDayRule;
 
     proofSection.style.display = shouldShow ? 'block' : 'none';
     proofFile.required = shouldShow;
-}
+    proofReq.textContent = shouldShow ? '*' : '';
+    proofHint.textContent = shouldShow
+        ? (proofRules || 'Attach your supporting document, then press Submit Request.')
+        : '';
 
-function applySickLeaveProofVisibilityRule() {
-    const leaveTypeSelect = document.getElementById('applyLeaveType');
-    const proofSection = document.getElementById('proofSection');
-    const proofFile = document.getElementById('proofFile');
-
-    if (!leaveTypeSelect || !proofSection || !proofFile) return;
-
-    const selectedOptionText = leaveTypeSelect?.options?.[leaveTypeSelect.selectedIndex]?.textContent?.toLowerCase?.() || '';
-    const isSick = selectedOptionText.includes('sick');
-
-    const totalText = document.getElementById('applyTotalDays')?.value || '';
-    const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
-    const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
-
-    const shouldShow = isSick && workingDays >= 3;
-
-    proofSection.style.display = shouldShow ? 'block' : 'none';
-    proofFile.required = shouldShow;
+    if (!shouldShow) {
+        proofFile.value = '';
+        if (proofFileName) proofFileName.textContent = '';
+    }
 }
 
 function handleLeaveTypeChange() {
-    const select = document.getElementById('applyLeaveType');
-    const option = select?.options?.[select.selectedIndex];
-    const proofSec = document.getElementById('proofSection');
-    const proofReq = document.getElementById('proofRequired');
-    const proofHint = document.getElementById('proofHint');
-
-    if (!option || !proofSec || !proofReq || !proofHint) return;
-
-    const requiresProof = option.dataset.requiresProof === '1';
-    const requiresApproval = option.dataset.requiresApproval === '0';
-    const proofRules = option.dataset.proofRules || '';
-
-    if (requiresProof) {
-        proofSec.style.display = 'block';
-        proofReq.textContent = '*';
-        proofHint.textContent = proofRules || 'Proof document required for this leave type.';
-    } else {
-        proofSec.style.display = 'none';
-        proofReq.textContent = '';
-        proofHint.textContent = requiresApproval ? 'This leave type is auto-approved by configuration.' : '';
-    }
-
-    // Override for sick leave: only show proof section when 3+ working days
-    applySickLeaveProofVisibilityRule();
+    syncProofSection();
 }
 
 function pad2(n) {
@@ -279,8 +254,7 @@ function calcDays() {
 
     totalEl.value = count + ' working day' + (count !== 1 ? 's' : '');
 
-    // Sick leave proof depends on computed working days
-    applySickLeaveProofVisibilityRule();
+    syncProofSection();
 }
 
 function dismissWeekendError() {
@@ -405,6 +379,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // If old leave_type_id exists but onchange didn't fire
     document.getElementById('applyLeaveType')?.addEventListener('change', function () {
         handleLeaveTypeChange();
+    });
+
+    document.getElementById('proofFile')?.addEventListener('change', function () {
+        const proofFileName = document.getElementById('proofFileName');
+        if (proofFileName) {
+            proofFileName.textContent = this.files?.[0]?.name ? `Selected: ${this.files[0].name}` : '';
+        }
     });
 });
 </script>

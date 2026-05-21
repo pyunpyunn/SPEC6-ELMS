@@ -19,29 +19,39 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('employee-prototype.css') }}">
+    <script>
+        (function () {
+            const storedTheme = localStorage.getItem('employee-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = storedTheme || (prefersDark ? 'dark' : 'light');
+
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            document.documentElement.classList.toggle('employee-sidebar-collapsed', localStorage.getItem('employee-sidebar-collapsed') === '1');
+        })();
+    </script>
 </head>
 <body class="employee-shell-body">
 <div class="app">
-    <aside class="sidebar">
+    <aside class="sidebar" id="employeeSidebar">
         <div class="sb-top">
-            <div class="sb-logo" aria-hidden="true">
+            <button class="sb-logo sb-toggle" type="button" onclick="toggleEmployeeSidebar()" aria-label="Minimize sidebar" aria-expanded="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10l4 5v13H3V3h4Z"/><path d="M7 3v5h14"/><path d="M8 14h8"/><path d="M8 18h5"/></svg>
-            </div>
+            </button>
             <span class="sb-brand">Employee Portal</span>
         </div>
         <nav class="sb-nav" aria-label="Employee navigation">
             <div class="sb-section">Main</div>
-            <a class="sb-item {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}" href="{{ route('employee.dashboard') }}">
+            <a class="sb-item {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}" href="{{ route('employee.dashboard') }}" title="Dashboard">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                 <span>Dashboard</span>
             </a>
             <div class="sb-section">Leave Control</div>
-            <a class="sb-item {{ request()->routeIs('employee.leaves.*') ? 'active' : '' }}" href="{{ route('employee.leaves.index') }}">
+            <a class="sb-item {{ request()->routeIs('employee.leaves.*') ? 'active' : '' }}" href="{{ route('employee.leaves.index') }}" title="My Leave">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
                 <span>My Leave</span>
             </a>
             <div class="sb-section">Insights</div>
-            <a class="sb-item {{ request()->routeIs('employee.reports') || request()->routeIs('employee.leave.balances') ? 'active' : '' }}" href="{{ route('employee.reports') }}">
+            <a class="sb-item {{ request()->routeIs('employee.reports') || request()->routeIs('employee.leave.balances') ? 'active' : '' }}" href="{{ route('employee.reports') }}" title="My Reports">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>
                 <span>My Reports</span>
             </a>
@@ -98,6 +108,15 @@
                 </div>
             </div>
             <div class="header-right">
+                <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+                    <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 7.07-1.41-1.41M6.34 6.34 4.93 4.93m12.02 0-1.41 1.41M6.34 17.66l-1.41 1.41"></path>
+                    </svg>
+                    <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"></path>
+                    </svg>
+                </button>
                 <div class="profile-area" onclick="toggleProfileMenu()">
                     <div class="profile-avatar">{{ $initials }}</div>
                     <div class="profile-info">
@@ -114,9 +133,23 @@
                         <button type="submit">Logout</button>
                     </form>
                 </div>
-                @auth
-                    <a href="{{ route('employee.notifications') }}" class="btn btn-outline btn-sm">Notifications</a>
-                @endauth
+               @auth
+    <a href="{{ route('employee.notifications') }}" class="notification-icon">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24" 
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+
+            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/>
+            <path d="M9 17a3 3 0 0 0 6 0"/>
+        </svg>
+    </a>
+@endauth
             </div>
         </header>
         <main class="content">
@@ -129,6 +162,22 @@ function filterSidebarBalance(type) {
   document.querySelectorAll('.sb-balance-row').forEach(row => {
     row.style.display = type === 'all' || row.dataset.balanceType === type ? '' : 'none';
   });
+}
+function setEmployeeSidebarCollapsed(collapsed) {
+  const sidebar = document.getElementById('employeeSidebar');
+  const toggle = document.querySelector('.sb-toggle');
+
+  document.documentElement.classList.toggle('employee-sidebar-collapsed', collapsed);
+  sidebar?.classList.toggle('collapsed', collapsed);
+  localStorage.setItem('employee-sidebar-collapsed', collapsed ? '1' : '0');
+
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Minimize sidebar');
+  }
+}
+function toggleEmployeeSidebar() {
+  setEmployeeSidebarCollapsed(!document.documentElement.classList.contains('employee-sidebar-collapsed'));
 }
 function toggleProfileMenu() {
   document.getElementById('employeeProfileDropdown').classList.toggle('open');
@@ -146,6 +195,32 @@ document.addEventListener('click', event => {
   if (event.target.classList.contains('modal-overlay')) {
     event.target.classList.remove('open');
   }
+});
+function setEmployeeTheme(theme) {
+  const isDark = theme === 'dark';
+  const toggle = document.getElementById('themeToggleBtn');
+
+  document.documentElement.classList.toggle('dark', isDark);
+  document.body.classList.toggle('theme-dark', isDark);
+  document.body.classList.toggle('theme-light', !isDark);
+  localStorage.setItem('employee-theme', theme);
+
+  if (toggle) {
+    toggle.setAttribute('aria-pressed', String(isDark));
+    toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setEmployeeSidebarCollapsed(localStorage.getItem('employee-sidebar-collapsed') === '1');
+
+  const storedTheme = localStorage.getItem('employee-theme');
+  const isDark = document.documentElement.classList.contains('dark');
+  setEmployeeTheme(storedTheme || (isDark ? 'dark' : 'light'));
+
+  document.getElementById('themeToggleBtn')?.addEventListener('click', function() {
+    setEmployeeTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+  });
 });
 </script>
 

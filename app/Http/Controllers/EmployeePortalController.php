@@ -306,6 +306,7 @@ class EmployeePortalController extends Controller
                     'requires_proof' => (bool) $type->requires_proof,
                     'is_compensable' => (bool) $type->is_compensable,
                     'proof_rules' => $type->proof_rules,
+                    'max_document_days' => $type->max_document_days,
                 ];
             });
 
