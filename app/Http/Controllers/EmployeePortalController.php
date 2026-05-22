@@ -316,6 +316,8 @@ class EmployeePortalController extends Controller
                 ->isNotEmpty()
             : false;
 
+        $unreadNotificationCount = $user->notifications()->whereNull('read_at')->count();
+
         return [
             'user' => $user,
             'employee' => $employee,
@@ -323,6 +325,7 @@ class EmployeePortalController extends Controller
             'employeeLeaveBalances' => $leaveTypes,
             'leaveApplications' => $leaveApplications,
             'isOnLeaveToday' => (bool) $isOnLeaveToday,
+            'unread_notification_count' => $unreadNotificationCount,
         ];
     }
 

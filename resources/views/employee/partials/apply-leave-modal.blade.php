@@ -107,13 +107,16 @@
                         >{{ old('reason') }}</textarea>
                     </div>
 
-                    <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none;">
+                    <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none;border:1px solid;padding:12px;border-radius:6px">
+                        
+                        
                         <label for="proofFile">
                             Supporting Document <span id="proofRequired" class="req"></span>
                         </label>
 
+                        <center>
                         <div class="file-upload" onclick="document.getElementById('proofFile').click()">
-                            <p>Drag & drop or click to upload</p>
+                            <p style="padding:30px;border:2px dashed #ccc;">Drag & drop or click to upload</p><br>
                             <span>PDF, JPG, PNG up to 5MB</span>
 
                                 <input
@@ -127,6 +130,8 @@
                         </div>
 
                         <span class="form-hint" id="proofHint"></span>
+                        </center>
+
                     </div>
                 </div>
             </div>
@@ -176,11 +181,18 @@ function updateProofVisibility() {
 
     if (requiresProof) {
         if (maxDocumentDays === null || maxDocumentDays <= 0) {
+            // max_document_days null or 0 means require proof for any leave request
             shouldShow = workingDays > 0;
             message = proofRules || 'Proof document required for this leave type.';
         } else {
+            // max_document_days > 0 means require proof when working days REACHES or EXCEEDS the threshold
+            // e.g., if max_document_days = 3, show upload when working days >= 3 (i.e., 3+ days)
             shouldShow = workingDays >= maxDocumentDays;
-            message = proofRules || `Proof document required for ${maxDocumentDays} or more working days.`;
+            if (proofRules) {
+                message = proofRules;
+            } else {
+                message = `Document Upload Requirement - Requests with ${maxDocumentDays} or more working day${maxDocumentDays > 1 ? 's' : ''} require supporting documents.`;
+            }
         }
     }
 
@@ -197,7 +209,7 @@ function updateProofVisibility() {
     } else {
         proofReq.textContent = '';
         proofHint.textContent = requiresProof && maxDocumentDays > 0
-            ? `Document upload becomes required once the request reaches ${maxDocumentDays} working days.`
+            ? `Document upload will be required when your request reaches ${maxDocumentDays} working day${maxDocumentDays > 1 ? 's' : ''}.`
             : requiresApproval
                 ? 'This leave type is auto-approved by configuration.'
                 : '';
@@ -205,18 +217,7 @@ function updateProofVisibility() {
 }
 
 function handleLeaveTypeChange() {
-    const selected = getSelectedLeaveTypeData();
-    const proofReq = document.getElementById('proofRequired');
-    const proofHint = document.getElementById('proofHint');
-
-    if (!selected || !proofReq || !proofHint) return;
-
     updateProofVisibility();
-
-    if (!selected.requiresProof) {
-        proofReq.textContent = '';
-        proofHint.textContent = selected.requiresApproval ? 'This leave type is auto-approved by configuration.' : '';
-    }
 }
 
 function pad2(n) {

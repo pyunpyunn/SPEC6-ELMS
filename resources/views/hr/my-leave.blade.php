@@ -206,8 +206,10 @@ function updateProofVisibility() {
             shouldShow = workingDays > 0;
             message = proofRules || 'Proof document required for this leave type.';
         } else {
+            // max_document_days > 0 means require proof when working days REACHES or EXCEEDS the threshold
+            // e.g., if max_document_days = 3, show upload when working days >= 3 (i.e., 3+ days)
             shouldShow = workingDays >= maxDocumentDays;
-            message = proofRules || `Proof document required for ${maxDocumentDays} or more working days.`;
+            message = proofRules || `Document Upload Requirement - Requests with ${maxDocumentDays} or more working day${maxDocumentDays > 1 ? 's' : ''} require supporting documents.`;
         }
     }
 
@@ -224,7 +226,7 @@ function updateProofVisibility() {
     } else {
         proofReq.textContent = '';
         proofHint.textContent = requiresProof && maxDocumentDays > 0
-            ? `Document upload becomes required once the request reaches ${maxDocumentDays} working days.`
+            ? `Document upload will be required when your request reaches ${maxDocumentDays} working day${maxDocumentDays > 1 ? 's' : ''}.`
             : requiresApproval
                 ? 'This leave type is auto-approved by configuration.'
                 : '';

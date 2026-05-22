@@ -91,7 +91,7 @@
                 <div class="sb-balance-title">
                     <span>My Leave Balance</span>
                     <select id="sbBalanceFilter" class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
-                        <option value="all">All Types</option>
+                        <option value="all" style="color:black">All Types</option>
                         @foreach($sidebarBalances ?? [] as $balance)
                             <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
                         @endforeach

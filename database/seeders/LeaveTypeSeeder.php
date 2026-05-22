@@ -14,12 +14,13 @@ class LeaveTypeSeeder extends Seeder
     public function run(): void
     {
         collect([
-            ['Sick Leave', 15, true, false, false, 'Medical certificate required for 3 or more days.'],
-            ['Maternity Leave', 105, true, false, true, '105 days; 120 days for solo parent; 60 days for stillbirth or miscarriage.'],
-            ['Paternity Leave', 7, true, false, true, 'Paid leave for the first 4 deliveries or miscarriage.'],
-            ['Bereavement Leave', 15, true, false, false, 'Also called RIP leave in the prototype notes.'],
-            ['Vacation Leave', 15, true, true, false, 'Unused days are eligible for yearly compensation.'],
-            ['Special Emergency Leave', 15, true, false, false, 'For urgent personal or family emergencies.'],
+            // [name, annual_allocation, requires_approval, is_compensable, requires_proof, proof_rules, max_document_days]
+            ['Sick Leave', 15, true, false, true, 'Medical certificate required for 3 or more days.', 3],
+            ['Maternity Leave', 105, true, false, true, '105 days; 120 days for solo parent; 60 days for stillbirth or miscarriage.', null],
+            ['Paternity Leave', 7, true, false, true, 'Paid leave for the first 4 deliveries or miscarriage.', null],
+            ['Bereavement Leave', 15, true, false, false, 'Also called RIP leave in the prototype notes.', null],
+            ['Vacation Leave', 15, true, true, false, 'Unused days are eligible for yearly compensation.', null],
+            ['Special Emergency Leave', 15, true, false, false, 'For urgent personal or family emergencies.', null],
         ])->each(fn ($type) => LeaveType::updateOrCreate(
             ['name' => $type[0]],
             [
@@ -29,6 +30,7 @@ class LeaveTypeSeeder extends Seeder
                 'is_compensable' => $type[3],
                 'requires_proof' => $type[4],
                 'proof_rules' => $type[5],
+                'max_document_days' => $type[6],
                 'is_active' => true,
             ]
         ));

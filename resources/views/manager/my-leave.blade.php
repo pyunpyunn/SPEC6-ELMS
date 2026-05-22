@@ -21,16 +21,17 @@
                         <select name="leave_type_id" id="managerLeaveType" onchange="updateManagerProofHint()" required>
                             @foreach($leaveTypes as $type)
                                 @php($balance = $employee?->leaveBalances->firstWhere('leave_type_id', $type->id))
-                                <option value="{{ $type->id }}" data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}" data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}" data-proof-rules="{{ $type->proof_rules }}" @selected(old('leave_type_id') == $type->id)>{{ $type->name }} ({{ (int) ($balance?->remaining_days ?? 0) }} left)</option>
+                                <option value="{{ $type->id }}" data-requires-proof="{{ $type->requires_proof ? 1 : 0 }}" data-requires-approval="{{ $type->requires_approval ? 1 : 0 }}" data-proof-rules="{{ $type->proof_rules }}" data-max-document-days="{{ $type->max_document_days ?? '' }}" @selected(old('leave_type_id') == $type->id)>{{ $type->name }} ({{ (int) ($balance?->remaining_days ?? 0) }} left)</option>
                             @endforeach
                         </select>
                     </div>
-                    <div><label for="managerApplyStartDate">Start Date</label><input type="date" id="managerApplyStartDate" name="start_date" value="{{ old('start_date') }}" required></div>
-                    <div><label for="managerApplyEndDate">End Date</label><input type="date" id="managerApplyEndDate" name="end_date" value="{{ old('end_date') }}" required></div>
+                    <div><label for="managerApplyStartDate">Start Date</label><input type="date" id="managerApplyStartDate" name="start_date" value="{{ old('start_date') }}" onchange="calcManagerDays()" required></div>
+                    <div><label for="managerApplyEndDate">End Date</label><input type="date" id="managerApplyEndDate" name="end_date" value="{{ old('end_date') }}" onchange="calcManagerDays()" required></div>
                     <div class="flash flash-warning" id="managerWeekendError" style="display:none">You can't select a weekend date.</div>
+                    <div><label for="managerTotalDays">Total Working Days</label><input id="managerTotalDays" readonly placeholder="Auto calculated" value="{{ old('total_days') }}"></div>
                     <div><label for="managerLeaveReason">Reason</label><textarea id="managerLeaveReason" name="reason" rows="4" required>{{ old('reason') }}</textarea></div>
-                    <div>
-                        <label for="managerProofFile">Attach Document</label>
+                    <div id="managerProofSection" style="display:none;">
+                        <label for="managerProofFile">Attach Document <span id="managerProofRequired" class="req"></span></label>
                         <input id="managerProofFile" class="file-input-fit" type="file" name="proof">
                         <div class="muted" id="managerProofHint">Upload proof when required by the selected leave type.</div>
                     </div>
@@ -125,18 +126,102 @@
 
 @push('scripts')
 <script>
-function updateManagerProofHint(){
-    const option = document.getElementById('managerLeaveType')?.selectedOptions?.[0];
-    const hint = document.getElementById('managerProofHint');
-    if (!option || !hint) return;
+function getManagerSelectedLeaveTypeData() {
+    const select = document.getElementById('managerLeaveType');
+    const option = select?.options?.[select.selectedIndex];
+    if (!option) return null;
 
-    hint.textContent = [
-        option.dataset.requiresProof === '1' ? 'Proof required.' : 'Proof optional.',
-        option.dataset.requiresApproval === '0' ? 'Auto-approved.' : 'Requires HR approval.',
-        option.dataset.proofRules || '',
-    ].filter(Boolean).join(' ');
+    return {
+        requiresProof: option.dataset.requiresProof === '1',
+        maxDocumentDays: option.dataset.maxDocumentDays ? parseInt(option.dataset.maxDocumentDays, 10) : null,
+        requiresApproval: option.dataset.requiresApproval === '1',
+        proofRules: option.dataset.proofRules || '',
+    };
 }
-document.addEventListener('DOMContentLoaded', updateManagerProofHint);
+
+function updateManagerProofVisibility() {
+    const proofSection = document.getElementById('managerProofSection');
+    const proofRequired = document.getElementById('managerProofRequired');
+    const proofHint = document.getElementById('managerProofHint');
+    const proofFile = document.getElementById('managerProofFile');
+    const totalText = document.getElementById('managerTotalDays')?.value || '';
+    const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
+    const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
+    const selected = getManagerSelectedLeaveTypeData();
+
+    if (!proofSection || !proofRequired || !proofHint || !proofFile || !selected) return;
+
+    const { requiresProof, maxDocumentDays, proofRules } = selected;
+    let shouldShow = false;
+    let message = '';
+
+    if (requiresProof) {
+        if (maxDocumentDays === null || maxDocumentDays <= 0) {
+            shouldShow = workingDays > 0;
+            message = proofRules || 'Proof document required for this leave type.';
+        } else {
+            shouldShow = workingDays >= maxDocumentDays;
+            if (proofRules) {
+                message = proofRules;
+            } else {
+                message = `Document Upload Requirement - Requests with ${maxDocumentDays} or more working day${maxDocumentDays > 1 ? 's' : ''} require supporting documents.`;
+            }
+        }
+    }
+
+    proofSection.style.display = shouldShow ? 'block' : 'none';
+    proofFile.required = shouldShow;
+
+    if (!shouldShow) {
+        proofFile.value = '';
+    }
+
+    if (shouldShow) {
+        proofRequired.textContent = '*';
+        proofHint.textContent = message;
+    } else {
+        proofRequired.textContent = '';
+        proofHint.textContent = requiresProof && maxDocumentDays > 0
+            ? `Document upload will be required when your request reaches ${maxDocumentDays} working day${maxDocumentDays > 1 ? 's' : ''}.`
+            : '';
+    }
+}
+
+function updateManagerProofHint() {
+    updateManagerProofVisibility();
+}
+
+function calcManagerDays() {
+    const start = document.getElementById('managerApplyStartDate')?.value || '';
+    const end = document.getElementById('managerApplyEndDate')?.value || '';
+    const totalEl = document.getElementById('managerTotalDays');
+
+    if (!totalEl) return;
+
+    if (!start || !end) {
+        totalEl.value = '';
+        updateManagerProofVisibility();
+        return;
+    }
+
+    const s = new Date(start);
+    const e = new Date(end);
+    if (e < s) {
+        totalEl.value = 'Invalid range';
+        updateManagerProofVisibility();
+        return;
+    }
+
+    let count = 0;
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay();
+        if (day !== 0 && day !== 6) count++;
+    }
+
+    totalEl.value = count + ' working day' + (count !== 1 ? 's' : '');
+    updateManagerProofVisibility();
+}
+
 
 function openLeaveDetails(data) {
     document.getElementById('detailsEmpName').textContent = data.name || '';
@@ -214,8 +299,9 @@ function closeLeaveDetails(event) {
             input.dataset.minDate = minISO;
             input.addEventListener('change', function () { clampAndValidate(input); });
             clampAndValidate(input);
-        });
-    });
+        });        // Initialize proof visibility and working days
+        calcManagerDays();
+        updateManagerProofHint();    });
 })();
 </script>
 @endpush

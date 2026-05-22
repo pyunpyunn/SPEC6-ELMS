@@ -30,7 +30,7 @@
                     <span style="font-size:15px;color:var(--text)">{{ basename($leave->proof_path) }}</span>
                     <a href="{{ asset('storage/' . $leave->proof_path) }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer" style="margin-left:auto">View Proof</a>
                 </div>
-                @if(str_ends_with(strtolower($leave->proof_path), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                @if(in_array(strtolower(pathinfo($leave->proof_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif', 'webp']))
                     <img src="{{ asset('storage/' . $leave->proof_path) }}" alt="Proof document" style="max-width:100%;margin-top:12px;border-radius:8px;border:1px solid var(--border)">
                 @endif
             </div>
