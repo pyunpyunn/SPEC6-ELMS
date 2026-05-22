@@ -123,6 +123,8 @@ class ManagerController extends Controller
                 'reviewed_at' => now(),
             ]);
 
+            SystemNotification::markLeaveRequestSettled($leaveApplication);
+
             $this->notify(
                 $leaveApplication->employee->user,
                 'Leave request '.$validated['status'],
@@ -213,6 +215,7 @@ class ManagerController extends Controller
             return back()->with('warning', 'Only pending leave requests can be cancelled.');
         }
 
+        SystemNotification::markLeaveRequestSettled($leaveApplication);
         $leaveApplication->delete();
 
         return back()->with('success', 'Pending leave request cancelled.');
@@ -317,7 +320,10 @@ class ManagerController extends Controller
                 'Manager leave request pending',
                 $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
                 route('admin.requests.index'),
-                'leave_request'
+                SystemNotification::TYPE_LEAVE_REQUEST,
+                null,
+                SystemNotification::RELATED_LEAVE_APPLICATION,
+                $leave->id
             );
         }
 
@@ -398,7 +404,7 @@ class ManagerController extends Controller
             'manager' => $manager,
             'department' => $manager?->departmentRecord,
             'sidebarBalances' => $balances,
-            'unreadCount' => $request->user()->notifications()->whereNull('read_at')->count(),
+            'unreadCount' => $request->user()->notifications()->unreadActionable()->count(),
             'latestNotifications' => $request->user()->notifications()->latest()->take(5)->get(),
             'pendingCount' => $this->teamLeaveQuery($manager)->where('status', 'pending')->count(),
         ];

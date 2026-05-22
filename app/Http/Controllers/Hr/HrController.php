@@ -450,6 +450,8 @@ class HrController extends Controller
                 'reviewed_at' => now(),
             ]);
 
+            SystemNotification::markLeaveRequestSettled($leaveApplication);
+
             $this->notify($leaveApplication->employee->user, 'Leave request '.$validated['status'], 'Your '.$leaveApplication->leaveType->name.' request was '.$validated['status'].' by HR.', route('home'), 'leave_status');
 
             if ($leaveApplication->employee->manager?->user?->status === 'active') {
@@ -719,8 +721,10 @@ class HrController extends Controller
                 'Leave request pending',
                 $leave->employee->full_name.' submitted a '.$leave->leaveType->name.' request.',
                 route('admin.requests.index'),
-                'leave_request',
-                auth()->id()
+                SystemNotification::TYPE_LEAVE_REQUEST,
+                auth()->id(),
+                SystemNotification::RELATED_LEAVE_APPLICATION,
+                $leave->id
             );
         }
 

@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h1>My Profile</h1>
-        <p>{{ $accountApproved ? 'View-only employee profile information.' : 'Temporary profile access while HR reviews your account.' }}</p>
+        <p>{{ $accountApproved ? 'View-only employee profile information.' : 'Your account is not approved yet. HR is reviewing your profile.' }}</p>
     </div>
 </div>
 

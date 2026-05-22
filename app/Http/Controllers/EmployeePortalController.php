@@ -206,6 +206,7 @@ class EmployeePortalController extends Controller
             return back()->with('error', 'Cannot cancel a reviewed leave.');
         }
 
+        SystemNotification::markLeaveRequestSettled($leaveApplication);
         $leaveApplication->delete();
 
         return back()->with('success', 'Pending leave request cancelled.');
@@ -304,6 +305,7 @@ class EmployeePortalController extends Controller
                     'policy_note' => $this->policyNote($type),
                     'requires_approval' => (bool) $type->requires_approval,
                     'requires_proof' => (bool) $type->requires_proof,
+                    'max_document_days' => $type->max_document_days,
                     'is_compensable' => (bool) $type->is_compensable,
                     'proof_rules' => $type->proof_rules,
                 ];
@@ -316,7 +318,7 @@ class EmployeePortalController extends Controller
                 ->isNotEmpty()
             : false;
 
-        $unreadNotificationCount = $user->notifications()->whereNull('read_at')->count();
+        $unreadNotificationCount = $user->notifications()->unreadActionable()->count();
 
         return [
             'user' => $user,
@@ -423,7 +425,9 @@ class EmployeePortalController extends Controller
                 $title,
                 $body,
                 route('manager.approvals.show', $leave),
-                'leave_request'
+                SystemNotification::TYPE_LEAVE_REQUEST,
+                SystemNotification::RELATED_LEAVE_APPLICATION,
+                $leave->id
             ));
 
         SystemNotification::sendToRole(
@@ -431,7 +435,10 @@ class EmployeePortalController extends Controller
             $title,
             $body,
             route('admin.requests.index'),
-            'leave_request'
+            SystemNotification::TYPE_LEAVE_REQUEST,
+            null,
+            SystemNotification::RELATED_LEAVE_APPLICATION,
+            $leave->id
         );
     }
 

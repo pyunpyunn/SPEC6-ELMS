@@ -93,7 +93,6 @@
                     </div>
                 </div>
             </div>
-            <button class="dark-btn" type="button" onclick="toggleDark()" title="Toggle dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
             <div class="header-divider"></div>
             <div class="profile-wrap" id="profileWrap">
                 <div class="profile-area" onclick="toggleProfile()">
@@ -120,12 +119,15 @@
 </div>
 <script>
 function toggleSidebar(){document.getElementById('sidebar')?.classList.toggle('collapsed')}
-function toggleNotif(){document.getElementById('notifDropdown')?.classList.toggle('open');document.getElementById('profileDropdown')?.classList.remove('open')}
+function toggleNotif(){
+    const dropdown=document.getElementById('notifDropdown');
+    dropdown?.classList.toggle('open');
+    document.getElementById('profileDropdown')?.classList.remove('open');
+    if(dropdown?.classList.contains('open')) refreshNotifications();
+}
 function toggleProfile(){document.getElementById('profileDropdown')?.classList.toggle('open');document.getElementById('notifDropdown')?.classList.remove('open')}
 function closeDropdowns(){document.getElementById('notifDropdown')?.classList.remove('open');document.getElementById('profileDropdown')?.classList.remove('open')}
 document.addEventListener('click',function(e){if(!e.target.closest('#notifWrap')&&!e.target.closest('#profileWrap')) closeDropdowns()})
-function toggleDark(){document.documentElement.classList.toggle('dark');localStorage.setItem('manager-dark',document.documentElement.classList.contains('dark')?'1':'0')}
-if(localStorage.getItem('manager-dark')==='1'){document.documentElement.classList.add('dark')}
 function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(!type||type==='all'||item.dataset.type===type)?'flex':'none'})}
 function escapeHtml(value){return String(value ?? '').replace(/[&<>"']/g,function(char){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]})}
 async function refreshNotifications(){
@@ -153,8 +155,6 @@ async function refreshNotifications(){
         // Keep the server-rendered notifications if the refresh cannot complete.
     }
 }
-refreshNotifications();
-setInterval(refreshNotifications,5000);
 </script>
 @stack('scripts')
 </body>

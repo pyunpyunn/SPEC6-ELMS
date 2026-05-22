@@ -1,7 +1,4 @@
-<div class="modal-overlay" id="applyLeaveModal" data-active-leave-ranges='@json(($activeLeaveRanges ?? collect())->values()->map(fn ($r) => [
-        'start' => $r['start'],
-        'end' => $r['end'],
-    ])->all())'>
+<div class="modal-overlay" id="applyLeaveModal">
     <div class="modal">
         <div class="modal-header">
             <h3>Apply for Leave</h3>
@@ -27,6 +24,13 @@
                         })
                         ->values();
                 }
+                $activeLeaveRangesForJs = $activeLeaveRanges
+                    ->map(fn ($range) => [
+                        'start' => $range['start'],
+                        'end' => $range['end'],
+                    ])
+                    ->values()
+                    ->all();
             @endphp
 
             <div class="modal-body">
@@ -62,7 +66,7 @@
                             name="start_date"
                             value="{{ old('start_date') }}"
                             required
-                            onchange="calcDays(); clampWeekendStart(this); toggleEndDateBasedOnStart(); validateApplyLeaveConflicts();"
+                            onchange="calcDays(); clampWeekend(this); toggleEndDateBasedOnStart(); validateApplyLeaveConflicts();"
                         >
                     </div>
 
@@ -107,31 +111,27 @@
                         >{{ old('reason') }}</textarea>
                     </div>
 
-                    <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none;border:1px solid;padding:12px;border-radius:6px">
-                        
-                        
+                    <div class="form-group span2 leave-proof-section" id="proofSection" style="display:none">
                         <label for="proofFile">
                             Supporting Document <span id="proofRequired" class="req"></span>
                         </label>
 
-                        <center>
-                        <div class="file-upload" onclick="document.getElementById('proofFile').click()">
-                            <p style="padding:30px;border:2px dashed #ccc;">Drag & drop or click to upload</p><br>
+                        <div class="file-upload" onclick="document.getElementById('proofFile').click()" style="cursor:pointer;border:2px solid #2d7a45;border-radius:10px;padding:18px 14px;text-align:center">
+                            <p>Drag & drop or click to upload</p>
                             <span>PDF, JPG, PNG up to 5MB</span>
-
-                                <input
-                                    type="file"
-                                    name="proof"
-                                    id="proofFile"
-                                    class="upload-hidden"
-                                    accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx"
-                                    style="display:none"
-                                >
+                            <input
+                                type="file"
+                                name="proof"
+                                id="proofFile"
+                                class="upload-hidden"
+                                accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx"
+                                style="display:none"
+                            >
+                            <button type="button" class="btn btn-outline" style="margin-top:10px" onclick="event.stopPropagation(); document.getElementById('proofFile').click();">Choose Supporting Document</button>
                         </div>
 
+                        <span class="form-hint" id="proofFileName"></span>
                         <span class="form-hint" id="proofHint"></span>
-                        </center>
-
                     </div>
                 </div>
             </div>
@@ -150,32 +150,25 @@ function closeModal(id) {
     document.getElementById(id)?.classList.remove('open');
 }
 
-function getSelectedLeaveTypeData() {
-    const select = document.getElementById('applyLeaveType');
-    const option = select?.options?.[select.selectedIndex];
-    if (!option) return null;
-
-    return {
-        requiresProof: option.dataset.requiresProof === '1',
-        maxDocumentDays: option.dataset.maxDocumentDays ? parseInt(option.dataset.maxDocumentDays, 10) : null,
-        requiresApproval: option.dataset.requiresApproval === '1',
-        proofRules: option.dataset.proofRules || '',
-    };
-}
-
-function updateProofVisibility() {
+function syncProofSection() {
+    const leaveTypeSelect = document.getElementById('applyLeaveType');
     const proofSection = document.getElementById('proofSection');
+    const proofFile = document.getElementById('proofFile');
     const proofReq = document.getElementById('proofRequired');
     const proofHint = document.getElementById('proofHint');
-    const proofFile = document.getElementById('proofFile');
+    const proofFileName = document.getElementById('proofFileName');
+
+    if (!leaveTypeSelect || !proofSection || !proofFile || !proofReq || !proofHint) return;
+
+    const option = leaveTypeSelect.options?.[leaveTypeSelect.selectedIndex];
+    const requiresProof = option?.dataset.requiresProof === '1';
+    const requiresApproval = option?.dataset.requiresApproval === '1';
+    const proofRules = option?.dataset.proofRules || '';
+    const maxDocumentDays = option?.dataset.maxDocumentDays ? parseInt(option.dataset.maxDocumentDays, 10) : null;
     const totalText = document.getElementById('applyTotalDays')?.value || '';
     const parsedDays = parseInt(String(totalText).split(' ')[0], 10);
     const workingDays = Number.isFinite(parsedDays) ? parsedDays : 0;
-    const selected = getSelectedLeaveTypeData();
 
-    if (!proofSection || !proofReq || !proofHint || !proofFile || !selected) return;
-
-    const { requiresProof, maxDocumentDays, requiresApproval, proofRules } = selected;
     let shouldShow = false;
     let message = '';
 
@@ -201,6 +194,7 @@ function updateProofVisibility() {
 
     if (!shouldShow) {
         proofFile.value = '';
+        if (proofFileName) proofFileName.textContent = '';
     }
 
     if (shouldShow) {
@@ -217,7 +211,7 @@ function updateProofVisibility() {
 }
 
 function handleLeaveTypeChange() {
-    updateProofVisibility();
+    syncProofSection();
 }
 
 function pad2(n) {
@@ -293,7 +287,7 @@ function calcDays() {
 
     totalEl.value = count + ' working day' + (count !== 1 ? 's' : '');
 
-    updateProofVisibility();
+    syncProofSection();
 }
 
 function dismissWeekendError() {
@@ -325,7 +319,7 @@ function dismissConflictError() {
 
 // Expose approved-only active ranges to JS for overlap detection (UI only).
 // $activeLeaveRanges is built server-side from $leaveApplications.
-window.ACTIVE_LEAVE_RANGES = JSON.parse(document.getElementById('applyLeaveModal').dataset.activeLeaveRanges || '[]');
+window.ACTIVE_LEAVE_RANGES = @json($activeLeaveRangesForJs);
 
 function parseISODate(iso) {
     if (!iso) return null;
@@ -413,6 +407,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // If old leave_type_id exists but onchange didn't fire
     document.getElementById('applyLeaveType')?.addEventListener('change', function () {
         handleLeaveTypeChange();
+    });
+
+    document.getElementById('proofFile')?.addEventListener('change', function () {
+        const proofFileName = document.getElementById('proofFileName');
+        if (proofFileName) {
+            proofFileName.textContent = this.files?.[0]?.name ? `Selected: ${this.files[0].name}` : '';
+        }
     });
 });
 </script>

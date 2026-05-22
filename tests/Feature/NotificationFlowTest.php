@@ -123,6 +123,57 @@ class NotificationFlowTest extends TestCase
         ]);
     }
 
+    public function test_reviewing_leave_marks_shared_pending_request_notifications_read(): void
+    {
+        [$employeeUser, $managerUser, $hrUser, $leaveType] = $this->leaveFixture();
+
+        $start = now()->addWeek();
+        while ($start->isWeekend()) {
+            $start = $start->addDay();
+        }
+        $end = $start->copy()->addDay();
+        while ($end->isWeekend()) {
+            $end = $end->addDay();
+        }
+
+        $this->actingAs($employeeUser)->post(route('employee.leaves.store'), [
+            'leave_type_id' => $leaveType->id,
+            'start_date' => $start->toDateString(),
+            'end_date' => $end->toDateString(),
+            'reason' => 'Family appointment',
+        ]);
+
+        $leave = $employeeUser->employee->leaveApplications()->firstOrFail();
+
+        $this->assertSame(2, SystemNotification::query()
+            ->where('type', SystemNotification::TYPE_LEAVE_REQUEST)
+            ->where('related_type', SystemNotification::RELATED_LEAVE_APPLICATION)
+            ->where('related_id', $leave->id)
+            ->whereNull('read_at')
+            ->count());
+        $this->assertSame(1, $managerUser->notifications()->unreadActionable()->count());
+        $this->assertSame(1, $hrUser->notifications()->unreadActionable()->count());
+
+        $this->actingAs($managerUser)
+            ->patch(route('manager.approvals.approve', $leave), [
+                'remarks' => 'Approved.',
+            ])
+            ->assertRedirect(route('manager.approvals.index'));
+
+        $this->assertSame(0, SystemNotification::query()
+            ->where('type', SystemNotification::TYPE_LEAVE_REQUEST)
+            ->where('related_type', SystemNotification::RELATED_LEAVE_APPLICATION)
+            ->where('related_id', $leave->id)
+            ->whereNull('read_at')
+            ->count());
+        $this->assertSame(0, $managerUser->fresh()->notifications()->unreadActionable()->count());
+
+        $this->actingAs($managerUser)
+            ->get(route('notifications.feed'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0);
+    }
+
     private function leaveFixture(): array
     {
         $department = Department::create([

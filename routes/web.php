@@ -61,7 +61,7 @@ Route::middleware(['auth', 'account.approved'])->get('/notifications/feed', func
         ]);
 
     return response()->json([
-        'unread_count' => $request->user()->notifications()->whereNull('read_at')->count(),
+        'unread_count' => $request->user()->notifications()->unreadActionable()->count(),
         'notifications' => $notifications,
     ]);
 })->name('notifications.feed');

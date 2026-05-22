@@ -12,7 +12,6 @@
         .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;gap:16px;flex-wrap:wrap}.page-head h1{font-size:21px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1.2;margin:0}.muted{color:var(--text3);font-size:15px}.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}.filters select,.filters input{padding:8px 11px;min-width:130px}
         .badge.pending{background:var(--warning-bg);color:var(--warning)}.badge.approved,.badge.active{background:var(--success-bg);color:var(--success)}.badge.rejected,.badge.inactive{background:var(--danger-bg);color:var(--danger)}.badge.hr{background:var(--primary-bg);color:var(--primary)}.badge.manager{background:var(--info-bg);color:var(--info)}
         .flash.warning{background:var(--warning-bg);border:1px solid rgba(184,114,20,.22);color:var(--warning)}.flash.success{background:var(--success-bg);border:1px solid rgba(42,117,84,.22);color:var(--success)}
-        .dark .sidebar{background:#1b241f}.dark .sb-item:hover{background:rgba(255,255,255,.08)}.dark .sb-item.active{background:rgba(255,255,255,.13)}
         .btn.primary{background:var(--primary);color:#fff}.btn.success{background:var(--success-bg);color:var(--success);border:1px solid rgba(42,117,84,.22)}.btn.danger{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(184,48,48,.22)}.btn.small{padding:6px 11px;font-size:15px}
         .pagination nav{display:flex;gap:6px;align-items:center}.pagination svg{width:16px;height:16px}.pagination p{font-size:15px;color:var(--text3)}
         details summary{list-style:none}details summary::-webkit-details-marker{display:none}.actions{display:flex;gap:7px;flex-wrap:wrap}
@@ -93,7 +92,7 @@
                     <select id="sbBalanceFilter" class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
                         <option value="all" style="color:black">All Types</option>
                         @foreach($sidebarBalances ?? [] as $balance)
-                            <option value="lt-{{ $balance->leave_type_id }}">{{ $balance->leaveType->name }}</option>
+                            <option value="lt-{{ $balance->leave_type_id }}" style="color:black">{{ $balance->leaveType->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -120,7 +119,7 @@
                 <div class="notif-wrap">
                     <button class="notif-btn" type="button" id="notifBtn" data-url="{{ route('notifications.feed') }}" onclick="toggleNotifications()" title="Notifications">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                        @php($unread = auth()->user()->notifications()->whereNull('read_at')->count())
+                        @php($unread = auth()->user()->notifications()->unreadActionable()->count())
                         <span class="notif-badge" data-notification-count style="{{ $unread ? '' : 'display:none' }}">{{ $unread }}</span>
                     </button>
                     <div class="notif-dropdown" id="notifDropdown">
@@ -136,7 +135,6 @@
                         </div>
                     </div>
                 </div>
-                <button class="dark-btn" onclick="toggleDark()" title="Dark Mode"><svg id="dark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
                 <div class="header-divider"></div>
                 <div class="profile-area" onclick="toggleProfile()">
                     <div class="profile-avatar">{{ substr(auth()->user()->name, 0, 1) }}</div>
@@ -161,10 +159,12 @@
 <script>
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
 function toggleProfile(){document.getElementById('profileDropdown').classList.toggle('open')}
-function toggleNotifications(){document.getElementById('notifDropdown').classList.toggle('open')}
+function toggleNotifications(){
+    const dropdown=document.getElementById('notifDropdown');
+    dropdown?.classList.toggle('open');
+    if(dropdown?.classList.contains('open')) refreshNotifications();
+}
 function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(!type||type==='all'||item.dataset.type===type)?'flex':'none'})}
-function toggleDark(){document.documentElement.classList.toggle('dark');localStorage.setItem('elms-dark',document.documentElement.classList.contains('dark')?'1':'0')}
-if(localStorage.getItem('elms-dark')==='1'){document.documentElement.classList.add('dark')}
 document.addEventListener('DOMContentLoaded',function(){const filter=document.getElementById('sidebarBalanceFilter');if(filter){filterSidebarBalance(filter.value)}})
 document.addEventListener('click',function(e){
     if(!e.target.closest('.profile-area')&&!e.target.closest('#profileDropdown')){document.getElementById('profileDropdown')?.classList.remove('open')}
@@ -200,8 +200,6 @@ async function refreshNotifications(){
         // Keep the server-rendered notifications if the refresh cannot complete.
     }
 }
-refreshNotifications();
-setInterval(refreshNotifications,5000);
 </script>
 @stack('scripts')
 </body>

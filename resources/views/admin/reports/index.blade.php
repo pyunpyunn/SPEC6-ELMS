@@ -1,5 +1,5 @@
-@extends('hr.layout')
+@extends('admin.layout')
 
 @section('content')
-    @include('hr.reports._content')
+    @include('admin.reports._content')
 @endsection
