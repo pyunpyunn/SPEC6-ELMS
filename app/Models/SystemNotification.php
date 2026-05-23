@@ -40,12 +40,11 @@ class SystemNotification extends Model
             $query->where('type', '!=', self::TYPE_LEAVE_REQUEST)
                 ->orWhereNull('related_type')
                 ->orWhereNull('related_id')
-                ->orWhereExists(function ($pendingLeave): void {
-                    $pendingLeave->selectRaw('1')
-                        ->from('leave_applications')
-                        ->whereColumn('leave_applications.id', 'system_notifications.related_id')
-                        ->where('leave_applications.status', 'pending')
-                        ->where('system_notifications.related_type', self::RELATED_LEAVE_APPLICATION);
+                ->orWhere(function (Builder $query): void {
+                    $query->where('related_type', self::RELATED_LEAVE_APPLICATION)
+                        ->whereIn('related_id', LeaveApplication::query()
+                            ->where('status', 'pending')
+                            ->select('id'));
                 });
         });
     }

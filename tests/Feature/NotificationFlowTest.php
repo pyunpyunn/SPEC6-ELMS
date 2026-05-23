@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\Position;
 use App\Models\SystemNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -186,6 +187,18 @@ class NotificationFlowTest extends TestCase
             'name' => 'Human Resources',
             'is_active' => true,
         ]);
+        $hrPosition = Position::create([
+            'department_id' => $hrDepartment->id,
+            'name' => 'HR Administrator',
+        ]);
+        $managerPosition = Position::create([
+            'department_id' => $department->id,
+            'name' => 'IT Manager',
+        ]);
+        $employeePosition = Position::create([
+            'department_id' => $department->id,
+            'name' => 'Developer',
+        ]);
 
         $hrUser = User::create([
             'name' => 'HR Admin',
@@ -198,10 +211,9 @@ class NotificationFlowTest extends TestCase
             'user_id' => $hrUser->id,
             'employee_id' => 'HR-2000-001',
             'department_id' => $hrDepartment->id,
+            'position_id' => $hrPosition->id,
             'first_name' => 'HR',
             'last_name' => 'Admin',
-            'department' => $hrDepartment->name,
-            'position' => 'HR Administrator',
             'date_hired' => now(),
             'contact_info' => $hrUser->email,
         ]);
@@ -217,10 +229,9 @@ class NotificationFlowTest extends TestCase
             'user_id' => $managerUser->id,
             'employee_id' => 'IT-3000-001',
             'department_id' => $department->id,
+            'position_id' => $managerPosition->id,
             'first_name' => 'Manager',
             'last_name' => 'User',
-            'department' => $department->name,
-            'position' => 'IT Manager',
             'date_hired' => now(),
             'contact_info' => $managerUser->email,
         ]);
@@ -236,11 +247,10 @@ class NotificationFlowTest extends TestCase
             'user_id' => $employeeUser->id,
             'employee_id' => 'IT-3002-001',
             'department_id' => $department->id,
+            'position_id' => $employeePosition->id,
             'manager_id' => $manager->id,
             'first_name' => 'Employee',
             'last_name' => 'User',
-            'department' => $department->name,
-            'position' => 'Developer',
             'date_hired' => now(),
             'contact_info' => $employeeUser->email,
         ]);

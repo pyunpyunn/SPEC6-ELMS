@@ -13,14 +13,20 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'hr@company.com'],
-            [
-                'name' => 'Kathleen Barro',
-                'password' => Hash::make('password'),
-                'role' => 'hr_admin',
-                'status' => 'active',
-            ]
-        );
+        collect([
+            ['Kathleen Barro', 'hr@company.com', 'hr_admin'],
+            ['Demo Manager', 'manager@company.com', 'manager'],
+            ['Demo Employee', 'employee@company.com', 'employee'],
+        ])->each(function (array $user): void {
+            User::updateOrCreate(
+                ['email' => $user[1]],
+                [
+                    'name' => $user[0],
+                    'password' => Hash::make('password'),
+                    'role' => $user[2],
+                    'status' => 'active',
+                ]
+            );
+        });
     }
 }

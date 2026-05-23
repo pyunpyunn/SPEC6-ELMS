@@ -18,8 +18,8 @@
 - `/admin/reports/export?type=leaves` - CSV leave export.
 - `/admin/reports/export?type=balances` - CSV balance export.
 - `/admin/calendar` - global approved leave calendar.
-- `/notifications` - user/system notifications.
-- `/profile` - HR profile.
+- `/admin/notifications` - HR/Admin notifications with compact pagination.
+- `/admin/profile` - HR profile.
 
 ## Database Naming
 - `users.status`: `pending`, `active`, `inactive`.
@@ -28,7 +28,7 @@
 - `employees.employee_id`: public company employee identifier, format `DEPT-POSITIONID-COUNT` such as `HR-2000-001`.
 - `departments.code`: short department code such as `HR`, `IT`, `FIN`.
 - `leave_balances`: yearly balance per employee and leave type.
-- `system_notifications`: in-app notifications for HR and users.
+- `system_notifications`: in-app notifications for HR and users. Leave request notifications also store `related_type` and `related_id` so they can be marked settled across users.
 
 ## Seeded Leave Types
 - Sick Leave: 15 days. Medical proof is required for 3 or more days.
@@ -44,5 +44,8 @@
 - Calendar supports monthly and weekly views, department filtering, and leave-type checkbox filtering.
 - Updating a leave type allocation recalculates current-year leave balances.
 - Approving a leave request increments the matching current-year used balance.
+- Approving or rejecting a leave request calls `SystemNotification::markLeaveRequestSettled()` so other unread leave-request notifications for the same request no longer appear in badge counts.
 - CSV exports use `response()->streamDownload()` with professional unique filenames.
 - Department summary rows link directly to the master request log with the department filter applied.
+- HR/Admin Blade views are consolidated under `resources/views/admin`; there is no active `resources/views/hr` duplicate tree.
+- HR/Admin, Manager, and Employee portals are light-mode only in the active system.

@@ -25,6 +25,7 @@
 - Manager views live in `resources/views/manager`.
 - Employee views live in `resources/views/employee`.
 - Shared layouts and layout helpers live in `resources/views/layouts`.
+- Do not create duplicate HR views under `resources/views/hr`; HR Admin pages use the `admin` view folder.
 
 ## Validation
 

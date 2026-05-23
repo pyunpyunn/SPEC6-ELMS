@@ -48,8 +48,6 @@ trait CreatesElmsFixtures
             'first_name' => $parts[0] ?? 'Test',
             'last_name' => $parts[1] ?? 'User',
             'gender' => $gender,
-            'department' => $department->name,
-            'position' => $position->name,
             'date_hired' => now()->subYear(),
             'contact_info' => $email,
             'daily_rate' => $dailyRate,

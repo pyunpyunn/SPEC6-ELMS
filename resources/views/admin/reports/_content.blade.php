@@ -23,10 +23,10 @@
 </div>
 
 <div class="report-page"
-    data-yearly-url="{{ route('reports.yearly-compensation') }}"
-    data-individual-url="{{ route('reports.individual-balance') }}"
-    data-yearly-export-url="{{ route('reports.yearly-compensation.export') }}"
-    data-individual-export-url="{{ route('reports.individual-balance.export') }}"
+    data-yearly-url="{{ route('admin.reports.yearly-compensation') }}"
+    data-individual-url="{{ route('admin.reports.individual-balance') }}"
+    data-yearly-export-url="{{ route('admin.reports.yearly-compensation.export') }}"
+    data-individual-export-url="{{ route('admin.reports.individual-balance.export') }}"
     data-current-year="{{ $year }}"
     data-employee-options='@json($employeeOptions)'
     data-position-options='@json($positionOptions)'>

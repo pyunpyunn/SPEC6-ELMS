@@ -76,7 +76,7 @@ class HrController extends Controller
                 ->whereDate('start_date', '<=', now())
                 ->whereDate('end_date', '>=', now())
                 ->orderBy('start_date', 'desc')
-                ->paginate(3, ['*'], 'on_leave_page')
+                ->paginate(10, ['*'], 'on_leave_page')
                 ->withQueryString(),
         ]);
     }
@@ -101,11 +101,11 @@ class HrController extends Controller
             ->when($request->filled('department_id'), fn ($query) => $query->whereHas('employee', fn ($eq) => $eq->where('department_id', $request->integer('department_id'))))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->latest()
-            ->paginate(7, ['*'], 'users_page')
+            ->paginate(10, ['*'], 'users_page')
             ->withQueryString();
 
         return view('admin.users.pending', [
-            'pendingUsers' => User::where('status', 'pending')->latest()->paginate(7, ['*'], 'pending_page'),
+            'pendingUsers' => User::where('status', 'pending')->latest()->paginate(10, ['*'], 'pending_page'),
             'allUsers' => $allUsers,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'managers' => $this->managerEmployees(),
@@ -154,8 +154,6 @@ class HrController extends Controller
                 'manager_id' => $validated['manager_id'] ?? null,
                 'first_name' => $name[0],
                 'last_name' => $name[1],
-                'department' => $department?->name,
-                'position' => $position->name,
                 'gender' => $validated['gender'] ?? null,
                 'date_hired' => $validated['date_hired'],
                 'contact_info' => $user->email,
@@ -194,10 +192,9 @@ class HrController extends Controller
             })
             ->when($departmentId, fn ($query) => $query->where('department_id', $departmentId))
             ->when($request->filled('position_id'), fn ($query) => $query->where('position_id', $request->integer('position_id')))
-            ->when($request->filled('position'), fn ($query) => $query->where('position', $request->string('position')))
             ->when($request->filled('employment_status'), fn ($query) => $query->where('employment_status', $request->string('employment_status')))
             ->orderBy('employee_id')
-            ->paginate(7)
+            ->paginate(10)
             ->withQueryString();
 
         return view('admin.employees.index', $this->employeeFormData() + [
@@ -275,8 +272,6 @@ class HrController extends Controller
             $payload = $request->validated();
             $payload['department_id'] = $department->id;
             $payload['position_id'] = $position->id;
-            $payload['position'] = $position->name;
-            $payload['department'] = $department?->name;
             $payload['contact_info'] = $request->contact_info ?: $request->email;
 
             // Generate employee ID if not provided
@@ -317,10 +312,8 @@ class HrController extends Controller
                 'position_id' => $position->id,
             ]);
             $payload = $request->validated();
-            $payload['department'] = $department?->name;
             $payload['department_id'] = $department->id;
             $payload['position_id'] = $position->id;
-            $payload['position'] = $position->name;
             $payload['contact_info'] = $request->contact_info ?: $request->email;
             $employee->update($payload);
         });
@@ -413,7 +406,7 @@ class HrController extends Controller
             ->when($request->date_from, fn ($q, $date) => $q->whereDate('start_date', '>=', $date))
             ->when($request->date_to, fn ($q, $date) => $q->whereDate('start_date', '<=', $date))
             ->latest()
-            ->paginate(7)
+            ->paginate(10)
             ->withQueryString();
 
         return view('admin.requests.index', [
@@ -501,7 +494,7 @@ class HrController extends Controller
         return view('admin.reports.index', [
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'employees' => Employee::with('user')->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->orderBy('last_name')->get(),
-            'positions' => Employee::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->select('position')->distinct()->orderBy('position')->pluck('position'),
+            'positions' => Position::when($departmentId, fn ($q) => $q->where('department_id', $departmentId))->orderBy('name')->pluck('name'),
             'summaries' => Department::with('employees.leaveApplications')->get(),
             'balances' => $balances,
             'employeeReport' => $employeeReport,
@@ -601,9 +594,9 @@ class HrController extends Controller
             ? LeaveApplication::with(['leaveType', 'reviewer'])
                 ->where('employee_id', $employee->id)
                 ->latest()
-                ->paginate(7)
+                ->paginate(10)
                 ->withQueryString()
-            : new LengthAwarePaginator([], 0, 7, 1, [
+            : new LengthAwarePaginator([], 0, 10, 1, [
                 'path' => LengthAwarePaginator::resolveCurrentPath(),
                 'query' => $request->query(),
             ]);

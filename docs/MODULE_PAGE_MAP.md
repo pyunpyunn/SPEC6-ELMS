@@ -13,10 +13,12 @@ Use this file during technical defense when you need to explain where a feature 
 | Account approval middleware | `app/Http/Middleware/EnsureAccountApproved.php` |
 | Profile completion middleware | `app/Http/Middleware/EnsureProfileComplete.php` |
 | Eloquent models | `app/Models` |
+| Notification model and unread/actionable logic | `app/Models/SystemNotification.php` |
 | Form Request validation | `app/Http/Requests` |
 | Database migrations | `database/migrations` |
 | Database seeders | `database/seeders` |
 | Position and employee ID config | `config/positions.php` |
+| HR-style pagination partial | `resources/views/vendor/pagination/hr.blade.php` |
 
 ## Styling and Layouts
 
@@ -26,6 +28,8 @@ Use this file during technical defense when you need to explain where a feature 
 | Manager | `resources/views/manager/layout.blade.php` | `public/manager-portal.css` |
 | Employee | `resources/views/layouts/employee.blade.php` | `public/employee-prototype.css` |
 | Auth/shared pages | `resources/views/layouts/app.blade.php` | `public/employee-prototype.css`, `resources/css/app.css` |
+
+The active system is light-mode only. Do not add new dark-mode controls or active `dark` theme rules unless the feature is intentionally reintroduced.
 
 ## HR Admin Pages
 
@@ -42,11 +46,14 @@ Use this file during technical defense when you need to explain where a feature 
 | Leave type configuration | `/admin/leave-types` | `admin.leave-types.*` | `Admin/LeaveTypeController.php`, `Hr/HrController.php` | `resources/views/admin/leave-types/index.blade.php` |
 | Master request log | `/admin/requests` | `admin.requests.index` | `Admin/LeaveRequestController.php`, `Hr/HrController.php` | `resources/views/admin/requests/index.blade.php` |
 | Reports | `/admin/reports` | `admin.reports.index` | `Admin/ReportController.php`, `Hr/HrController.php` | `resources/views/admin/reports/index.blade.php` |
+| Reports content partial | Included by reports page | N/A | `Admin/ReportController.php`, `Hr/HrController.php` | `resources/views/admin/reports/_content.blade.php` |
 | CSV export | `/admin/reports/export` | `admin.reports.export` | `Admin/ReportController.php`, `Hr/HrController.php` | streamed CSV response |
 | Company calendar | `/admin/calendar` | `admin.calendar` | `Admin/ReportController.php`, `Hr/HrController.php` | `resources/views/admin/calendar.blade.php` |
 | HR own leave | `/admin/my-leave` | `admin.my-leave` | `Admin/ProfileController.php`, `Hr/HrController.php` | `resources/views/admin/my-leave.blade.php` |
-| HR notifications | `/admin/notifications` | `admin.notifications` | `Admin/ProfileController.php`, `Hr/HrController.php` | `resources/views/admin/notifications.blade.php` |
+| HR notifications | `/admin/notifications` | `admin.notifications` | `Admin/ProfileController.php`, `Hr/HrController.php` | `resources/views/admin/notifications.blade.php`, `vendor.pagination.hr` |
 | HR profile | `/admin/profile` | `admin.profile` | `Admin/ProfileController.php`, `Hr/HrController.php` | `resources/views/admin/profile/show.blade.php` |
+
+All HR/Admin views live under `resources/views/admin`. The old duplicate `resources/views/hr` tree was removed during cleanup.
 
 ## Manager Pages
 
@@ -106,6 +113,18 @@ Use this file during technical defense when you need to explain where a feature 
 | `LeaveApplication`       | `employee`, `leaveType`, `reviewer`                                                           |
 | `LeaveBalance`           | `employee`, `leaveType`                                                                       |
 | `SystemNotification`     | `user`                                                                                        |
+
+## Notification Behavior
+
+| Behavior | Location |
+| --- | --- |
+| Bell feed JSON | `/notifications/feed` in `routes/web.php` |
+| Shared read route | `/notifications/{notification}/read` in `routes/web.php` |
+| Per-role notification pages | `/admin/notifications`, `/manager/notifications`, `/employee/notifications` |
+| Unread badge count | `SystemNotification::scopeUnreadActionable()` |
+| Leave-request settlement | `SystemNotification::markLeaveRequestSettled()` |
+
+Leave request notifications store `related_type = leave_application` and `related_id = leave_applications.id`. When a manager, HR admin, or employee cancellation settles the request, matching unread leave-request notifications are marked read so other users no longer see a stale badge count.
 
 ## Seeders
 

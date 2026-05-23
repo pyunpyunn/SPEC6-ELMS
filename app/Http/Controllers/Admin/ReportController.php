@@ -29,7 +29,7 @@ class ReportController extends Controller
             'employees' => Employee::with(['departmentRecord:id,name', 'positionRecord:id,name'])
                 ->orderBy('last_name')
                 ->orderBy('first_name')
-                ->get(['id', 'employee_id', 'department_id', 'position_id', 'first_name', 'last_name', 'position']),
+                ->get(['id', 'employee_id', 'department_id', 'position_id', 'first_name', 'last_name']),
             'year' => $year,
             'yearOptions' => $this->yearOptions(),
         ]);
@@ -225,16 +225,27 @@ class ReportController extends Controller
             ->orderBy('name')
             ->get();
 
-        $typeTotals = LeaveApplication::query()
-            ->join('employees', 'leave_applications.employee_id', '=', 'employees.id')
-            ->join('leave_types', 'leave_applications.leave_type_id', '=', 'leave_types.id')
-            ->where('leave_applications.status', 'approved')
-            ->whereYear('leave_applications.start_date', $year)
-            ->when($departmentId, fn ($query) => $query->where('employees.department_id', $departmentId))
-            ->selectRaw('employees.department_id, leave_types.name as leave_type, SUM(leave_applications.total_days) as days')
-            ->groupBy('employees.department_id', 'leave_types.name')
+        $typeTotals = LeaveApplication::with(['employee:id,department_id', 'leaveType:id,name'])
+            ->where('status', 'approved')
+            ->whereYear('start_date', $year)
+            ->whereHas('employee', function ($query) use ($departmentId): void {
+                if ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                }
+            })
             ->get()
-            ->groupBy('department_id');
+            ->groupBy(fn (LeaveApplication $leave) => $leave->employee?->department_id)
+            ->map(function (Collection $departmentLeaves): Collection {
+                return $departmentLeaves
+                    ->groupBy(fn (LeaveApplication $leave) => $leave->leaveType?->name ?? 'Unknown')
+                    ->map(function (Collection $leaveTypeLeaves, string $leaveType): array {
+                        return [
+                            'leave_type' => $leaveType,
+                            'days' => (float) $leaveTypeLeaves->sum('total_days'),
+                        ];
+                    })
+                    ->values();
+            });
 
         return $departments->map(function (Department $department) use ($typeTotals): array {
             $leaveRows = $typeTotals->get($department->id, collect());
@@ -379,21 +390,31 @@ class ReportController extends Controller
             return collect();
         }
 
-        return LeaveBalance::query()
-            ->join('employees', 'leave_balances.employee_id', '=', 'employees.id')
-            ->where('leave_balances.year', $year)
-            ->whereIn('leave_balances.leave_type_id', $compensableTypes->pluck('id'))
-            ->when($departmentId, fn ($query) => $query->where('employees.department_id', $departmentId))
-            ->selectRaw('leave_balances.employee_id, leave_balances.leave_type_id, SUM(leave_balances.allocated_days) as allocated_days, SUM(leave_balances.used_days) as used_days')
-            ->groupBy('leave_balances.employee_id', 'leave_balances.leave_type_id')
+        return LeaveBalance::with('employee:id,department_id')
+            ->where('year', $year)
+            ->whereIn('leave_type_id', $compensableTypes->pluck('id'))
+            ->whereHas('employee', function ($query) use ($departmentId): void {
+                if ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                }
+            })
             ->get()
             ->groupBy('employee_id')
-            ->map(fn (Collection $rows) => $rows->mapWithKeys(fn ($row) => [
-                (int) $row->leave_type_id => [
-                    'used_days' => (float) $row->used_days,
-                    'remaining_days' => max(0, (float) $row->allocated_days - (float) $row->used_days),
-                ],
-            ]));
+            ->map(function (Collection $employeeBalances): Collection {
+                return $employeeBalances
+                    ->groupBy('leave_type_id')
+                    ->mapWithKeys(function (Collection $leaveTypeBalances, int|string $leaveTypeId): array {
+                        $allocatedDays = (float) $leaveTypeBalances->sum('allocated_days');
+                        $usedDays = (float) $leaveTypeBalances->sum('used_days');
+
+                        return [
+                            (int) $leaveTypeId => [
+                                'used_days' => $usedDays,
+                                'remaining_days' => max(0, $allocatedDays - $usedDays),
+                            ],
+                        ];
+                    });
+            });
     }
 
     private function compensableLeaveTypes(?Employee $employee = null): Collection
@@ -497,7 +518,7 @@ class ReportController extends Controller
     private function sumType(Collection $leaveRows, string $needle): float
     {
         return (float) $leaveRows
-            ->filter(fn ($row) => str_contains(Str::lower((string) $row->leave_type), $needle))
+            ->filter(fn (array $row) => str_contains(Str::lower((string) $row['leave_type']), $needle))
             ->sum('days');
     }
 

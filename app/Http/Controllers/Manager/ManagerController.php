@@ -29,7 +29,7 @@ class ManagerController extends Controller
         $requests = $this->teamLeaveQuery($manager)
             ->where('status', 'pending')
             ->latest()
-            ->paginate(4, ['*'], 'pending_page')
+            ->paginate(10, ['*'], 'pending_page')
             ->withQueryString();
 
         return view('manager.dashboard', $this->baseData($request) + [
@@ -79,7 +79,7 @@ class ManagerController extends Controller
                 ->when($request->filled('date_from'), fn ($query) => $query->whereDate('start_date', '>=', $request->input('date_from')))
                 ->when($request->filled('date_to'), fn ($query) => $query->whereDate('start_date', '<=', $request->input('date_to')))
                 ->latest()
-                ->paginate(7)
+                ->paginate(10)
                 ->withQueryString(),
             'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
         ]);
@@ -188,7 +188,7 @@ class ManagerController extends Controller
                 })
                 ->when($request->filled('leave_type_id'), fn ($query) => $query->whereHas('leaveBalances', fn ($balance) => $balance->where('leave_type_id', $request->integer('leave_type_id'))))
                 ->orderBy('last_name')
-                ->paginate(7)
+                ->paginate(10)
                 ->withQueryString(),
             'leaveTypes' => LeaveType::where('is_active', true)->orderBy('name')->get(),
         ]);
@@ -201,7 +201,7 @@ class ManagerController extends Controller
         return view('manager.my-leave', $this->baseData($request) + [
             'employee' => $employee,
             'leaveTypes' => $this->visibleLeaveTypes($employee),
-            'myLeaves' => $employee?->leaveApplications()->with(['leaveType', 'reviewer'])->latest()->paginate(7)->withQueryString() ?? collect(),
+            'myLeaves' => $employee?->leaveApplications()->with(['leaveType', 'reviewer'])->latest()->paginate(10)->withQueryString() ?? collect(),
         ]);
     }
 
@@ -353,7 +353,7 @@ class ManagerController extends Controller
             'employee' => $this->managerEmployee($request)?->load(['departmentRecord', 'leaveBalances.leaveType', 'leaveApplications.leaveType', 'leaveApplications.reviewer']),
             'leaveTypes' => $this->visibleLeaveTypes($this->managerEmployee($request)),
             'leaveBalances' => $this->managerEmployee($request)?->leaveBalances ?? collect(),
-            'leaveApplications' => $this->managerEmployee($request)?->leaveApplications()->with(['leaveType', 'reviewer'])->latest()->paginate(7, ['*'], 'history_page')->withQueryString() ?? collect(),
+            'leaveApplications' => $this->managerEmployee($request)?->leaveApplications()->with(['leaveType', 'reviewer'])->latest()->paginate(10, ['*'], 'history_page')->withQueryString() ?? collect(),
         ]);
     }
 

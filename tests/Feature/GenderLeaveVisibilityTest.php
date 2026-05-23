@@ -31,7 +31,6 @@ class GenderLeaveVisibilityTest extends TestCase
             'department_id' => $employee->department_id,
             'position_id' => $employee->position_id,
             'manager_id' => $employee->manager_id,
-            'position' => $employee->position,
             'date_hired' => $employee->date_hired->toDateString(),
             'phone' => $employee->phone,
             'address' => $employee->address,

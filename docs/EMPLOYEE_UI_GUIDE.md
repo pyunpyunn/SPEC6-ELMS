@@ -4,15 +4,25 @@
 - **Layout:** Use sidebar, header, and main content area as in the prototype.
 - **UI Components:** Use cards, tables, modals, tabs, badges, and forms for employee pages.
 - **UX Patterns:** Consistent filters, search, pagination, and CRUD actions. Use modals for forms.
+- **Theme:** The active employee portal is light-mode only. Do not re-add dark-mode toggles or `dark` theme classes.
 
 ## 2. Employee Pages: What to Copy
-- **Sidebar Navigation:** `.sidebar`, `.sb-item` for navigation links like "Employees".
+- **Sidebar Navigation:** `.sidebar`, `.sb-item`, and `.sb-toggle` for employee navigation. The active layout stores collapsed state in `localStorage` as `employee-sidebar-collapsed`.
 - **Header:** `.header`, `.profile-area`, notification components for top bar.
 - **Tables:** `.table-wrap`, `table`, `th`, `td` for employee lists. Use badges for status.
 - **Cards:** `.card`, `.card-header`, `.card-body`, `.card-footer` for employee details.
 - **Forms:** `.form-grid`, `.form-group`, and input styles for employee creation/edit.
 - **Modals:** `.modal`, `.modal-header`, `.modal-body`, `.modal-footer` for add/edit actions.
 - **Badges:** `.badge-emp` for employee role, `.badge-active`, `.badge-inactive` for status.
+
+## 2.1 Current Employee Leave Filing UX
+
+- The apply leave modal lives at `resources/views/employee/partials/apply-leave-modal.blade.php`.
+- Leave type options expose `data-requires-proof`, `data-max-document-days`, `data-requires-approval`, and `data-proof-rules`.
+- Proof upload becomes required only when the selected leave type requires proof and the calculated working days reach the configured `max_document_days` threshold. A null or zero threshold means proof is required for any positive-day request.
+- The selected proof filename is displayed below the upload control.
+- The UI blocks obvious weekend and approved-leave overlap conflicts, while backend validation remains the source of truth.
+- Employee notification badges use actionable unread counts, so settled leave-request notifications stop showing in the count.
 
 ## 3. Naming Conventions to Apply
 - **Database/Field Names:**

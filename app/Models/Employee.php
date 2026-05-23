@@ -19,8 +19,6 @@ class Employee extends Model
         'first_name',
         'last_name',
         'gender',
-        'department',
-        'position',
         'date_hired',
         'contact_info',
         'phone',
@@ -69,6 +67,16 @@ class Employee extends Model
         $name = trim(($this->first_name ?? '').' '.($this->last_name ?? ''));
 
         return $name !== '' ? $name : $this->user?->name ?? 'Employee';
+    }
+
+    public function getDepartmentAttribute(): ?string
+    {
+        return $this->departmentRecord?->name;
+    }
+
+    public function getPositionAttribute(): ?string
+    {
+        return $this->positionRecord?->name;
     }
 
     public function departmentCode(): ?string

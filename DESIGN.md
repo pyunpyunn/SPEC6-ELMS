@@ -4,6 +4,8 @@
 
 The Employee Leave Management System uses a compact administrative dashboard style. The interface is built for repeated HR and manager work: scanning tables, filtering records, reviewing leave requests, and moving between role-specific pages quickly.
 
+The active system is light-mode only. Historical prototype files may still contain dark-mode examples, but the production Blade layouts and public portal stylesheets do not expose a dark-mode toggle.
+
 ## Visual Language
 
 - Primary color: deep green `#2a6349`
@@ -60,6 +62,7 @@ Each role has a role-specific sidebar. Active pages are highlighted using the `a
 - Modals: used for focused actions such as leave application forms.
 - Calendars: month grids with colored leave-type event chips.
 - Notification dropdowns: top-header menu with unread count refresh.
+- Pagination: compact HR/Admin pagination uses `resources/views/vendor/pagination/hr.blade.php`, with constrained arrow/icon sizes.
 
 ## Responsive Behavior
 

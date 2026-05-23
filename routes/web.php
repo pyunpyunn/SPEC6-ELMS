@@ -10,71 +10,31 @@ use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\LeaveApplicationController;
-use App\Http\Controllers\Hr\HrController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
 use App\Http\Controllers\Manager\LeaveApprovalController;
 use App\Http\Controllers\Manager\ManagerController;
-use App\Models\SystemNotification;
-use Illuminate\Http\Request;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PositionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return auth()->check() ? redirect()->route('home') : view('auth.login');
-});
+Route::get('/', [HomeController::class, 'landing']);
 
-Route::middleware('auth')->get('/home', function () {
-    $user = auth()->user();
+Route::middleware('auth')
+    ->get('/home', [HomeController::class, 'redirectByRole'])
+    ->name('home');
 
-    if ($user->status !== 'active') {
-        return redirect()
-            ->route('employee.profile')
-            ->with('warning', 'Your account is not approved yet. HR must activate your account before you can use ELMS modules.');
-    }
+Route::middleware(['auth', 'account.approved'])
+    ->get('/positions-by-department/{department}', [PositionController::class, 'byDepartment'])
+    ->name('positions.by-department');
 
-    return match ($user->getAccessLevel()) {
-        'hr' => redirect()->route('admin.dashboard'),
-        'manager' => redirect()->route('manager.dashboard'),
-        default => redirect()->route('employee.dashboard'),
-    };
-})->name('home');
+Route::middleware(['auth', 'account.approved'])
+    ->get('/notifications/feed', [NotificationController::class, 'feed'])
+    ->name('notifications.feed');
 
-Route::middleware(['auth', 'account.approved'])->get('/positions-by-department/{department_id}', function (int $department_id) {
-        $positions = \App\Models\Position::where('department_id', $department_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return response()->json($positions);
-})->name('positions.by-department');
-
-Route::middleware(['auth', 'account.approved'])->get('/notifications/feed', function (Request $request) {
-    $notifications = $request->user()
-        ->notifications()
-        ->latest()
-        ->take(5)
-        ->get()
-        ->map(fn (SystemNotification $notification) => [
-            'id' => $notification->id,
-            'title' => $notification->title,
-            'created_at' => $notification->created_at?->diffForHumans(),
-            'unread' => $notification->read_at === null,
-            'read_url' => route('notifications.read', $notification),
-        ]);
-
-    return response()->json([
-        'unread_count' => $request->user()->notifications()->unreadActionable()->count(),
-        'notifications' => $notifications,
-    ]);
-})->name('notifications.feed');
-
-Route::middleware(['auth', 'account.approved'])->get('/notifications/{notification}/read', function (SystemNotification $notification) {
-    abort_unless($notification->user_id === auth()->id(), 403);
-
-    if (! $notification->read_at) {
-        $notification->update(['read_at' => now()]);
-    }
-
-    return redirect($notification->action_url ?: route('home'));
-})->name('notifications.read');
+Route::middleware(['auth', 'account.approved'])
+    ->get('/notifications/{notification}/read', [NotificationController::class, 'read'])
+    ->name('notifications.read');
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {
     Route::delete('/leave/{leaveApplication}', [LeaveApplicationController::class, 'destroy'])
@@ -122,6 +82,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
 
     Route::middleware(['auth', 'profile.complete', 'account.approved', 'role:hr'])
         ->prefix('admin')
+        ->name('admin.')
         ->group(function () {
             Route::get('/reports/yearly-compensation', [AdminReportController::class, 'yearlyCompensation'])
                 ->name('reports.yearly-compensation');

@@ -4,7 +4,9 @@
 
 The Employee Leave Management System is a Laravel 13 application for filing, approving, monitoring, and reporting employee leave requests.
 
-Employees submit leave applications with leave type, date range, reason, and optional proof. The system validates requests against the employee's current-year leave balance. Managers review pending requests for employees in their team or department. HR Admins manage employee records, leave types, departments, user activation, reports, calendars, and CSV exports.
+Employees submit leave applications with leave type, date range, reason, and conditional proof uploads based on the selected leave type rules. The system validates requests against the employee's current-year leave balance. Managers review pending requests for employees in their team or department. HR Admins manage employee records, leave types, departments, user activation, reports, calendars, notifications, and CSV exports.
+
+The current production UI is light-mode only. HR/Admin, Manager, and Employee dark-mode toggles were removed from active layouts and stylesheets.
 
 ## Core Modules
 
@@ -17,7 +19,7 @@ Employees submit leave applications with leave type, date range, reason, and opt
 | Leave Application | Employee, manager, and HR self-service leave filing with balance validation |
 | Leave Approval Workflow | Manager and HR approve or reject requests with remarks |
 | Reports and Dashboard | HR summaries, balances, department reports, calendar, and CSV export |
-| Notifications | In-app notices for registration, activation, leave submission, and leave status changes |
+| Notifications | In-app notices for registration, activation, leave submission, and leave status changes, with settled leave-request notifications removed from unread badge counts |
 
 ## ER Diagram
 
@@ -49,7 +51,7 @@ erDiagram
 | `leave_types`          | Leave type name, allocation, approval flag, proof rules, compensable flag, and active flag |
 | `leave_balances`       | Employee yearly allocation, used days, and computed remaining days |
 | `leave_applications`   | Filed leave requests, dates, total days, status, remarks, reviewer, and proof path |
-| `system_notifications` | In-app notifications and read status |
+| `system_notifications` | In-app notifications, read status, optional action URL, and optional related record metadata for leave-request settlement |
 
 ## Routes and Controllers
 
@@ -59,7 +61,22 @@ erDiagram
 | Manager       | `/manager`           | `app/Http/Controllers/Manager/ManagerController.php`, `LeaveApprovalController.php` |
 | Employee      | `/employee`          | `app/Http/Controllers/Employee/*`, shared logic in `EmployeePortalController.php` |
 | Auth          | `/login`, `/register`, `/forgot-password` | Fortify setup in `app/Providers/FortifyServiceProvider.php` |
-| Notifications | `/notifications/feed` | Closure route in `routes/web.php` using `SystemNotification` |
+| Home Redirect | `/`, `/home` | `app/Http/Controllers/HomeController.php` |
+| Positions API | `/positions-by-department/{department}` | `app/Http/Controllers/PositionController.php` |
+| Notifications | `/notifications/feed`, `/notifications/{notification}/read` | `app/Http/Controllers/NotificationController.php` |
+
+## Current View and UI Structure
+
+| Area | Active Location |
+| --- | --- |
+| HR/Admin views | `resources/views/admin` |
+| HR/Admin reports partial | `resources/views/admin/reports/_content.blade.php` |
+| Manager views | `resources/views/manager` |
+| Employee views | `resources/views/employee` |
+| Employee shell layout | `resources/views/layouts/employee.blade.php` |
+| HR-style pagination partial | `resources/views/vendor/pagination/hr.blade.php` |
+
+The duplicate `resources/views/hr` folder was removed. HR Admin pages use the `admin.*` route names, `/admin` URLs, and `resources/views/admin` Blade files.
 
 ## Screenshots to Capture for Submission
 
@@ -80,16 +97,13 @@ Place final screenshots in `docs/screenshots/` before submission.
 | Employee leave filing/history | Employee | `/employee/leaves` |
 | Employee reports | Employee | `/employee/reports` |
 
-## Default HR Account
+## Default Demo Accounts
 
-| Field | Value |
-| --- | --- |
-| Name | Kathleen Barro |
-| Email | `hr@company.com` |
-| Employee ID | `HR-2000-001` |
-| Password | `password` |
-| Role | `hr_admin` |
-| Gender | `female` |
+| Role | Email Login | Employee ID Login | Password |
+| --- | --- | --- | --- |
+| HR Admin | `hr@company.com` | `HR-2000-001` | `password` |
+| Manager | `manager@company.com` | `OPS-5000-001` | `password` |
+| Employee | `employee@company.com` | `OPS-5001-001` | `password` |
 
 ## Technical Notes for Defense
 
@@ -100,6 +114,9 @@ Place final screenshots in `docs/screenshots/` before submission.
 - Relationships are defined inside `app/Models`.
 - Leave approval updates used leave balance inside database transactions.
 - In-app notifications are created through `App\Models\SystemNotification`.
+- Leave request notifications store related leave metadata and use `unreadActionable()` for badge counts.
+- When a manager, HR admin, or employee cancellation settles a leave request, `SystemNotification::markLeaveRequestSettled()` marks matching unread leave-request notifications as read.
+- Employee leave filing exposes `max_document_days` to the apply leave modal so proof upload appears only when required by leave type rules.
 
 
 
@@ -116,7 +133,7 @@ positions	             Job titles per department
 leave_types	             Leave categories you configure
 leave_applications	     Leave requests (core feature)
 leave_balances	         Annual leave balance tracking per employee
-system_notifications	 In-app notifications
+system_notifications	 In-app notifications, read status, action links, and related leave-request metadata
 
 All 14 foreign keys = valid connections. No dangling references.
 
@@ -129,14 +146,8 @@ sessions, password_reset_tokens	"Auto-generated by SESSION_DRIVER=database and F
 cache, cache_locks, jobs, job_batches, failed_jobs	"Standard Laravel queuing/caching infrastructure. Present because CACHE_STORE=database and QUEUE_CONNECTION=database in our config — not actively used by our leave features."
 Key line: "These are Laravel framework tables auto-generated by our migrations based on .env configuration — not part of our business logic."
 
-One Red Flag to Address Proactively 🚨
-Your employees table has redundant columns:
-
-✅ department_id (FK) — correct
-❌ department (text) — redundant legacy column
-✅ position_id (FK) — correct
-❌ position (text) — redundant legacy column
-If someone asks: "The text columns are legacy from an earlier schema version. The actual relationships are through the foreign keys (department_id, position_id). Should've been removed in a cleanup migration — would fix in production."
+Normalization Note
+The `employees` table uses `department_id` and `position_id` foreign keys for department and job-title data. The old text columns `department` and `position` were removed in a cleanup migration. Blade pages can still display `$employee->department` and `$employee->position` because the `Employee` model exposes beginner-friendly accessors that read from the related `departments` and `positions` tables.
 
 
 
@@ -152,10 +163,11 @@ Public Routes (No Auth)
 ├── GET / → Login or Home
 └── Auth Routes (login, register, password reset)
 
-Protected Routes (Requires Auth + Profile Complete)
+Protected Routes
 ├── /home → Role-based redirect
 ├── /positions-by-department/{id} → JSON API
-├── /notifications → Feed system
+├── /notifications/feed → Header notification JSON feed
+├── /notifications/{notification}/read → Shared notification read redirect
 │
 ├── HR Admin Routes (/admin prefix)
 │   ├── Dashboard, Users, Employees
@@ -178,18 +190,21 @@ Protected Routes (Requires Auth + Profile Complete)
     ├── Notifications
     └── Profile
 
+Role modules require `auth`, `profile.complete`, `account.approved`, and the matching `role:*` middleware. The shared notification feed requires `auth` and `account.approved`.
+
 
 How Routing Works - Step by Step
 1. User visits /home:
 
         <?php
-        Route::middleware('auth')->get('/home', function () {
-            return match ($user->getAccessLevel()) {
-                'hr' => redirect()->route('admin.dashboard'),      // → /admin/dashboard
-                'manager' => redirect()->route('manager.dashboard'), // → /manager/dashboard
-                default => redirect()->route('employee.dashboard'),  // → /employee/dashboard
-            };
-        })->name('home');
+        Route::middleware('auth')
+            ->get('/home', [HomeController::class, 'redirectByRole'])
+            ->name('home');
+
+        // Inside HomeController:
+        // HR Admin  -> admin.dashboard
+        // Manager   -> manager.dashboard
+        // Employee  -> employee.dashboard
 
 2. Request goes to appropriate controller (based on role):
 

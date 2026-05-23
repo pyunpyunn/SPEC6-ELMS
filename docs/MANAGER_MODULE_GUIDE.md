@@ -53,6 +53,7 @@ Route::middleware('role:manager')
 | `resources/views/manager/calendar.blade.php` | Team calendar |
 | `resources/views/manager/team.blade.php` | Team overview |
 | `resources/views/manager/my-leave.blade.php` | Manager leave filing/history |
+| `resources/views/manager/notifications.blade.php` | Manager notification list |
 | `resources/views/manager/profile.blade.php` | Profile and password update |
 | `public/manager-portal.css` | Manager module styling |
 
@@ -80,6 +81,7 @@ Route::middleware('role:manager')
 - Approval checks the employee’s remaining leave balance before updating.
 - Approved requests increment used leave balance.
 - Employees receive an in-app notification after approval/rejection.
+- After a manager decision, the matching leave-request notifications are marked settled so HR/other approvers do not keep a stale unread count for the same request.
 
 ### Team Calendar
 
@@ -100,6 +102,7 @@ Route::middleware('role:manager')
 - Requests are submitted to HR for review.
 - Remaining leave balance is validated before submission.
 - HR admins receive an in-app notification.
+- HR leave-request notifications include related leave metadata for settlement tracking.
 
 ### Profile
 
@@ -134,4 +137,6 @@ Use `view:clear` after `view:cache` during development so Blade changes are pick
 - The Manager module uses Blade templates and Eloquent ORM.
 - No raw SQL is used in the manager workflow.
 - Leave approval and balance updates run inside a database transaction.
+- Manager notification badges use actionable unread counts, not raw unread rows.
+- The active manager portal is light-mode only.
 - The UI follows the `docs/prototypes/kuan1.html` visual direction: green palette, compact sidebar, header dropdowns, and calendar layout.
