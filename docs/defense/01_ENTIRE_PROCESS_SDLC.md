@@ -35,7 +35,7 @@ The group divided the work into two modules per member.
 | Adriane | Manager/reporting/auth flow | Module 5: Reports and Dashboards, Module 6: User Authentication and Roles |
 | Vinzon | Employee/admin configuration records | Module 1: Employee Management, Module 2: Leave Type Configuration |
 
-Important note for defense: some Laravel files are shared. For example, `HrController` contains HR/Admin features that support several modules. This is normal in a small school project. The member assignment means who explains and defends that feature area, not that the code is physically isolated into only one folder.
+Important note: some Laravel files are shared. For example, `HrController` contains HR/Admin features that support several modules.
 
 ## 3. SDLC Overview
 
