@@ -387,9 +387,7 @@ tests/
   Feature/                  Feature tests for login, pages, notifications, rules
 ```
 
-## 8. What To Say If Asked About MVC
-
-Use this answer:
+## 8. HOW WE DID THE MVC
 
 > We used MVC by keeping database logic and relationships inside Eloquent models, request handling inside controllers, validation inside Form Request classes, and UI inside Blade views. Routes only map URLs to controllers and are grouped by role. We avoided placing business logic directly in Blade templates.
 
@@ -401,13 +399,11 @@ Examples:
 - Request validation: `app/Http/Requests/StoreLeaveApplicationRequest.php`
 - Route: `routes/web.php`
 
-## 9. What To Say If Asked About Eloquent
-
-Use this answer:
+## 9. HOW WE DID THE ELOQUENT
 
 > We used Eloquent ORM for database operations. For example, leave applications are created with `LeaveApplication::create()`, balances are loaded with `LeaveBalance::where(...)`, and relationships like `$leaveApplication->employee`, `$employee->leaveBalances`, and `$leaveType->applications()` are defined in models.
 
-## 10. What To Say If Asked About Security
+## 10. HOW WE DID THE SECURITY
 
 Security points:
 
@@ -418,7 +414,7 @@ Security points:
 - Form Requests validate all important forms.
 - Route model binding plus ownership checks protect leave viewing and notification reading.
 
-## 11. What To Say If Asked About Data Integrity
+## 11. HOW WE MADE SURE THAT THERE WAS DATA INTEGRITY
 
 Data integrity points:
 
@@ -428,7 +424,7 @@ Data integrity points:
 - Leave request validation checks remaining balance before saving.
 - Seeders create consistent demo records.
 
-## 12. Quick Defense Demo Script
+## 12. DEMONSTRATION FLOW
 
 1. Log in as HR Admin.
 2. Show HR dashboard.
