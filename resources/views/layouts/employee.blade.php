@@ -116,7 +116,7 @@
                 <div class="sb-balance-title">
                     <span>Leave Balance</span>
                     <select class="sb-balance-filter" id="sbBalanceFilter" onchange="filterSidebarBalance(this.value)">
-                        <option value="all">All</option>
+                        <option value="">Select</option>
                         @foreach($balancesForShell as $balance)
                             <option value="{{ \Illuminate\Support\Str::slug($balance->name) }}">{{ $balance->name }}</option>
                         @endforeach
@@ -128,7 +128,7 @@
                         $total = $balance->total_days ?? 0;
                         $pct = $total > 0 ? min(100, round(($used / $total) * 100)) : 0;
                     @endphp
-                    <div class="sb-balance-row" data-balance-type="{{ \Illuminate\Support\Str::slug($balance->name) }}">
+                    <div class="sb-balance-row" data-balance-type="{{ \Illuminate\Support\Str::slug($balance->name) }}" style="display:none">
                     <div class="sb-balance-item">
                         <span class="sb-balance-label">{{ $balance->name }}</span>
                         <span class="sb-balance-val">{{ $used }}/{{ $total }}</span>
@@ -194,7 +194,7 @@
 <script>
 function filterSidebarBalance(type) {
   document.querySelectorAll('.sb-balance-row').forEach(row => {
-    row.style.display = type === 'all' || row.dataset.balanceType === type ? '' : 'none';
+    row.style.display = type && row.dataset.balanceType === type ? '' : 'none';
   });
 }
 function toggleProfileMenu() {
@@ -219,6 +219,8 @@ function toggleSidebar() {
   toggleEmployeeSidebar();
 }
 window.addEventListener('DOMContentLoaded', function() {
+  const balanceFilter = document.getElementById('sbBalanceFilter');
+  if (balanceFilter) filterSidebarBalance(balanceFilter.value);
   const stored = localStorage.getItem('employee-sidebar-collapsed') ?? localStorage.getItem('sidebarCollapsed');
   setEmployeeSidebarCollapsed(stored === 'true');
   localStorage.removeItem('sidebarCollapsed');

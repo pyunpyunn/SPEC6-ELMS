@@ -28,30 +28,30 @@ The system must:
 
 These are the complete source files for Module 3:
 
-| Purpose | File |
-| --- | --- |
-| Employee leave routes | `routes/web.php` |
-| Employee leave resource controller | `app/Http/Controllers/Employee/LeaveApplicationController.php` |
-| Shared employee leave logic | `app/Http/Controllers/EmployeePortalController.php` |
-| HR self-leave logic | `app/Http/Controllers/Hr/HrController.php` |
-| Manager self-leave logic | `app/Http/Controllers/Manager/ManagerController.php` |
-| Leave form validation | `app/Http/Requests/StoreLeaveApplicationRequest.php` |
-| Manager leave form validation | `app/Http/Requests/Manager/StoreManagerLeaveRequest.php` |
-| HR leave form validation | `app/Http/Requests/Hr/StoreHrLeaveRequest.php` |
-| Leave application model | `app/Models/LeaveApplication.php` |
-| Leave balance model | `app/Models/LeaveBalance.php` |
-| Leave type model | `app/Models/LeaveType.php` |
-| Employee dashboard view | `resources/views/employee/dashboard.blade.php` |
-| Employee leave list/history view | `resources/views/employee/leaves/index.blade.php` |
-| Employee create leave view | `resources/views/employee/leaves/create.blade.php` |
-| Apply leave modal | `resources/views/employee/partials/apply-leave-modal.blade.php` |
-| Employee reports/balances view | `resources/views/employee/reports.blade.php` |
-| Employee leave detail view | `resources/views/employee/leaves/show.blade.php` |
-| Leave applications migration | `database/migrations/2026_05_01_112325_create_leave_applications_table.php` |
-| Leave balance migration | `database/migrations/2026_05_09_000001_build_hr_leave_management_schema.php` |
-| Leave balance seeder | `database/seeders/LeaveBalanceSeeder.php` |
+| Purpose                            | File                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| Employee leave routes              | `routes/web.php`                                                               |
+| Employee leave resource controller | `app/Http/Controllers/Employee/LeaveApplicationController.php`                 |
+| Shared employee leave logic        | `app/Http/Controllers/EmployeePortalController.php`                            |
+| HR self-leave logic                | `app/Http/Controllers/Hr/HrController.php`                                     |
+| Manager self-leave logic           | `app/Http/Controllers/Manager/ManagerController.php`                           |
+| Leave form validation              | `app/Http/Requests/StoreLeaveApplicationRequest.php`                           |
+| Manager leave form validation      | `app/Http/Requests/Manager/StoreManagerLeaveRequest.php`                       |
+| HR leave form validation           | `app/Http/Requests/Hr/StoreHrLeaveRequest.php`                                 |
+| Leave application model            | `app/Models/LeaveApplication.php`                                              |
+| Leave balance model                | `app/Models/LeaveBalance.php`                                                  |
+| Leave type model                   | `app/Models/LeaveType.php`                                                     |
+| Employee dashboard view            | `resources/views/employee/dashboard.blade.php`                                 |
+| Employee leave list/history view   | `resources/views/employee/leaves/index.blade.php`                              |
+| Employee create leave view         | `resources/views/employee/leaves/create.blade.php`                             |
+| Apply leave modal                  | `resources/views/employee/partials/apply-leave-modal.blade.php`                |
+| Employee reports/balances view     | `resources/views/employee/reports.blade.php`                                   |
+| Employee leave detail view         | `resources/views/employee/leaves/show.blade.php`                               |
+| Leave applications migration       | `database/migrations/2026_05_01_112325_create_leave_applications_table.php`    |
+| Leave balance migration            | `database/migrations/2026_05_09_000001_build_hr_leave_management_schema.php`   |
+| Leave balance seeder               | `database/seeders/LeaveBalanceSeeder.php`                                      |
 
-## Module 3 Routes
+## Module 3 Leave Application Routes
 
 In `routes/web.php`, employee leave routes are inside:
 
@@ -80,7 +80,7 @@ What this means:
 - `PATCH /employee/leaves/{leaveApplication}/cancel` cancels a pending leave.
 - `GET /employee/reports` shows balances/report.
 
-## Module 3 Controller Flow
+## Module 3 Leave Application Controller Flow
 
 ### Entry Controller
 
@@ -331,7 +331,7 @@ return redirect()
     ->with('success', 'Leave request submitted. It is now pending approval.');
 ```
 
-## Module 3 Validation
+## Module 3 Leave Application Validation
 
 File:
 
@@ -361,7 +361,7 @@ Defense explanation:
 - The Form Request handles basic validation.
 - The controller handles business validation such as balance, gender restriction, proof requirement, and duplicate leave.
 
-## Module 3 Models
+## Module 3 Leave Application Models
 
 ### LeaveApplication
 
@@ -443,7 +443,7 @@ public function isVisibleForGender(?string $gender): bool
 
 This hides maternity/paternity or gender-specific leaves if the employee is not eligible.
 
-## Module 3 Views
+## Module 3 Leave Application Views
 
 | View | Purpose |
 | --- | --- |
@@ -484,19 +484,19 @@ This system uses in-app notifications through `system_notifications`.
 
 ## Module 4 Main Code Files To Study
 
-| Purpose | File |
-| --- | --- |
-| Manager approval routes | `routes/web.php` |
+| Purpose                                    | File                                                       |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| Manager approval routes                    | `routes/web.php`                                           |
 | Manager resource-style approval controller | `app/Http/Controllers/Manager/LeaveApprovalController.php` |
-| Manager approval logic | `app/Http/Controllers/Manager/ManagerController.php` |
-| HR request review logic | `app/Http/Controllers/Hr/HrController.php` |
-| Admin request wrapper | `app/Http/Controllers/Admin/LeaveRequestController.php` |
-| Manager decision validation | `app/Http/Requests/Manager/LeaveDecisionRequest.php` |
-| HR decision validation | `app/Http/Requests/Hr/LeaveDecisionRequest.php` |
-| Notification model | `app/Models/SystemNotification.php` |
-| Manager approval inbox view | `resources/views/manager/approvals/index.blade.php` |
-| Manager approval detail view | `resources/views/manager/approvals/show.blade.php` |
-| HR request log view | `resources/views/admin/requests/index.blade.php` |
+| Manager approval logic                     | `app/Http/Controllers/Manager/ManagerController.php`       |
+| HR request review logic                    | `app/Http/Controllers/Hr/HrController.php`                 |
+| Admin request wrapper                      | `app/Http/Controllers/Admin/LeaveRequestController.php`    |
+| Manager decision validation                | `app/Http/Requests/Manager/LeaveDecisionRequest.php`       |
+| HR decision validation                     | `app/Http/Requests/Hr/LeaveDecisionRequest.php`            |
+| Notification model                         | `app/Models/SystemNotification.php`                        |
+| Manager approval inbox view                | `resources/views/manager/approvals/index.blade.php`        |
+| Manager approval detail view               | `resources/views/manager/approvals/show.blade.php`         |
+| HR request log view                        | `resources/views/admin/requests/index.blade.php`           |
 
 ## Module 4 Routes
 

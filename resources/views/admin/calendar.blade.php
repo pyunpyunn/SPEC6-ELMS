@@ -27,7 +27,7 @@
             <form method="GET" class="page-actions">
                 <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
                 <input type="hidden" name="view" value="{{ $view }}">
-                <select name="department_id" onchange="this.form.submit()" style="padding:8px 11px;min-width:140px">
+                <select name="department_id" onchange="this.form.submit()">
                     <option value="">All Departments</option>
                     @foreach($departments as $department)
                         <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>{{ $department->name }}</option>

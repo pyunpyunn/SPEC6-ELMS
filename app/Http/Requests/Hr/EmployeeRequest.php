@@ -32,7 +32,6 @@ class EmployeeRequest extends FormRequest
             ],
             'department_id' => ['required', 'exists:departments,id'],
             'position_id' => ['required', 'exists:positions,id'],
-            'manager_id' => ['nullable', 'exists:employees,id'],
             'date_hired' => ['required', 'date'],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],

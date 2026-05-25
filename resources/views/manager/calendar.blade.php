@@ -15,15 +15,15 @@
         <span class="cal-nav-month">{{ $calendarMonth->format('F Y') }}</span>
         <a class="btn btn-icon" href="{{ route('manager.calendar', ['year' => $nextMonth->year, 'month' => $nextMonth->month, 'leave_type_ids' => request('leave_type_ids')]) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
     </div>
-    <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <form class="calendar-filter-bar" method="GET">
         <input type="hidden" name="year" value="{{ $calendarMonth->year }}">
         <input type="hidden" name="month" value="{{ $calendarMonth->month }}">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="leave-filter-chips">
             @foreach($leaveTypes as $type)
                 @php($slug = str($type->name)->slug())
-                <label style="font-size:12px;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface)">
+                <label class="leave-filter-chip leave-filter-{{ $slug }}">
                     <input type="checkbox" name="leave_type_ids[]" value="{{ $type->id }}" onchange="this.form.submit()" @checked(empty($selectedTypes) || in_array($type->id, $selectedTypes))>
-                    <span class="badge badge-{{ $slug === 'sick-leave' ? 'pending' : ($slug === 'vacation-leave' ? 'approved' : ($slug === 'emergency-leave' ? 'rejected' : 'info')) }}">{{ $type->name }}</span>
+                    <span class="leave-filter-chip-label">{{ $type->name }}</span>
                 </label>
             @endforeach
         </div>

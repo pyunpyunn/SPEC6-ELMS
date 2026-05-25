@@ -18,7 +18,6 @@ class ActivateUserRequest extends FormRequest
         return [
             'department_id' => ['required', 'exists:departments,id'],
             'position_id' => ['required', 'exists:positions,id'],
-            'manager_id' => ['nullable', 'exists:employees,id'],
             'date_hired' => ['required', 'date'],
             'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
         ];

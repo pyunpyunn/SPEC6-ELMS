@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Hr\HrController;
 use App\Http\Requests\Hr\ActivateUserRequest;
+use App\Http\Requests\Hr\DeleteUserRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,5 +31,10 @@ class UserController extends Controller
     public function deactivate(User $user): RedirectResponse
     {
         return app(HrController::class)->deactivateUser($user);
+    }
+
+    public function destroy(DeleteUserRequest $request, User $user): RedirectResponse
+    {
+        return app(HrController::class)->deleteUser($request, $user);
     }
 }

@@ -29,7 +29,7 @@
                 </thead>
                 <tbody>
                     @foreach($leaveTypes as $type)
-                        @php($compensation = $type->is_compensable ? $dailyRate * $type->remaining_days : 0)
+                        @php($compensation = $type->is_compensable ? $dailyRate * $type->actual_remaining_days : 0)
                         <tr>
                             <td>
                                 <div class="td-name">{{ $type->name }}</div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Hr\HrController;
+use App\Http\Requests\Hr\DeleteUserRequest;
 use App\Http\Requests\Hr\ProfileRequest;
 use App\Http\Requests\Hr\StoreHrLeaveRequest;
 use App\Http\Requests\UpdatePasswordRequest;
@@ -47,5 +48,10 @@ class ProfileController extends Controller
     public function password(UpdatePasswordRequest $request): RedirectResponse
     {
         return app(HrController::class)->updatePassword($request);
+    }
+
+    public function destroy(DeleteUserRequest $request): RedirectResponse
+    {
+        return app(HrController::class)->deleteOwnAccount($request);
     }
 }

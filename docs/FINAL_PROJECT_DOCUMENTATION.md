@@ -122,8 +122,7 @@ Place final screenshots in `docs/screenshots/` before submission.
 
 ERD
 -------------------------------------------------------------------------------------------------------
-Your 8 Business Tables ✅
-Know these cold — these are yours:
+The 8 Business Tables
 
 Table	                 Purpose
 users	                 Accounts (HR Admin, Manager, Employee roles)
@@ -137,8 +136,7 @@ system_notifications	 In-app notifications, read status, action links, and relat
 
 All 14 foreign keys = valid connections. No dangling references.
 
-The 8 "Framework Tables" — Be Ready to Explain ⚠️
-If asked why these exist, don't get caught off-guard:
+The 8 "Framework Tables"
 
 Table	Answer
 migrations	"Tracks which database migrations have run — Laravel's internal audit log."

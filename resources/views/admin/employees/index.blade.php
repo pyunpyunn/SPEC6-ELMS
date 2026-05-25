@@ -83,7 +83,6 @@
                                 'department_id',
                                 'position_id',
                                 'position',
-                                'manager_id',
                                 'phone',
                                 'address',
                                 'daily_rate',
@@ -150,14 +149,6 @@
                     <input type="text" id="employeeId" class="field-readonly" readonly disabled style="font-family:var(--mono)">
                     <small id="employeeIdHint" style="display:block;margin-top:4px;color:var(--text3);font-size:10px"></small>
                 </div>
-                <div class="form-group"><label class="form-label" for="employeeManager">Manager</label>
-                    <select name="manager_id" id="employeeManager">
-                        <option value="">No manager</option>
-                        @foreach($managers as $manager)
-                            <option value="{{ $manager->id }}">{{ $manager->full_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
                 <div class="form-group"><label class="form-label" for="employeeDateHired">Date Hired <span class="required-mark">*</span></label><input class="form-control" type="date" name="date_hired" id="employeeDateHired" required></div>
                 <div class="form-group"><label class="form-label" for="employeeDailyRate">Daily Rate <span class="required-mark">*</span></label><input class="form-control" type="number" step="0.01" name="daily_rate" id="employeeDailyRate" value="1000" required></div>
                 <div class="form-group"><label class="form-label" for="employeeStatus">Employment Status <span class="required-mark">*</span></label>
@@ -214,7 +205,6 @@
                     employee?.position || ''
                 );
                 
-                document.getElementById('employeeManager').value = employee?.manager_id || '';
                 document.getElementById('employeeDateHired').value = employee?.date_hired || '{{ now()->toDateString() }}';
                 document.getElementById('employeePhone').value = employee?.phone || '';
                 document.getElementById('employeeStatus').value = employee?.employment_status || 'active';
@@ -236,7 +226,6 @@
                     employee?.position || ''
                 );
                 
-                document.getElementById('employeeManager').value = employee?.manager_id || '';
                 document.getElementById('employeeDateHired').value = employee?.date_hired || '{{ now()->toDateString() }}';
                 document.getElementById('employeePhone').value = employee?.phone || '';
                 document.getElementById('employeeStatus').value = employee?.employment_status || 'active';

@@ -64,8 +64,14 @@
 
     <div class="dash-layout">
         <div class="grid">
-            <div class="card">
-                <div class="card-header" style="background-color:#99baa9"><span class="card-title">Recent Leave Requests</span><a class="btn btn-outline btn-sm" href="{{ route('admin.requests.index', ['department_id' => $selectedDepartmentId]) }}" style="background-color:white;font-weight:600"><strong>View all</strong></a></div>
+            <div class="card recent-requests-card">
+                <div class="card-header recent-requests-header" style="background-color:#99baa9">
+                    <span class="card-title">Recent Leave Requests</span>
+                    <a class="btn btn-outline btn-sm recent-refresh-btn" href="{{ request()->fullUrl() }}" aria-label="Refresh recent leave requests">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M3 12A9 9 0 0 1 18.5 5.8"/><path d="M18 2v4h4"/><path d="M6 22v-4H2"/></svg>
+                        Refresh
+                    </a>
+                </div>
                 <div class="table-wrap" style="border:none;border-radius:0">
                     <table>
                         <thead><tr><th>Employee</th><th>Dept · Position</th><th>Leave Type</th><th>Duration</th><th>Filed</th><th>Status</th></tr></thead>
@@ -84,6 +90,9 @@
                         @endforelse
                         </tbody>
                     </table>
+                </div>
+                <div class="recent-requests-footer">
+                    <a class="btn btn-outline btn-sm recent-view-all-btn" href="{{ route('admin.requests.index', ['department_id' => $selectedDepartmentId]) }}">View all</a>
                 </div>
             </div>
 
@@ -121,16 +130,39 @@
             </div>
             <div class="info-card" id="on-leave-today">
                 <div class="info-card-header" style="background-color:#99baa9">On Leave Today</div>
-                <div class="info-card-body" style="display:flex;flex-direction:column;gap:10px">
-                    @forelse($onLeaveToday as $leave)
-                        <div style="display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div class="avatar avatar-sm">{{ substr($leave->employee->full_name,0,1) }}</div><div><div style="font-size:10px;font-weight:600;color:var(--text)">{{ $leave->employee->full_name }}</div><div style="font-size:10px;color:var(--text3)">{{ $leave->leaveType->name }} | returns {{ $leave->end_date->format('M d') }} <br> {{ $leave->employee->departmentRecord?->name }} | {{ $leave->employee->position }}</div></div></div>
-                    @empty
-                        <div style="font-size:10px;color:var(--text3)">No one is on approved leave today.</div>
-                    @endforelse
-
-                    <div class="pagination">
-                        {{ $onLeaveToday->withQueryString()->links('vendor.pagination.hr', ['anchor' => 'on-leave-today']) }}
+                <div class="info-card-body on-leave-card-body">
+                    <div class="on-leave-list">
+                        @forelse($onLeaveToday as $leave)
+                            <div class="on-leave-person">
+                                <div class="avatar avatar-sm on-leave-avatar">{{ substr($leave->employee->full_name, 0, 1) }}</div>
+                                <div class="on-leave-details">
+                                    <div class="on-leave-name">{{ $leave->employee->full_name }}</div>
+                                    <div class="on-leave-meta">{{ $leave->leaveType->name }} | returns {{ $leave->end_date->format('M d') }}</div>
+                                    <div class="on-leave-meta">{{ $leave->employee->departmentRecord?->name }} | {{ $leave->employee->position }}</div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="on-leave-empty">No one is on approved leave today.</div>
+                        @endforelse
                     </div>
+
+                    @if($onLeaveToday->hasPages())
+                        <div class="on-leave-pagination" aria-label="On leave today pagination">
+                            @if($onLeaveToday->onFirstPage())
+                                <span class="on-leave-page-btn is-disabled" aria-disabled="true" aria-label="Previous page">&lsaquo;</span>
+                            @else
+                                <a class="on-leave-page-btn" href="{{ $onLeaveToday->previousPageUrl() }}#on-leave-today" aria-label="Previous page">&lsaquo;</a>
+                            @endif
+
+                            <span class="on-leave-page-count">Page {{ $onLeaveToday->currentPage() }} of {{ $onLeaveToday->lastPage() }}</span>
+
+                            @if($onLeaveToday->hasMorePages())
+                                <a class="on-leave-page-btn" href="{{ $onLeaveToday->nextPageUrl() }}#on-leave-today" aria-label="Next page">&rsaquo;</a>
+                            @else
+                                <span class="on-leave-page-btn is-disabled" aria-disabled="true" aria-label="Next page">&rsaquo;</span>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

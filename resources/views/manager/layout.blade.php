@@ -52,7 +52,7 @@
             <div class="sb-balance-title">
                 <span>My Leave Balance</span>
                 <select id="sbBalanceFilter" class="sb-balance-filter" onchange="filterSidebarBalance(this.value)">
-                    <option value="all" style="color:black">All Types</option>
+                    <option value="" style="color:black">Select</option>
                     @foreach($sidebarBalances ?? [] as $balance)
                         <option value="lt-{{ $balance->leave_type_id }}" style="color:black">{{ $balance->leaveType->name }}</option>
                     @endforeach
@@ -60,7 +60,7 @@
             </div>
             <div id="sidebarBalanceItems">
                 @forelse($sidebarBalances ?? [] as $balance)
-                    <div class="sb-balance-item" data-type="lt-{{ $balance->leave_type_id }}"><span class="sb-balance-label">{{ $balance->leaveType->name }}</span><span class="sb-balance-val">{{ (int) $balance->remaining_days }}/{{ (int) $balance->allocated_days }}</span></div>
+                    <div class="sb-balance-item" data-type="lt-{{ $balance->leave_type_id }}" style="display:none"><span class="sb-balance-label">{{ $balance->leaveType->name }}</span><span class="sb-balance-val">{{ (int) $balance->remaining_days }}/{{ (int) $balance->allocated_days }}</span></div>
                 @empty
                     <div class="sb-balance-item" data-type="all"><span class="sb-balance-label">No balances yet</span><span class="sb-balance-val">0/0</span></div>
                 @endforelse
@@ -129,7 +129,8 @@ function toggleNotif(){
 function toggleProfile(){document.getElementById('profileDropdown')?.classList.toggle('open');document.getElementById('notifDropdown')?.classList.remove('open')}
 function closeDropdowns(){document.getElementById('notifDropdown')?.classList.remove('open');document.getElementById('profileDropdown')?.classList.remove('open')}
 document.addEventListener('click',function(e){if(!e.target.closest('#notifWrap')&&!e.target.closest('#profileWrap')) closeDropdowns()})
-function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(!type||type==='all'||item.dataset.type===type)?'flex':'none'})}
+function filterSidebarBalance(type){document.querySelectorAll('#sidebarBalanceItems .sb-balance-item').forEach(function(item){item.style.display=(type&&item.dataset.type===type)?'flex':'none'})}
+document.addEventListener('DOMContentLoaded',function(){const filter=document.getElementById('sbBalanceFilter');if(filter){filterSidebarBalance(filter.value)}})
 function escapeHtml(value){return String(value ?? '').replace(/[&<>"']/g,function(char){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]})}
 async function refreshNotifications(){
     const notificationsFeedUrl = document.getElementById('notifBtn')?.getAttribute('data-url');

@@ -41,7 +41,7 @@ Important note for defense: some Laravel files are shared. For example, `HrContr
 
 ### Phase 1: Planning
 
-We started by reading the instructor requirements:
+We started by reading the requirements:
 
 - Build a Laravel final project.
 - Use CRUD operations and data processing.

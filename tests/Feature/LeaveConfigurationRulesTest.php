@@ -125,6 +125,54 @@ class LeaveConfigurationRulesTest extends TestCase
             ->assertSessionHasErrors('proof');
     }
 
+    public function test_compensation_report_calculates_enabled_compensation_for_each_employee(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $hr = User::where('email', 'hr@company.com')->firstOrFail();
+        $maleEmployee = $this->createEmployeeProfile('male.staff@test.com', 'IT-3002-101', 'IT', 'Developer', gender: 'male');
+        $femaleEmployee = $this->createEmployeeProfile('female.staff@test.com', 'IT-3002-102', 'IT', 'Developer', gender: 'female');
+        $vacation = LeaveType::where('name', 'Vacation Leave')->firstOrFail();
+        $maternity = LeaveType::where('name', 'Maternity Leave')->firstOrFail();
+
+        $this->actingAs($hr)
+            ->put(route('admin.leave-types.update', $maternity), $this->leaveTypePayload($maternity, [
+                'is_compensable' => 1,
+            ]))
+            ->assertSessionHas('success');
+
+        LeaveApplication::create([
+            'employee_id' => $maleEmployee->id,
+            'leave_type_id' => $vacation->id,
+            'start_date' => now()->startOfYear()->addDays(10)->toDateString(),
+            'end_date' => now()->startOfYear()->addDays(11)->toDateString(),
+            'total_days' => 2,
+            'reason' => 'Approved vacation leave.',
+            'status' => 'approved',
+            'reviewed_by' => $hr->id,
+            'reviewed_at' => now(),
+        ]);
+
+        $response = $this->actingAs($hr)
+            ->getJson(route('admin.reports.yearly-compensation', ['year' => now()->year]))
+            ->assertOk();
+
+        $rows = collect($response->json('compensation_rows'));
+        $maleRow = $rows->firstWhere('employee_id', $maleEmployee->employee_id);
+        $femaleRow = $rows->firstWhere('employee_id', $femaleEmployee->employee_id);
+
+        $this->assertSame('₱ 13,000.00', $maleRow['total_leave_compensation']);
+        $this->assertSame('₱ 120,000.00', $femaleRow['total_leave_compensation']);
+
+        $maleMaternity = collect($maleRow['leave_compensations'])->firstWhere('leave_type', 'Maternity Leave');
+        $femaleMaternity = collect($femaleRow['leave_compensations'])->firstWhere('leave_type', 'Maternity Leave');
+
+        $this->assertSame('0', $maleMaternity['days_remaining']);
+        $this->assertSame('₱ 0.00', $maleMaternity['total_compensation']);
+        $this->assertSame('105', $femaleMaternity['days_remaining']);
+        $this->assertSame('₱ 105,000.00', $femaleMaternity['total_compensation']);
+    }
+
     private function leaveTypePayload(LeaveType $leaveType, array $overrides = []): array
     {
         return array_merge([

@@ -517,17 +517,19 @@ document.addEventListener('DOMContentLoaded', () => {
 <style>
     .report-page{display:grid;gap:18px}
     .report-section .card-h{align-items:center}
-    .report-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-    .report-filters select,.employee-search input{min-width:190px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
-    .report-filters-individual select{flex:1 1 190px}
+    .report-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;padding:14px;background:#fff;border:1px solid rgba(25,28,28,.14);border-radius:8px;box-shadow:0 1px 2px rgba(25,28,28,.04)}
+    .report-filters select,.employee-search input{width:100%;min-width:0;min-height:42px;border:1px solid rgba(25,28,28,.14);border-radius:8px;background-color:#fff;color:var(--text);font-size:13px;box-shadow:none;transition:border-color var(--transition),box-shadow var(--transition)}
+    .report-filters select{padding:0 38px 0 12px;background-image:linear-gradient(45deg,transparent 50%,rgba(66,72,68,.72) 50%),linear-gradient(135deg,rgba(66,72,68,.72) 50%,transparent 50%);background-position:calc(100% - 17px) 18px,calc(100% - 12px) 18px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;appearance:none}
+    .report-filters select:focus,.employee-search input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(22,52,40,.14);outline:none}
     .report-state{padding:12px 0}
     .report-table-title{font-size:14px;font-weight:800;color:var(--text);margin:4px 0 10px}
     .report-table-title-spaced{margin-top:22px}
-    .employee-search{position:relative;margin-bottom:12px}
-    .employee-search input{width:100%}
-    .employee-results{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
-    .employee-results button{display:block;width:100%;padding:10px 12px;background:transparent;border:0;border-bottom:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer}
-    .employee-results button:hover{background:var(--surface2)}
+    .employee-search{position:relative;margin-bottom:12px;padding:14px;background:#fff;border:1px solid rgba(25,28,28,.14);border-radius:8px;box-shadow:0 1px 2px rgba(25,28,28,.04)}
+    .employee-search input{padding:0 12px}
+    .employee-search input::placeholder{color:rgba(66,72,68,.58)}
+    .employee-results{position:absolute;z-index:20;left:14px;right:14px;top:calc(100% - 8px);background:#fff;border:1px solid rgba(25,28,28,.14);border-radius:8px;box-shadow:0 12px 28px rgba(25,28,28,.12);overflow:hidden}
+    .employee-results button{display:block;width:100%;padding:11px 12px;background:transparent;border:0;border-bottom:1px solid rgba(25,28,28,.10);text-align:left;color:var(--text);cursor:pointer;font-size:13px}
+    .employee-results button:hover{background:#f4f7f5}
     .employee-report-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:14px 0}
     .employee-report-head strong{display:block;margin-bottom:4px}
     .disabled-link{opacity:.5;pointer-events:none}
@@ -540,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .report-table{width:100%}
     .report-table th,.report-table td{white-space:nowrap}
     @media(max-width:760px){
-        .report-filters select{width:100%}
+        .report-filters{grid-template-columns:1fr;padding:12px}
         .employee-report-head{align-items:flex-start;flex-direction:column}
     }
 </style>

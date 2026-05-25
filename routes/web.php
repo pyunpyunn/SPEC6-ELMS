@@ -51,6 +51,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
             Route::post('/users/{user}/activate', [AdminUserController::class, 'activate'])->name('users.activate');
             Route::patch('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
+            Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
             Route::resource('employees', AdminEmployeeController::class);
 
@@ -78,6 +79,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
             Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
             Route::put('/profile/password', [AdminProfileController::class, 'password'])->name('profile.password');
+            Route::delete('/profile', [AdminProfileController::class, 'destroy'])->name('profile.destroy');
         });
 
     Route::middleware(['auth', 'profile.complete', 'account.approved', 'role:hr'])

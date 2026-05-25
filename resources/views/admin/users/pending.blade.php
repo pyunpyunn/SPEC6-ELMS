@@ -68,22 +68,26 @@
     <div class="tab-pane" id="all-tab" style="display:none">
         <div class="card" style="box-shadow:none;border:none">
             <form class="filter-bar" method="GET" action="{{ route('admin.users.index') }}">
-                <div class="search-wrap">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input id="adminUserSearch" type="search" name="search" value="{{ $userFilters['search'] ?? request('search') }}" placeholder="Search by name or employee ID" aria-label="Search users by name or employee ID">
+                <div class="filter-bar-row">
+                    <div class="search-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input id="adminUserSearch" type="search" name="search" value="{{ $userFilters['search'] ?? request('search') }}" placeholder="Search by name or employee ID" aria-label="Search users by name or employee ID">
+                    </div>
                 </div>
-                <select name="department_id">
-                    <option value="">All Departments</option>
-                    @foreach($departments as $department)
-                        <option value="{{ $department->id }}" @selected((string)($userFilters['department_id'] ?? request('department_id')) === (string) $department->id)>{{ $department->name }}</option>
-                    @endforeach
-                </select>
-                <select name="status">
-                    <option value="">All Status</option>
-                    <option value="active" @selected(($userFilters['status'] ?? request('status')) === 'active')>Active</option>
-                    <option value="inactive" @selected(($userFilters['status'] ?? request('status')) === 'inactive')>Inactive</option>
-                </select>
-                <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+                <div class="filter-bar-row">
+                    <select name="department_id">
+                        <option value="">All Departments</option>
+                        @foreach($departments as $department)
+                            <option value="{{ $department->id }}" @selected((string)($userFilters['department_id'] ?? request('department_id')) === (string) $department->id)>{{ $department->name }}</option>
+                        @endforeach
+                    </select>
+                    <select name="status">
+                        <option value="">All Status</option>
+                        <option value="active" @selected(($userFilters['status'] ?? request('status')) === 'active')>Active</option>
+                        <option value="inactive" @selected(($userFilters['status'] ?? request('status')) === 'inactive')>Inactive</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+                </div>
             </form>
         </div>
         <div class="table-wrap">
@@ -121,7 +125,6 @@
                                 'role' => $user->role,
                                 'department_id' => $user->employee?->department_id ?? $user->department_id,
                                 'position_id' => $user->employee?->position_id ?? $user->position_id,
-                                'manager_id' => $user->employee?->manager_id,
                             ];
                             $deleteUserData = [
                                 'id' => $user->id,
@@ -207,15 +210,6 @@
                 <div class="form-group">
                     <label class="form-label" for="activateDateHired">Date Hired</label>
                     <input class="form-control" type="date" name="date_hired" id="activateDateHired" value="{{ now()->toDateString() }}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="activateManager">Direct Manager</label>
-                    <select class="form-control" name="manager_id" id="activateManager">
-                        <option value="">Select manager...</option>
-                        @foreach($managers as $manager)
-                            <option value="{{ $manager->id }}">{{ $manager->full_name }} · {{ $manager->position }}</option>
-                        @endforeach
-                    </select>
                 </div>
             </div>
         </form>
@@ -318,7 +312,6 @@ function openActivateModal(data) {
     document.getElementById('activateDepartment').value = data.department_id || '';
     loadActivatePositions(data.department_id || '', data.position_id || '');
     document.getElementById('activateDateHired').value = data.date_hired || '{{ now()->toDateString() }}';
-    document.getElementById('activateManager').value = data.manager_id || '';
     document.getElementById('activateForm').action = activateState.action;
     document.getElementById('activateModal').classList.add('open');
 }

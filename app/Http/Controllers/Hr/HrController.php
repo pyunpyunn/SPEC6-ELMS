@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Hr;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hr\ActivateUserRequest;
 use App\Http\Requests\Hr\DeactivateEmployeeRequest;
+use App\Http\Requests\Hr\DeleteUserRequest;
 use App\Http\Requests\Hr\DepartmentRequest;
 use App\Http\Requests\Hr\EmployeeRequest;
 use App\Http\Requests\Hr\LeaveDecisionRequest;
@@ -24,6 +25,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -76,7 +78,7 @@ class HrController extends Controller
                 ->whereDate('start_date', '<=', now())
                 ->whereDate('end_date', '>=', now())
                 ->orderBy('start_date', 'desc')
-                ->paginate(10, ['*'], 'on_leave_page')
+                ->paginate(3, ['*'], 'on_leave_page')
                 ->withQueryString(),
         ]);
     }
@@ -108,7 +110,6 @@ class HrController extends Controller
             'pendingUsers' => User::where('status', 'pending')->latest()->paginate(10, ['*'], 'pending_page'),
             'allUsers' => $allUsers,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
-            'managers' => $this->managerEmployees(),
             'positions' => Position::orderBy('name')->get(),
             'userFilters' => [
                 'search' => $request->string('search')->toString(),
@@ -151,7 +152,6 @@ class HrController extends Controller
                 'employee_id' => $employeeId,
                 'department_id' => $department->id,
                 'position_id' => $position->id,
-                'manager_id' => $validated['manager_id'] ?? null,
                 'first_name' => $name[0],
                 'last_name' => $name[1],
                 'gender' => $validated['gender'] ?? null,
@@ -174,6 +174,42 @@ class HrController extends Controller
         $user->employee?->update(['employment_status' => 'terminated']);
 
         return back()->with('warning', 'Account deactivated.');
+    }
+
+    public function deleteUser(DeleteUserRequest $request, User $user): RedirectResponse
+    {
+        $request->validated();
+
+        if ($this->isLastActiveHr($user)) {
+            return back()->with('error', 'This is the last active HR account and cannot be deleted.');
+        }
+
+        if ($request->user()?->is($user)) {
+            return $this->deleteOwnAccount($request);
+        }
+
+        $this->deleteUserRecord($user);
+
+        return back()->with('success', 'Account deleted.');
+    }
+
+    public function deleteOwnAccount(DeleteUserRequest $request): RedirectResponse
+    {
+        $request->validated();
+
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        if ($this->isLastActiveHr($user)) {
+            return back()->with('error', 'This is the last active HR account and cannot be deleted.');
+        }
+
+        Auth::logout();
+        $this->deleteUserRecord($user);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/')->with('success', 'Your account has been deleted.');
     }
 
     public function employees(Request $request): View
@@ -802,7 +838,6 @@ class HrController extends Controller
     {
         return [
             'departments' => Department::with('positions')->where('is_active', true)->orderBy('name')->get(),
-            'managers' => $this->managerEmployees(),
             'positions' => Position::orderBy('name')->get(),
             'positionConfig' => config('positions.position_ids') ?? [],
             'departmentPrefixes' => config('positions.department_prefixes') ?? [],
@@ -905,6 +940,34 @@ class HrController extends Controller
             'max_document_days' => $request->input('max_document_days'),
             'is_active' => $request->boolean('is_active', true),
         ];
+    }
+
+    private function deleteUserRecord(User $user): void
+    {
+        DB::transaction(function () use ($user): void {
+            $user->loadMissing(['employee.leaveApplications', 'employee.leaveBalances', 'notifications']);
+
+            if ($user->employee) {
+                $user->employee->leaveApplications()->delete();
+                $user->employee->leaveBalances()->delete();
+            }
+
+            $user->notifications()->delete();
+            $user->delete();
+        });
+    }
+
+    private function isLastActiveHr(User $user): bool
+    {
+        if (! $user->isActive() || ! $user->hasAccessRole('hr')) {
+            return false;
+        }
+
+        return ! User::with('employee.departmentRecord')
+            ->where('status', 'active')
+            ->whereKeyNot($user->getKey())
+            ->get()
+            ->contains(fn (User $candidate) => $candidate->hasAccessRole('hr'));
     }
 
     private function notify(User $user, string $title, string $body, ?string $url = null, string $type = 'info'): void

@@ -131,6 +131,7 @@ Get-Content storage/logs/laravel.log -Wait -Tail 50
 ## Key Documentation
 
 - `DESIGN.md` - UI design system and visual specifications.
+- `docs/LARAVEL_STRUCTURE_BEGINNER_GUIDE.md` - beginner-friendly Laravel folder, MVC, Eloquent, and ELMS implementation guide.
 - `docs/FINAL_PROJECT_DOCUMENTATION.md` - system overview, ER diagram, route/controller map, and screenshot checklist.
 - `docs/MODULE_PAGE_MAP.md` - technical defense guide for locating modules, pages, layouts, styling, routes, controllers, models, and requests.
 

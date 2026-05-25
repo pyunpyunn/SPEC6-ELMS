@@ -282,12 +282,23 @@ class ReportController extends Controller
                 $total = 0.0;
 
                 $leaveCompensations = $compensableTypes->map(function (array $type) use ($employee, $employeeBalanceDays, &$total): array {
+                    if (! $this->leaveTypeAppliesToEmployee($type, $employee)) {
+                        return [
+                            'leave_type_id' => $type['id'],
+                            'leave_type' => $type['name'],
+                            'days_used' => '0',
+                            'days_remaining' => '0',
+                            'total_compensation' => $this->formatCurrency(0),
+                        ];
+                    }
+
                     $days = $employeeBalanceDays->get($type['id'], [
+                        'allocated_days' => (float) $type['annual_allocation'],
                         'used_days' => 0,
                         'remaining_days' => (float) $type['annual_allocation'],
                     ]);
                     $daysUsed = (float) $days['used_days'];
-                    $daysRemaining = (float) $days['remaining_days'];
+                    $daysRemaining = max(0, (float) $days['remaining_days']);
                     $compensation = $daysRemaining * $this->compensationRateFor($type, $employee);
                     $total += $compensation;
 
@@ -321,10 +332,10 @@ class ReportController extends Controller
             ->keyBy('leave_type_id');
 
         $rows = $compensableTypes
-            ->map(function (array $type) use ($balances): array {
+            ->map(function (array $type) use ($employee, $year, $balances): array {
                 $balance = $balances->get($type['id']);
                 $entitlement = (float) ($balance?->allocated_days ?? $type['annual_allocation'] ?? 0);
-                $used = (float) ($balance?->used_days ?? 0);
+                $used = $this->approvedLeaveDaysFor($employee, $type['id'], $year);
                 $remaining = max(0, $entitlement - $used);
 
                 return [
@@ -336,7 +347,7 @@ class ReportController extends Controller
             })
             ->values();
 
-        $leaveCompensationRows = $this->leaveCompensationRowsForEmployee($employee, $compensableTypes, $balances);
+        $leaveCompensationRows = $this->leaveCompensationRowsForEmployee($employee, $year, $compensableTypes, $balances);
         $totalLeaveCompensation = $leaveCompensationRows->sum('total_compensation_value');
 
         return [
@@ -363,11 +374,11 @@ class ReportController extends Controller
         ];
     }
 
-    private function leaveCompensationRowsForEmployee(Employee $employee, Collection $compensableTypes, Collection $balances): Collection
+    private function leaveCompensationRowsForEmployee(Employee $employee, int $year, Collection $compensableTypes, Collection $balances): Collection
     {
         return $compensableTypes
-            ->map(function (array $type) use ($employee, $balances): array {
-                $daysUsed = (float) ($balances->get($type['id'])?->used_days ?? 0);
+            ->map(function (array $type) use ($employee, $year, $balances): array {
+                $daysUsed = $this->approvedLeaveDaysFor($employee, $type['id'], $year);
                 $entitlement = (float) ($balances->get($type['id'])?->allocated_days ?? $type['annual_allocation'] ?? 0);
                 $daysRemaining = max(0, $entitlement - $daysUsed);
                 $total = $daysRemaining * $this->compensationRateFor($type, $employee);
@@ -390,9 +401,11 @@ class ReportController extends Controller
             return collect();
         }
 
-        return LeaveBalance::with('employee:id,department_id')
+        $typeIds = $compensableTypes->pluck('id');
+
+        $balances = LeaveBalance::with('employee:id,department_id')
             ->where('year', $year)
-            ->whereIn('leave_type_id', $compensableTypes->pluck('id'))
+            ->whereIn('leave_type_id', $typeIds)
             ->whereHas('employee', function ($query) use ($departmentId): void {
                 if ($departmentId) {
                     $query->where('department_id', $departmentId);
@@ -409,11 +422,55 @@ class ReportController extends Controller
 
                         return [
                             (int) $leaveTypeId => [
-                                'used_days' => $usedDays,
-                                'remaining_days' => max(0, $allocatedDays - $usedDays),
+                                'allocated_days' => $allocatedDays,
+                                'balance_used_days' => $usedDays,
                             ],
                         ];
                     });
+            });
+
+        $approvedDays = LeaveApplication::with('employee:id,department_id')
+            ->where('status', 'approved')
+            ->whereYear('start_date', $year)
+            ->whereIn('leave_type_id', $typeIds)
+            ->whereHas('employee', function ($query) use ($departmentId): void {
+                if ($departmentId) {
+                    $query->where('department_id', $departmentId);
+                }
+            })
+            ->get()
+            ->groupBy('employee_id')
+            ->map(function (Collection $employeeLeaves): Collection {
+                return $employeeLeaves
+                    ->groupBy('leave_type_id')
+                    ->mapWithKeys(fn (Collection $leaveTypeLeaves, int|string $leaveTypeId): array => [
+                        (int) $leaveTypeId => (float) $leaveTypeLeaves->sum('total_days'),
+                    ]);
+            });
+
+        return $balances
+            ->keys()
+            ->merge($approvedDays->keys())
+            ->unique()
+            ->mapWithKeys(function (int|string $employeeId) use ($balances, $approvedDays, $compensableTypes): array {
+                $employeeBalances = $balances->get($employeeId, collect());
+                $employeeApprovedDays = $approvedDays->get($employeeId, collect());
+
+                return [
+                    (int) $employeeId => $compensableTypes->mapWithKeys(function (array $type) use ($employeeBalances, $employeeApprovedDays): array {
+                        $balance = $employeeBalances->get($type['id'], []);
+                        $allocatedDays = (float) ($balance['allocated_days'] ?? $type['annual_allocation'] ?? 0);
+                        $approvedUsedDays = (float) $employeeApprovedDays->get($type['id'], 0);
+
+                        return [
+                            $type['id'] => [
+                                'allocated_days' => $allocatedDays,
+                                'used_days' => $approvedUsedDays,
+                                'remaining_days' => max(0, $allocatedDays - $approvedUsedDays),
+                            ],
+                        ];
+                    }),
+                ];
             });
     }
 
@@ -425,7 +482,7 @@ class ReportController extends Controller
             ->where('is_compensable', true)
             ->orderBy('name')
             ->get()
-            ->filter(fn (LeaveType $leaveType) => $leaveType->isVisibleForGender($employee?->gender))
+            ->filter(fn (LeaveType $leaveType) => ! $employee || $leaveType->isVisibleForGender($employee->gender))
             ->map(function (LeaveType $leaveType) use ($amountColumn): array {
                 $configuredAmount = $amountColumn && is_numeric($leaveType->{$amountColumn})
                     ? (float) $leaveType->{$amountColumn}
@@ -434,6 +491,7 @@ class ReportController extends Controller
                 return [
                     'id' => $leaveType->id,
                     'name' => $leaveType->name,
+                    'gender' => $leaveType->gender,
                     'annual_allocation' => (float) $leaveType->annual_allocation,
                     'days_header' => $leaveType->name.' Days Used',
                     'remaining_header' => $leaveType->name.' Days Remaining',
@@ -451,6 +509,37 @@ class ReportController extends Controller
         }
 
         return is_numeric($employee->daily_rate) ? (float) $employee->daily_rate : 0.0;
+    }
+
+    private function approvedLeaveDaysFor(Employee $employee, int $leaveTypeId, int $year): float
+    {
+        return (float) LeaveApplication::where('employee_id', $employee->id)
+            ->where('leave_type_id', $leaveTypeId)
+            ->where('status', 'approved')
+            ->whereYear('start_date', $year)
+            ->sum('total_days');
+    }
+
+    private function leaveTypeAppliesToEmployee(array $type, Employee $employee): bool
+    {
+        $gender = Str::lower((string) $employee->gender);
+        $typeGender = Str::lower((string) ($type['gender'] ?? ''));
+
+        if ($typeGender !== '') {
+            return $gender === $typeGender;
+        }
+
+        $name = Str::lower((string) $type['name']);
+
+        if (str_contains($name, 'maternity')) {
+            return $gender === 'female';
+        }
+
+        if (str_contains($name, 'paternity')) {
+            return $gender === 'male';
+        }
+
+        return true;
     }
 
     private function leaveTypeCompensationAmountColumn(): ?string

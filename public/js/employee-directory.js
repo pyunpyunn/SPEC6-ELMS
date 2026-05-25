@@ -91,7 +91,6 @@ function openEmployeeModal(mode, employee = {}) {
         employee.position || ''
     );
 
-    document.getElementById('employeeManager').value = employee.manager_id || '';
     document.getElementById('employeeDateHired').value = employee.date_hired || document.getElementById('employeeDateHired')?.getAttribute('value') || '';
     document.getElementById('employeePhone').value = employee.phone || '';
     document.getElementById('employeeStatus').value = employee.employment_status || 'active';
